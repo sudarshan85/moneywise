@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoneyWise - Personal Budget Tracking</title>
+
+    <!-- Load CSS -->
+    <link rel="stylesheet" href="/frontend/static/styles.css">
+
+    <!-- Load Vue.js 3 from CDN -->
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.js"></script>
+
+    <!-- Load Vue Router 4 from CDN -->
+    <script src="https://unpkg.com/vue-router@4.3.0/dist/vue-router.global.js"></script>
+
+    <!-- Load Chart.js 4 from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    <!-- Load Axios from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
+</head>
+<body>
+    <!-- Vue app mount point -->
+    <div id="app"></div>
+
+    <!-- Load application modules as ES6 modules -->
+    <script type="module">
+        // Import router
+        import { router } from '/frontend/router.js';
+
+        // Import components
+        import { Sidebar } from '/frontend/components/Sidebar.js';
+        import { Dashboard } from '/frontend/components/Dashboard.js';
+        import { Transactions } from '/frontend/components/Transactions.js';
+        import { CategoryTransfers } from '/frontend/components/CategoryTransfers.js';
+        import { Configuration } from '/frontend/components/Configuration.js';
+
+        // Import report components
+        import { AccountReports } from '/frontend/components/reports/AccountReports.js';
+        import { Balances } from '/frontend/components/reports/Balances.js';
+        import { SpendingReports } from '/frontend/components/reports/SpendingReports.js';
+        import { CategoryReports } from '/frontend/components/reports/CategoryReports.js';
+        import { TrendReports } from '/frontend/components/reports/TrendReports.js';
+
+        // Create Vue app
+        const { createApp } = Vue;
+
+        const app = createApp({
+            components: {
+                Sidebar,
+                Dashboard,
+                Transactions,
+                CategoryTransfers,
+                Configuration,
+                AccountReports,
+                Balances,
+                SpendingReports,
+                CategoryReports,
+                TrendReports
+            },
+            template: `
+                <div class="app-container">
+                    <Sidebar />
+                    <main class="main-content">
+                        <router-view></router-view>
+                    </main>
+                </div>
+            `
+        });
+
+        // Use router
+        app.use(router);
+
+        // Mount app
+        app.mount('#app');
+    </script>
+</body>
+</html>
