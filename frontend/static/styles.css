@@ -384,16 +384,7 @@ a:hover {
 .placeholder-icon {
     font-size: 4rem;
     margin-bottom: var(--spacing-lg);
-    animation: bounce 2s ease-in-out infinite;
-}
-
-@keyframes bounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
+    opacity: 0.9;
 }
 
 .placeholder-content p {
