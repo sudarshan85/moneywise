@@ -7,10 +7,12 @@ from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
+    Column,
     Date,
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Numeric,
     String,
     UniqueConstraint,
@@ -189,7 +191,3 @@ class ExchangeRate(Base):
 
     def __repr__(self):
         return f"<ExchangeRate(id={self.id}, {self.base_currency}->{self.target_currency}: {self.rate})>"
-
-
-# Import Column after Base is defined to avoid circular import
-from sqlalchemy import Column, Integer

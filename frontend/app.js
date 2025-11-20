@@ -5,6 +5,7 @@
 
 import router from './router.js';
 import Sidebar from './components/Sidebar.js';
+import * as api from './api.js';
 
 const { createApp } = window.Vue;
 
@@ -24,6 +25,12 @@ const app = createApp({
 
 // Register router
 app.use(router);
+
+// Make API available globally to all components
+app.config.globalProperties.api = api;
+
+// Also expose to window for direct access
+window.api = api;
 
 // Mount app to #app div
 app.mount('#app');
