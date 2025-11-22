@@ -5,14 +5,15 @@ CRUD operations for database models.
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 
-from backend.models import Account, Category, CategoryRename
+from backend.models import Account, Category, CategoryRename, Transaction
 from backend.schemas import (
     AccountCreate, AccountUpdate,
     CategoryCreate, CategoryUpdate,
-    CategoryRenameInfo
+    CategoryRenameInfo,
+    TransactionCreate, TransactionUpdate
 )
 
 
@@ -170,3 +171,122 @@ async def get_category_rename_history(db: AsyncSession, category_id: int) -> lis
         CategoryRenameInfo(old_name=r.old_name, renamed_at=r.renamed_at)
         for r in renames
     ]
+
+
+# ============================================================================
+# TRANSACTION OPERATIONS
+# ============================================================================
+
+async def create_transaction(db: AsyncSession, transaction_data: TransactionCreate) -> Transaction:
+    """Create a new transaction."""
+    transaction = Transaction(
+        date=transaction_data.date,
+        amount=transaction_data.amount,
+        account_id=transaction_data.account_id,
+        category_id=transaction_data.category_id,
+        memo=transaction_data.memo,
+        is_transfer=transaction_data.is_transfer,
+        transfer_id=transaction_data.transfer_id,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    db.add(transaction)
+    await db.commit()
+    await db.refresh(transaction)
+    return transaction
+
+
+async def get_transaction_by_id(db: AsyncSession, transaction_id: int) -> Transaction | None:
+    """Get transaction by ID with account and category relationships."""
+    stmt = (
+        select(Transaction)
+        .where(Transaction.id == transaction_id)
+        .options(
+            selectinload(Transaction.account),
+            selectinload(Transaction.category)
+        )
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def get_transactions(
+    db: AsyncSession,
+    account_id: int | None = None,
+    category_id: int | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    limit: int = 1000
+) -> list[Transaction]:
+    """Get transactions with optional filters, ordered newest first."""
+    stmt = (
+        select(Transaction)
+        .options(
+            selectinload(Transaction.account),
+            selectinload(Transaction.category)
+        )
+    )
+
+    # Apply filters
+    if account_id is not None:
+        stmt = stmt.where(Transaction.account_id == account_id)
+    if category_id is not None:
+        stmt = stmt.where(Transaction.category_id == category_id)
+    if start_date is not None:
+        stmt = stmt.where(Transaction.date >= start_date)
+    if end_date is not None:
+        stmt = stmt.where(Transaction.date <= end_date)
+
+    # Order by date descending (newest first), limit results
+    stmt = stmt.order_by(Transaction.date.desc()).limit(limit)
+
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+async def update_transaction(
+    db: AsyncSession,
+    transaction_id: int,
+    transaction_data: TransactionUpdate
+) -> Transaction | None:
+    """Update a transaction."""
+    transaction = await get_transaction_by_id(db, transaction_id)
+    if not transaction:
+        return None
+
+    update_data = transaction_data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(transaction, key, value)
+
+    transaction.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(transaction)
+
+    # Reload to get relationships
+    return await get_transaction_by_id(db, transaction_id)
+
+
+async def delete_transaction(db: AsyncSession, transaction_id: int) -> bool:
+    """Delete a transaction."""
+    transaction = await get_transaction_by_id(db, transaction_id)
+    if not transaction:
+        return False
+
+    await db.delete(transaction)
+    await db.commit()
+    return True
+
+
+async def get_category_balance(db: AsyncSession, category_id: int) -> Decimal:
+    """Get total balance for a category (sum of all transactions in that category)."""
+    stmt = select(Transaction).where(
+        Transaction.category_id == category_id
+    )
+    result = await db.execute(stmt)
+    transactions = result.scalars().all()
+
+    balance = Decimal("0.00")
+    for txn in transactions:
+        balance += txn.amount
+
+    return balance

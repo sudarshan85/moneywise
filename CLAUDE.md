@@ -402,77 +402,6 @@ Cache currency exchange rates:
 
 ---
 
-### Phase 1.5: Category Budget Limits (v0.2.5-alpha)
-**Goal:** Set monthly spending limits for each category and display warnings when spending exceeds the limit.
-
-**Status:** ⏳ Not Started
-
-#### Concept Clarification:
-This feature implements the **maximum spending amount** for each category per month (envelope budgeting). This is different from Category Transfers (Phase 4):
-- **Category Budget Limit** (this phase): The maximum amount you *plan* to spend in each category per month (e.g., "Groceries: $500/month")
-- **Category Transfers** (Phase 4): Each month you *allocate* money from your income into categories (moving money into envelopes)
-- **Budget vs Actual**: When actual spending exceeds the budget limit, show red warning indicators
-
-#### What to Build:
-
-1. **Database schema update** (`backend/models.py`):
-   - Add `monthly_budget` column to `categories` table (Decimal(12, 2), nullable, default 0)
-   - This represents the maximum spending limit for the category per month
-   - **Database migration** (`backend/database.py`): Add migration to ALTER existing categories table
-
-2. **Backend schemas** (`backend/schemas.py` - update existing):
-   - Add `monthly_budget` field to CategoryCreate, CategoryUpdate, CategoryResponse
-   - Validation: monthly_budget must be >= 0
-
-3. **Backend CRUD** (`backend/crud.py` - update existing):
-   - Update category CRUD operations to handle monthly_budget field
-   - Budget comparison functions deferred to Phase 3 (Dashboard)
-
-4. **Frontend API client** (`frontend/api.js` - already supports monthly_budget via existing endpoints):
-   - No changes needed (PATCH endpoint already accepts any category fields)
-
-5. **Configuration UI** (`frontend/components/Configuration.js`):
-   - Add "Monthly Budget" column to categories table
-   - Inline editing for monthly budget (click Edit, shows number input, Save/Cancel)
-   - Display budget as currency ($0.00 format)
-   - Updated add category form with budget input field
-
-6. ⏳ **Budget Warning System** (for later phases - Dashboard/Transactions):
-   - When displaying categories, compare actual spending vs budget limit
-   - If actual spending > monthly_budget, show:
-     - Red background or border
-     - ⚠️ warning icon
-     - Overspending badge (e.g., "Over by $50.00")
-   - This will be implemented in Dashboard (Phase 3) and Transaction views (Phase 2)
-
-7. **Styling** (`frontend/static/styles.css` - add to existing):
-   - Budget column styling in categories table (blue display, right-aligned)
-   - Add form grid layout for name + budget inputs
-   - Responsive design for mobile
-
-#### Testing Checklist for User:
-- [ ] Navigate to Configuration page
-- [ ] **Test Category Budget Limits:**
-  - [ ] See "Monthly Budget" column in categories table
-  - [ ] Click Edit on a category, see budget input field
-  - [ ] Set budget for Groceries (e.g., $500.00), click Save
-  - [ ] Set budgets for multiple categories
-  - [ ] Verify budgets display correctly
-  - [ ] Edit an existing budget, verify update works
-  - [ ] Set budget to $0 (should work for categories without budgets)
-- [ ] **Test Persistence:**
-  - [ ] Close browser and reopen app
-  - [ ] Verify all category budgets preserved
-- [ ] **Test Database Migration:**
-  - [ ] Existing categories loaded correctly after adding monthly_budget column
-  - [ ] All existing categories default to $0.00 budget
-
-**⏳ Phase 1.5 Incomplete - Awaiting user testing and approval**
-
-**Note:** Warning indicators for overspending will be implemented in Phase 3 (Dashboard) when we can calculate actual vs budgeted spending.
-
----
-
 ### Phase 2: Transaction Management & Currency (v0.3.0-alpha)
 **Goal:** Add, view, edit, and delete transactions. Display amounts in any currency with live exchange rates.
 
@@ -657,7 +586,78 @@ This feature implements the **maximum spending amount** for each category per mo
 
 ---
 
-### Phase 4: Category Transfers (v0.5.0-alpha)
+### Phase 4: Category Budget Limits (v0.4.5-alpha)
+**Goal:** Set monthly spending limits for each category and display warnings when spending exceeds the limit.
+
+**Status:** ⏳ Not Started
+
+#### Concept Clarification:
+This feature implements the **maximum spending amount** for each category per month (envelope budgeting). This is different from Category Transfers (Phase 5):
+- **Category Budget Limit** (this phase): The maximum amount you *plan* to spend in each category per month (e.g., "Groceries: $500/month")
+- **Category Transfers** (Phase 5): Each month you *allocate* money from your income into categories (moving money into envelopes)
+- **Budget vs Actual**: When actual spending exceeds the budget limit, show red warning indicators
+
+#### What to Build:
+
+1. **Database schema** - Already ready:
+   - `monthly_budget` column already exists in `categories` table
+   - Just need to populate it through UI
+
+2. **Backend schemas** (`backend/schemas.py` - update existing):
+   - Add `monthly_budget` field to CategoryCreate, CategoryUpdate, CategoryResponse
+   - Validation: monthly_budget must be >= 0
+
+3. **Backend CRUD** (`backend/crud.py` - update existing):
+   - Update category CRUD operations to handle monthly_budget field
+   - Budget comparison functions implemented in Phase 3 (Dashboard)
+
+4. **Frontend API client** (`frontend/api.js` - already supports monthly_budget via existing endpoints):
+   - No changes needed (PATCH endpoint already accepts any category fields)
+
+5. **Configuration UI** (`frontend/components/Configuration.js` - update existing):
+   - Add "Monthly Budget" column to categories table
+   - Inline editing for monthly budget (click Edit, shows number input, Save/Cancel)
+   - Display budget as currency ($0.00 format)
+   - Updated add category form with budget input field
+
+6. **Dashboard Integration** (`frontend/components/Dashboard.js`):
+   - Add comparison logic to show budget warnings
+   - If actual spending > monthly_budget, show:
+     - Red background or border
+     - ⚠️ warning icon
+     - Overspending badge (e.g., "Over by $50.00")
+   - Display "Budgeted" column with budget limit
+
+7. **Styling** (`frontend/static/styles.css` - add to existing):
+   - Budget column styling in categories table (blue display, right-aligned)
+   - Warning indicators styling (red, icons, badges)
+   - Responsive design
+
+#### Testing Checklist for User:
+- [ ] Navigate to Configuration page
+- [ ] **Test Category Budget Limits:**
+  - [ ] See "Monthly Budget" column in categories table
+  - [ ] Click Edit on a category, see budget input field
+  - [ ] Set budget for Groceries (e.g., $500.00), click Save
+  - [ ] Set budgets for multiple categories
+  - [ ] Verify budgets display correctly
+  - [ ] Edit an existing budget, verify update works
+  - [ ] Set budget to $0 (should work for categories without budgets)
+- [ ] **Test Persistence:**
+  - [ ] Close browser and reopen app
+  - [ ] Verify all category budgets preserved
+- [ ] **Test Dashboard Integration:**
+  - [ ] View Dashboard
+  - [ ] See budgeted amounts in categories table
+  - [ ] Add transactions that exceed budget
+  - [ ] Verify warning indicators appear in red
+  - [ ] Verify overspending badge shows correct amount
+
+**⏳ Phase 4 Incomplete - Awaiting user testing and approval**
+
+---
+
+### Phase 5: Category Transfers (v0.5.0-alpha)
 **Goal:** Move money between categories to allocate budget (envelope budgeting).
 
 **Status:** ⏳ Not Started
@@ -718,11 +718,11 @@ This feature implements the **maximum spending amount** for each category per mo
 - [ ] **Test Math:**
   - [ ] Sum of (all category Available + Available to budget) = sum of account balances
 
-**⏳ Phase 4 Incomplete - User must verify budget allocation before proceeding to Phase 5.**
+**⏳ Phase 5 Incomplete - User must verify budget allocation before proceeding to Phase 6.**
 
 ---
 
-### Phase 5: Reconciliation (v0.6.0-alpha)
+### Phase 6: Reconciliation (v0.6.0-alpha)
 **Goal:** Mark when accounts were reconciled to match real bank balances.
 
 **Status:** ⏳ Not Started
@@ -763,45 +763,45 @@ This feature implements the **maximum spending amount** for each category per mo
   - [ ] Verify last reconciled date doesn't change
   - [ ] Reconcile again with new date
 
-**⏳ Phase 5 Incomplete - User must test with real bank statements before proceeding to Phase 6.**
+**⏳ Phase 6 Incomplete - User must test with real bank statements before proceeding to Phase 7.**
 
 ---
 
-### Phase 6-10: Reports
+### Phase 7-11: Reports
 
 Build all 5 report types following similar patterns:
 - Backend: calculations in crud.py, API endpoint in main.py
 - Frontend: API client function, Vue component with filters/charts/tables, styling
 
-**Phase 6 (v0.7.0-alpha): Account Reports**
+**Phase 7 (v0.7.0-alpha): Account Reports**
 **Status:** ⏳ Not Started
 - Transaction history and charts for individual accounts over time
 - Filters: account selector, time period
 - Chart: monthly inflow/outflow/balance using Chart.js
 - Tables: monthly stats and transaction list
 
-**Phase 7 (v0.7.5-alpha): Balances**
+**Phase 8 (v0.7.5-alpha): Balances**
 **Status:** ⏳ Not Started
 - Settled transactions by account with balances
 - Account selector
 - Balance display (actual = settled for now)
 - Transaction list in reverse chronological order
 
-**Phase 8 (v0.8.0-alpha): Spending Reports**
+**Phase 9 (v0.8.0-alpha): Spending Reports**
 **Status:** ⏳ Not Started
 - Spending by category over date range
 - Filters: date range, optional category
 - Chart: horizontal bar chart of categories (outflow/inflow)
 - Tables: category totals, transaction list when category selected
 
-**Phase 9 (v0.8.5-alpha): Category Reports**
+**Phase 10 (v0.8.5-alpha): Category Reports**
 **Status:** ⏳ Not Started
 - Deep dive into single category's history
 - Filters: category, time period, facet (balance/budgeted/activity)
 - Chart: selected facet over time
 - Tables: monthly data, transactions for selected month
 
-**Phase 10 (v0.9.0-alpha): Trend Reports**
+**Phase 11 (v0.9.0-alpha): Trend Reports**
 **Status:** ⏳ Not Started
 - Multi-category trends with stacked charts
 - Filters: time period, multi-select categories (max 6)
@@ -817,7 +817,7 @@ Each report phase follows same pattern:
 
 ---
 
-### Phase 11: Account Transfers (v0.9.5-alpha)
+### Phase 12: Account Transfers (v0.9.5-alpha)
 **Goal:** Transfer money between accounts with auto-linked transactions.
 
 **Status:** ⏳ Not Started
@@ -864,11 +864,11 @@ Each report phase follows same pattern:
 - [ ] **Test with Real Transfers:**
   - [ ] Record real transfer between accounts
 
-**⏳ Phase 11 Incomplete - User must verify before proceeding to Phase 12.**
+**⏳ Phase 12 Incomplete - User must verify before proceeding to Phase 13.**
 
 ---
 
-### Phase 12: Backup & Export (v1.0.0-beta)
+### Phase 13: Backup & Export (v1.0.0-beta)
 **Goal:** Automatic database backups and manual export.
 
 **Status:** ⏳ Not Started
@@ -929,7 +929,7 @@ Each report phase follows same pattern:
   - [ ] Create 15+ backups
   - [ ] Verify only last 10 kept
 
-**⏳ Phase 12 Incomplete - User must test backup/restore before v1.0.0.**
+**⏳ Phase 13 Incomplete - User must test backup/restore before v1.0.0.**
 
 ---
 
