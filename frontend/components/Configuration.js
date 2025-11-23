@@ -40,6 +40,7 @@ export default {
                     <thead>
                         <tr>
                             <th>Account Name</th>
+                            <th>Description</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -56,6 +57,17 @@ export default {
                                     autofocus
                                 />
                                 <span v-else>{{ account.name }}</span>
+                            </td>
+                            <td class="account-description">
+                                <input
+                                    v-if="editingAccountId === account.id"
+                                    v-model="editingAccountDescription"
+                                    type="text"
+                                    class="editable-field"
+                                    @keyup.enter="saveAccount(account.id)"
+                                    @keyup.escape="cancelEdit"
+                                />
+                                <span v-else>{{ account.description || '-' }}</span>
                             </td>
                             <td class="actions">
                                 <button
@@ -74,7 +86,7 @@ export default {
                                 </button>
                                 <button
                                     v-if="editingAccountId !== account.id"
-                                    @click="startEditAccount(account.id, account.name)"
+                                    @click="startEditAccount(account.id, account.name, account.description)"
                                     class="btn btn-primary"
                                 >
                                     Edit
@@ -109,6 +121,7 @@ export default {
                     <thead>
                         <tr>
                             <th>Account Name</th>
+                            <th>Description</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -125,6 +138,17 @@ export default {
                                     autofocus
                                 />
                                 <span v-else>{{ account.name }}</span>
+                            </td>
+                            <td class="account-description">
+                                <input
+                                    v-if="editingAccountId === account.id"
+                                    v-model="editingAccountDescription"
+                                    type="text"
+                                    class="editable-field"
+                                    @keyup.enter="saveAccount(account.id)"
+                                    @keyup.escape="cancelEdit"
+                                />
+                                <span v-else>{{ account.description || '-' }}</span>
                             </td>
                             <td class="actions">
                                 <button
@@ -143,7 +167,7 @@ export default {
                                 </button>
                                 <button
                                     v-if="editingAccountId !== account.id"
-                                    @click="startEditAccount(account.id, account.name)"
+                                    @click="startEditAccount(account.id, account.name, account.description)"
                                     class="btn btn-primary"
                                 >
                                     Edit
@@ -198,6 +222,16 @@ export default {
                             <option value="bank">Bank Account/Cash</option>
                             <option value="credit">Credit Card</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input
+                            v-model="newAccount.description"
+                            type="text"
+                            placeholder="Brief description (optional)"
+                            class="form-input"
+                            @keyup.enter="addAccount"
+                        />
                     </div>
                     <div class="form-group button-group">
                         <button @click="addAccount" class="btn btn-primary">Add Account</button>
@@ -334,13 +368,15 @@ export default {
             categories: [],
             newAccount: {
                 name: '',
-                account_type: 'bank'
+                account_type: 'bank',
+                description: ''
             },
             newCategory: {
                 name: ''
             },
             editingAccountId: null,
             editingAccountName: '',
+            editingAccountDescription: '',
             editingCategoryId: null,
             editingCategoryName: '',
             showHiddenAccounts: false,
@@ -397,7 +433,7 @@ export default {
 
             try {
                 await this.api.createAccount(this.newAccount);
-                this.newAccount = { name: '', account_type: 'bank' };
+                this.newAccount = { name: '', account_type: 'bank', description: '' };
                 await this.loadAccounts();
                 showToast('Account created', 'success');
             } catch (error) {
@@ -405,9 +441,10 @@ export default {
             }
         },
 
-        startEditAccount(accountId, name) {
+        startEditAccount(accountId, name, description) {
             this.editingAccountId = accountId;
             this.editingAccountName = name;
+            this.editingAccountDescription = description || '';
         },
 
         async saveAccount(accountId) {
@@ -417,10 +454,14 @@ export default {
             }
 
             try {
-                await this.api.updateAccount(accountId, { name: this.editingAccountName });
+                await this.api.updateAccount(accountId, {
+                    name: this.editingAccountName,
+                    description: this.editingAccountDescription
+                });
                 await this.loadAccounts();
                 this.editingAccountId = null;
                 this.editingAccountName = '';
+                this.editingAccountDescription = '';
                 showToast('Account updated', 'success');
             } catch (error) {
                 showToast('Error updating account', 'error');
@@ -462,6 +503,7 @@ export default {
         cancelEdit() {
             this.editingAccountId = null;
             this.editingAccountName = '';
+            this.editingAccountDescription = '';
             this.editingCategoryId = null;
             this.editingCategoryName = '';
         },

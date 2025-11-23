@@ -24,12 +24,14 @@ class AccountCreate(BaseModel):
     """Schema for creating a new account."""
     name: str
     account_type: AccountType
+    description: Optional[str] = None
 
 
 class AccountUpdate(BaseModel):
     """Schema for updating an account."""
     name: Optional[str] = None
     account_type: Optional[AccountType] = None
+    description: Optional[str] = None
     is_hidden: Optional[bool] = None
 
 
@@ -38,6 +40,7 @@ class AccountResponse(BaseModel):
     id: int
     name: str
     account_type: AccountType
+    description: Optional[str]
     is_hidden: bool
     created_at: datetime
     updated_at: datetime

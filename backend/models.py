@@ -30,6 +30,7 @@ class Account(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), unique=True, nullable=False)
     account_type = Column(String(50), nullable=False)  # "bank" or "credit"
+    description = Column(String(500), nullable=True)
     is_hidden = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

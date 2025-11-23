@@ -26,6 +26,7 @@ async def create_account(db: AsyncSession, account_data: AccountCreate) -> Accou
     account = Account(
         name=account_data.name,
         account_type=account_data.account_type,
+        description=account_data.description,
         is_hidden=False,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
