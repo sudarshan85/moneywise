@@ -181,19 +181,27 @@ export default {
             <!-- Add Account Form -->
             <div class="add-account-form">
                 <h3>Add New Account</h3>
-                <div class="form-group">
-                    <input
-                        v-model="newAccount.name"
-                        type="text"
-                        placeholder="Account name (e.g., Checking, Visa Card)"
-                        class="form-input"
-                        @keyup.enter="addAccount"
-                    />
-                    <select v-model="newAccount.account_type" class="form-select">
-                        <option value="bank">Bank Account/Cash</option>
-                        <option value="credit">Credit Card</option>
-                    </select>
-                    <button @click="addAccount" class="btn btn-primary">Add Account</button>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Account Name</label>
+                        <input
+                            v-model="newAccount.name"
+                            type="text"
+                            placeholder="Account name (e.g., Checking, Visa Card)"
+                            class="form-input"
+                            @keyup.enter="addAccount"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select v-model="newAccount.account_type" class="form-input">
+                            <option value="bank">Bank Account/Cash</option>
+                            <option value="credit">Credit Card</option>
+                        </select>
+                    </div>
+                    <div class="form-group button-group">
+                        <button @click="addAccount" class="btn btn-primary">Add Account</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -300,15 +308,20 @@ export default {
             <!-- Add Category Form -->
             <div class="add-category-form">
                 <h3>Add New Category</h3>
-                <div class="form-group">
-                    <input
-                        v-model="newCategory.name"
-                        type="text"
-                        placeholder="Category name (e.g., Groceries, Dining Out)"
-                        class="form-input"
-                        @keyup.enter="addCategory"
-                    />
-                    <button @click="addCategory" class="btn btn-primary">Add Category</button>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Category Name</label>
+                        <input
+                            v-model="newCategory.name"
+                            type="text"
+                            placeholder="Category name (e.g., Groceries, Dining Out)"
+                            class="form-input"
+                            @keyup.enter="addCategory"
+                        />
+                    </div>
+                    <div class="form-group button-group">
+                        <button @click="addCategory" class="btn btn-primary">Add Category</button>
+                    </div>
                 </div>
             </div>
         </section>

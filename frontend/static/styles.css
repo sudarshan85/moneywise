@@ -889,12 +889,6 @@ button,
     margin-top: var(--spacing-lg);
 }
 
-.form-group {
-    display: flex;
-    gap: var(--spacing-md);
-    align-items: flex-end;
-    flex-wrap: wrap;
-}
 
 .form-input,
 .form-select {
@@ -1593,6 +1587,11 @@ button,
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: var(--spacing-md);
+}
+
+.add-account-form .form-grid,
+.add-category-form .form-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .form-group {
