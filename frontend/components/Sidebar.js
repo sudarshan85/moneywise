@@ -17,7 +17,7 @@ const Sidebar = {
 
             <div class="sidebar-header">
                 <div class="logo-container">
-                    <div class="logo-icon">💰</div>
+                    <img src="/moneywise_icon.png" alt="MoneyWise" class="logo-icon">
                     <h1 v-if="!isCollapsed" class="logo-text">MoneyWise</h1>
                 </div>
             </div>

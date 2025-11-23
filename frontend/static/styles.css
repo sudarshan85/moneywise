@@ -179,8 +179,10 @@ a:hover {
 }
 
 .logo-icon {
-    font-size: 2rem;
-    animation: float 3s ease-in-out infinite;
+    width: 2rem;
+    height: 2rem;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 @keyframes float {
@@ -199,6 +201,7 @@ a:hover {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    white-space: nowrap;
 }
 
 /* Navigation */
