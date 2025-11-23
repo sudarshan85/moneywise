@@ -54,12 +54,18 @@ export default {
       this.selectedCurrency = saved;
     }
 
-    // Load initial rates
-    await this.loadRates();
+    // Load initial rates (but don't fail if API not working)
+    try {
+      await this.loadRates();
+    } catch (error) {
+      console.warn('Could not load exchange rates on mount:', error);
+    }
 
     // Auto-refresh every 5 minutes
     this.refreshInterval = setInterval(() => {
-      this.loadRates();
+      this.loadRates().catch(err => {
+        console.warn('Could not refresh exchange rates:', err);
+      });
     }, 5 * 60 * 1000);
   },
   beforeUnmount() {
@@ -115,7 +121,7 @@ export default {
   },
   computed: {
     api() {
-      return this.$root.config.globalProperties.api || window.api;
+      return window.api;
     }
   }
 };

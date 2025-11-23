@@ -228,6 +228,9 @@ export default {
         return this.transactions;
       }
       return this.transactions.filter(txn => txn.category_id === this.selectedCategory.id);
+    },
+    api() {
+      return this.$root.$options.globalProperties.api || window.api;
     }
   },
   async mounted() {
@@ -384,11 +387,6 @@ export default {
       if (window.showToast) {
         window.showToast(message, type);
       }
-    }
-  },
-  computed: {
-    api() {
-      return this.$root.config.globalProperties.api || window.api;
     }
   }
 };

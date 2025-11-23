@@ -5,11 +5,20 @@
 
 const Sidebar = {
     template: `
-        <aside class="sidebar">
+        <aside class="sidebar" :class="{ collapsed: isCollapsed }">
+            <!-- Toggle Button -->
+            <button
+                class="sidebar-toggle"
+                @click="toggleSidebar"
+                :title="isCollapsed ? 'Expand menu' : 'Collapse menu'"
+            >
+                <span class="hamburger">☰</span>
+            </button>
+
             <div class="sidebar-header">
                 <div class="logo-container">
                     <div class="logo-icon">💰</div>
-                    <h1 class="logo-text">MoneyWise</h1>
+                    <h1 v-if="!isCollapsed" class="logo-text">MoneyWise</h1>
                 </div>
             </div>
 
@@ -75,12 +84,26 @@ const Sidebar = {
     data() {
         return {
             showReports: false,
+            isCollapsed: false,
         };
+    },
+
+    mounted() {
+        // Load sidebar state from localStorage
+        const saved = localStorage.getItem('sidebarCollapsed');
+        if (saved !== null) {
+            this.isCollapsed = saved === 'true';
+        }
     },
 
     methods: {
         toggleReports() {
             this.showReports = !this.showReports;
+        },
+
+        toggleSidebar() {
+            this.isCollapsed = !this.isCollapsed;
+            localStorage.setItem('sidebarCollapsed', this.isCollapsed);
         },
 
         isActive(path) {

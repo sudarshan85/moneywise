@@ -325,6 +325,85 @@ a:hover {
     margin: 0;
 }
 
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: var(--spacing-md);
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-light);
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-smooth);
+    z-index: 100;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--color-accent-light);
+    color: var(--color-accent-light);
+    transform: scale(1.05);
+}
+
+.sidebar-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Sidebar Collapsed State */
+.sidebar.collapsed {
+    width: 80px;
+    transition: width var(--transition-smooth);
+}
+
+.sidebar.collapsed .sidebar-header {
+    padding: var(--spacing-lg) var(--spacing-sm);
+}
+
+.sidebar.collapsed .logo-text {
+    display: none;
+}
+
+.sidebar.collapsed .nav-label {
+    display: none;
+}
+
+.sidebar.collapsed .nav-link,
+.sidebar.collapsed .nav-section-header {
+    padding: var(--spacing-md) var(--spacing-sm);
+    justify-content: center;
+}
+
+.sidebar.collapsed .collapse-icon {
+    display: none;
+}
+
+.sidebar.collapsed .nav-subsection {
+    display: none;
+}
+
+.sidebar.collapsed .nav-section {
+    padding: 0 var(--spacing-xs);
+}
+
+.sidebar.collapsed .nav-icon {
+    margin: 0;
+}
+
+/* App Container with Collapsed Sidebar */
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+}
+
 /* ============================================================================
    MAIN CONTENT
    ============================================================================ */
@@ -1057,7 +1136,7 @@ button,
     padding: var(--spacing-lg);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
-    margin-bottom: var(--spacing-lg);
+    flex-shrink: 0;
 }
 
 .currency-controls {
@@ -1172,11 +1251,18 @@ button,
 
 .transactions-header {
     margin-bottom: var(--spacing-xl);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
 }
 
 .transactions-header h1 {
-    margin-bottom: var(--spacing-lg);
+    margin: 0;
     color: var(--color-primary);
+    flex: 1;
+    min-width: 250px;
 }
 
 .transactions-container {
@@ -1192,6 +1278,9 @@ button,
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     height: fit-content;
+    position: relative;
+    transition: width var(--transition-smooth);
+    width: 250px;
 }
 
 .category-picker-sidebar h3 {
@@ -1245,6 +1334,238 @@ button,
 
 .category-balance.negative {
     color: var(--color-danger);
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle-btn {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: var(--spacing-md);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: white;
+    color: var(--color-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-smooth);
+    z-index: 10;
+}
+
+.sidebar-toggle-btn:hover {
+    background: #f0f4ff;
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.sidebar-toggle-btn:active {
+    transform: translateY(0);
+}
+
+/* Category Picker Sidebar - Collapsed State */
+.category-picker-sidebar.collapsed {
+    width: 80px;
+    padding: var(--spacing-lg) var(--spacing-sm);
+}
+
+.category-picker-sidebar.collapsed h3 {
+    display: none;
+}
+
+/* Category List - Collapsed View */
+.category-list.collapsed {
+    gap: var(--spacing-xs);
+}
+
+/* Category Items - Collapsed View */
+.category-item.collapsed-item {
+    padding: var(--spacing-md);
+    justify-content: center;
+    border-radius: var(--radius-md);
+    height: 50px;
+    width: 50px;
+    margin: 0 auto;
+    flex-direction: column;
+}
+
+.category-icon {
+    font-size: 1.5rem;
+    display: inline-block;
+}
+
+/* Transactions Container - Responsive Grid */
+.transactions-container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: var(--spacing-lg);
+    transition: grid-template-columns var(--transition-smooth);
+}
+
+.transactions-container.sidebar-collapsed {
+    grid-template-columns: 80px 1fr;
+}
+
+/* Table Wrapper - Allow horizontal scroll only on table, not page */
+.transactions-table-container {
+    background: white;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow-x: auto;
+    overflow-y: visible;
+    /* Critical: Use scroll container without affecting parent */
+    -webkit-overflow-scrolling: touch;
+    /* Show scrollbar only when needed */
+    scrollbar-width: thin;
+}
+
+.transactions-table-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.transactions-table-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.transactions-table-container::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    border-radius: 3px;
+}
+
+.transactions-table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary-light);
+}
+
+/* Table itself should not cause scrolling unless container requires it */
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px; /* Minimum width before horizontal scroll appears */
+}
+
+/* Form Grid - More responsive */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--spacing-md);
+}
+
+/* Responsive: Medium screens (1024px - 1200px) */
+@media (max-width: 1200px) {
+    .transactions-container {
+        grid-template-columns: 200px 1fr;
+    }
+
+    .category-picker-sidebar {
+        width: 200px;
+    }
+
+    .form-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+    .transactions-table {
+        min-width: 700px;
+    }
+}
+
+/* Responsive: Small screens (768px - 1024px) */
+@media (max-width: 1024px) {
+    .transactions-container {
+        grid-template-columns: 1fr;
+    }
+
+    .transactions-container.sidebar-collapsed {
+        grid-template-columns: 1fr;
+    }
+
+    .category-picker-sidebar {
+        width: 100%;
+        height: auto;
+    }
+
+    .category-picker-sidebar.collapsed {
+        width: 100%;
+        padding: var(--spacing-lg);
+    }
+
+    .category-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: var(--spacing-sm);
+    }
+
+    .category-list.collapsed {
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    }
+
+    .category-item.collapsed-item {
+        width: 100%;
+        height: auto;
+        margin: 0;
+    }
+
+    .form-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    }
+
+    .transactions-table {
+        min-width: 600px;
+        font-size: 0.9rem;
+    }
+
+    .transactions-table th,
+    .transactions-table td {
+        padding: var(--spacing-sm);
+    }
+}
+
+/* Responsive: Extra small screens (<768px) */
+@media (max-width: 768px) {
+    .category-list {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+
+    .category-list.collapsed {
+        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .transactions-table {
+        min-width: 100%;
+        font-size: 0.85rem;
+    }
+
+    .transactions-table th,
+    .transactions-table td {
+        padding: var(--spacing-xs);
+    }
+
+    .actions-cell {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    .btn-small {
+        width: 100%;
+        padding: var(--spacing-xs);
+        font-size: 0.8rem;
+    }
+
+    .currency-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }
 
 /* Main Content Area */

@@ -193,7 +193,8 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     db.add(transaction)
     await db.commit()
     await db.refresh(transaction)
-    return transaction
+    # Re-fetch with relationships eager-loaded to avoid lazy loading issues
+    return await get_transaction_by_id(db, transaction.id)
 
 
 async def get_transaction_by_id(db: AsyncSession, transaction_id: int) -> Transaction | None:

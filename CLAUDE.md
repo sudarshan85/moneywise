@@ -506,6 +506,71 @@ Cache currency exchange rates:
 
 ---
 
+### Phase 2.5: UI/UX Enhancements (v0.3.5-alpha)
+**Goal:** Improve user experience with keyboard shortcuts, responsive layout fixes, and status indicators.
+
+**Status:** ⏳ Not Started
+
+#### What to Build:
+
+1. **Dropdown Auto-Filter with Keyboard Shortcut** (`frontend/components/Transactions.js`):
+   - Convert standard `<select>` dropdowns to custom filterable dropdowns (Account, Category fields)
+   - Behavior: Typing a letter filters options matching that letter, auto-selects if only 1 match remains
+   - Works in Add Transaction form and Edit mode table rows
+   - Implementation: Replace `<select>` with custom Vue component or inline logic
+   - **User UX**: Same behavior as Google Sheets dropdowns - press first letter to jump/filter
+   - **Note**: Keep browser's native select for now, explore custom component if needed
+
+2. **Sidebar Toggle/Hide** (`frontend/components/Transactions.js`):
+   - Add collapse/expand button for category picker sidebar
+   - Persist sidebar state to localStorage
+   - When collapsed, sidebar becomes narrow icon-only bar
+   - Main content expands to fill space
+   - Useful for narrow browser windows or when focusing on form
+
+3. **Responsive Layout Fixes** (`frontend/static/styles.css`):
+   - Fix horizontal scrolling issues on narrow windows (< 1200px width)
+   - Ensure transaction form and table don't force horizontal scroll
+   - Use CSS Grid `fr` units and `min-content` for responsive behavior
+   - Test at 50% window width (common tiling scenario)
+   - Consider collapsing sidebar by default on small screens
+
+4. **Transaction Status Column** (`frontend/components/Transactions.js`):
+   - Add "Status" column to transactions table (between Date and Amount)
+   - Default status: "Pending" (💰 emoji) for new transactions
+   - User can toggle between "Pending" (💰) and "Posted" (✓)
+   - Status field in database: `status` column in transactions table (stored as string)
+   - Allow click-to-toggle or dropdown
+   - Different styling for posted vs pending (gray text for posted, bold for pending)
+
+#### Testing Checklist for User:
+- [ ] **Test Keyboard Filtering:**
+  - [ ] Click Account dropdown, press 'C' key - should filter to accounts starting with C
+  - [ ] If only one match, verify it auto-selects
+  - [ ] Type more letters to narrow further
+  - [ ] Works in both add form and edit mode
+- [ ] **Test Sidebar Toggle:**
+  - [ ] Click collapse button (< or > icon)
+  - [ ] Sidebar collapses to narrow bar with icons
+  - [ ] Main area expands
+  - [ ] Close browser and reopen - sidebar state persists
+  - [ ] Sidebar expands back with click
+- [ ] **Test Responsive Layout:**
+  - [ ] Tile browser to 50% width
+  - [ ] No horizontal scroll bar appears
+  - [ ] All form fields visible without scrolling
+  - [ ] Table truncates gracefully or scrolls only table horizontally
+- [ ] **Test Transaction Status:**
+  - [ ] New transaction shows 💰 (Pending) in Status column
+  - [ ] Click status to toggle between 💰 and ✓
+  - [ ] Edit then save - status preserved
+  - [ ] Refresh page - status persists
+  - [ ] Status updates immediately without page reload
+
+**⏳ Phase 2.5 Incomplete - User must test UI enhancements before proceeding to Phase 3.**
+
+---
+
 ### Phase 3: Dashboard View (v0.4.0-alpha)
 **Goal:** Display budget overview with account balances, category balances, and "Available to budget" amount.
 

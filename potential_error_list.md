@@ -466,6 +466,42 @@ try {
 
 ---
 
+## SQLAlchemy Async Errors
+
+### MissingGreenlet Error - Lazy Loading in Async Context
+
+**When it occurs:**
+- User tries to create a transaction and the API fails silently
+- Backend error: `sqlalchemy.exc.MissingGreenlet: greenlet_spawn has not been called; can't call await_only() here`
+- Usually happens after successful database insert but during response serialization
+- Occurs when accessing relationship properties (account.name, category.name) outside async session scope
+
+**Root cause:**
+- Object relationships were not eager-loaded during the database query
+- SQLAlchemy attempts "lazy loading" (automatic query) to fetch relationships
+- Lazy loading requires active database session but we're in serialization phase
+
+**Current behavior:** Generic "Failed to add transaction" toast on frontend, cryptic greenlet error on backend
+**Suggested user-friendly message:** (Already correct) "Transaction added successfully" (error should be fixed in backend)
+
+**Technical fix:**
+- Ensure relationships are eager-loaded using `selectinload()` when fetching objects
+- If using `refresh()` after insert, follow up with re-fetch that includes eager loading
+- Pattern: Use `get_by_id()` functions that explicitly load relationships
+
+**Code pattern to avoid:**
+```python
+# ❌ WRONG - relationships not loaded
+await db.refresh(transaction)
+return transaction  # Accessing txn.account.name later fails
+
+# ✅ CORRECT - relationships eager-loaded
+await db.refresh(transaction)
+return await get_transaction_by_id(db, transaction.id)  # Relationships loaded
+```
+
+---
+
 ## Future Enhancement: Error Code System
 
 Consider implementing an error code system where backend returns structured errors:
