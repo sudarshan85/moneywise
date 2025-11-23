@@ -330,7 +330,7 @@ async def get_exchange_rates(
 
     # Use configured ticker currencies if targets not specified
     if not targets:
-        target_list = settings.currency.ticker_currencies
+        target_list = settings.ticker_currencies
     else:
         target_list = [t.strip().upper() for t in targets.split(",")]
 

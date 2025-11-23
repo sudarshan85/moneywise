@@ -19,8 +19,8 @@ class CurrencyService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.client = httpx.AsyncClient()
-        self.api_url = settings.exchange_rates.api_url
-        self.cache_duration = timedelta(hours=settings.exchange_rates.cache_duration_hours)
+        self.api_url = settings.api_url
+        self.cache_duration = timedelta(hours=settings.cache_duration_hours)
 
     async def get_rate(self, base: str, target: str) -> Decimal:
         """
@@ -143,8 +143,8 @@ class CurrencyService:
         Returns:
             Dictionary with currency codes as keys and rates as values
         """
-        base = settings.currency.base_currency
-        ticker_currencies = settings.currency.ticker_currencies
+        base = settings.base_currency
+        ticker_currencies = settings.ticker_currencies
 
         rates = {}
         for target in ticker_currencies:
@@ -165,8 +165,8 @@ class CurrencyService:
             True if successful, False otherwise
         """
         try:
-            base = settings.currency.base_currency
-            ticker_currencies = settings.currency.ticker_currencies
+            base = settings.base_currency
+            ticker_currencies = settings.ticker_currencies
 
             for target in ticker_currencies:
                 if base.upper() != target.upper():
