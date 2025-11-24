@@ -13,6 +13,22 @@ export default {
   },
   template: `
     <div class="transactions-page">
+      <!-- Confirmation Modal -->
+      <div v-if="confirmDialog.show" class="modal-overlay" @click.self="closeConfirmDialog">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <h2>Confirm Deletion</h2>
+          </div>
+          <div class="modal-body">
+            <p>{{ confirmDialog.message }}</p>
+          </div>
+          <div class="modal-footer">
+            <button @click="closeConfirmDialog" class="btn btn-secondary">Cancel</button>
+            <button @click="confirmDialog.onConfirm" class="btn btn-danger">Delete</button>
+          </div>
+        </div>
+      </div>
+
       <div class="transactions-header">
         <h1>Transactions</h1>
         <CurrencySelector @currency-changed="onCurrencyChanged" />
@@ -61,9 +77,19 @@ export default {
                 >
               </div>
               <div class="form-group">
-                <label>Amount</label>
+                <label>Outflow (Expense)</label>
                 <input
-                  v-model.number="newTransaction.amount"
+                  v-model.number="newTransaction.outflow"
+                  type="number"
+                  class="form-input"
+                  placeholder="0.00"
+                  step="0.01"
+                >
+              </div>
+              <div class="form-group">
+                <label>Inflow (Income)</label>
+                <input
+                  v-model.number="newTransaction.inflow"
                   type="number"
                   class="form-input"
                   placeholder="0.00"
@@ -112,7 +138,8 @@ export default {
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Amount</th>
+                  <th>Outflow</th>
+                  <th>Inflow</th>
                   <th>Account</th>
                   <th>Category</th>
                   <th>Memo</th>
@@ -121,7 +148,7 @@ export default {
               </thead>
               <tbody>
                 <tr v-if="filteredTransactions.length === 0" class="empty-row">
-                  <td colspan="6">No transactions found</td>
+                  <td colspan="7">No transactions found</td>
                 </tr>
                 <tr
                   v-for="(txn, index) in filteredTransactions"
@@ -132,15 +159,16 @@ export default {
                   <!-- Display Mode -->
                   <template v-if="editingId !== txn.id">
                     <td class="date-cell">{{ formatDate(txn.date) }}</td>
-                    <td class="amount-cell" :class="{ negative: txn.amount < 0, positive: txn.amount > 0 }">
-                      {{ formatAmount(txn.amount) }}
-                    </td>
+                    <td class="outflow-cell" :class="{ negative: txn.outflow > 0 }" v-if="txn.outflow > 0">{{ formatAmount(txn.outflow) }}</td>
+                    <td class="outflow-cell" v-else>-</td>
+                    <td class="inflow-cell" :class="{ positive: txn.inflow > 0 }" v-if="txn.inflow > 0">{{ formatAmount(txn.inflow) }}</td>
+                    <td class="inflow-cell" v-else>-</td>
                     <td class="account-cell">{{ txn.account_name }}</td>
                     <td class="category-cell">{{ txn.category_name || '-' }}</td>
                     <td class="memo-cell">{{ txn.memo || '-' }}</td>
                     <td class="actions-cell">
                       <button @click="startEdit(index)" class="btn btn-small">Edit</button>
-                      <button @click="deleteTransaction(txn.id, index)" class="btn btn-small btn-danger">Delete</button>
+                      <button @click="confirmDelete(txn.id, index)" class="btn btn-small btn-danger">Delete</button>
                     </td>
                   </template>
 
@@ -149,8 +177,11 @@ export default {
                     <td class="date-cell">
                       <input v-model="editData.date" type="date" class="form-input-inline" :max="today">
                     </td>
-                    <td class="amount-cell">
-                      <input v-model.number="editData.amount" type="number" class="form-input-inline" step="0.01">
+                    <td class="outflow-cell">
+                      <input v-model.number="editData.outflow" type="number" class="form-input-inline" step="0.01">
+                    </td>
+                    <td class="inflow-cell">
+                      <input v-model.number="editData.inflow" type="number" class="form-input-inline" step="0.01">
                     </td>
                     <td class="account-cell">
                       <select v-model.number="editData.account_id" class="form-input-inline">
@@ -181,15 +212,6 @@ export default {
           </div>
         </div>
       </div>
-
-      <!-- Confirmation Modal -->
-      <ConfirmModal
-        v-if="showConfirmModal"
-        :title="confirmModal.title"
-        :message="confirmModal.message"
-        @confirm="confirmModal.callback"
-        @cancel="showConfirmModal = false"
-      />
     </div>
   `,
   data() {
@@ -199,7 +221,8 @@ export default {
       categories: [],
       newTransaction: {
         date: new Date().toISOString().split('T')[0],
-        amount: null,
+        inflow: 0,
+        outflow: 0,
         account_id: null,
         category_id: null,
         memo: '',
@@ -211,11 +234,10 @@ export default {
       editData: {},
       editIndex: -1,
       categoryBalances: {},
-      showConfirmModal: false,
-      confirmModal: {
-        title: "",
-        message: "",
-        callback: null
+      confirmDialog: {
+        show: false,
+        message: '',
+        onConfirm: null
       }
     };
   },
@@ -228,9 +250,6 @@ export default {
         return this.transactions;
       }
       return this.transactions.filter(txn => txn.category_id === this.selectedCategory.id);
-    },
-    api() {
-      return this.$root.$options.globalProperties.api || window.api;
     }
   },
   async mounted() {
@@ -262,7 +281,7 @@ export default {
         let balance = 0;
         for (const txn of this.transactions) {
           if (txn.category_id === category.id) {
-            balance += parseFloat(txn.amount);
+            balance += parseFloat(txn.inflow) - parseFloat(txn.outflow);
           }
         }
         this.categoryBalances[category.id] = balance;
@@ -276,15 +295,20 @@ export default {
     },
     async addTransaction() {
       // Validate input
-      if (!this.newTransaction.date || this.newTransaction.amount === null || !this.newTransaction.account_id) {
-        this.showToast('Please fill in date, amount, and account', 'error');
+      if (!this.newTransaction.date || !this.newTransaction.account_id) {
+        this.showToast('Please fill in date and account', 'error');
+        return;
+      }
+      if (this.newTransaction.inflow === 0 && this.newTransaction.outflow === 0) {
+        this.showToast('Please enter either an inflow or outflow amount', 'error');
         return;
       }
 
       try {
         const txnData = {
           ...this.newTransaction,
-          amount: parseFloat(this.newTransaction.amount),
+          inflow: parseFloat(this.newTransaction.inflow) || 0,
+          outflow: parseFloat(this.newTransaction.outflow) || 0,
           category_id: this.newTransaction.category_id || null
         };
 
@@ -294,7 +318,8 @@ export default {
         // Reset form
         this.newTransaction = {
           date: new Date().toISOString().split('T')[0],
-          amount: null,
+          inflow: 0,
+          outflow: 0,
           account_id: null,
           category_id: null,
           memo: '',
@@ -315,17 +340,28 @@ export default {
       this.editingId = this.transactions[index].id;
       this.editIndex = index;
       this.editData = { ...this.transactions[index] };
+      // Ensure date is in YYYY-MM-DD format for date input
+      if (this.editData.date && typeof this.editData.date === 'string') {
+        this.editData.date = this.editData.date.split('T')[0];
+      }
     },
     async saveEdit(index) {
       if (!this.editingId) return;
 
+      // Validate required fields
+      if (!this.editData.date || !this.editData.account_id) {
+        this.showToast('Please fill in date and account', 'error');
+        return;
+      }
+
       try {
         const updates = {
           date: this.editData.date,
-          amount: parseFloat(this.editData.amount),
-          account_id: this.editData.account_id,
-          category_id: this.editData.category_id || null,
-          memo: this.editData.memo
+          inflow: parseFloat(this.editData.inflow) || 0,
+          outflow: parseFloat(this.editData.outflow) || 0,
+          account_id: parseInt(this.editData.account_id),
+          category_id: this.editData.category_id ? parseInt(this.editData.category_id) : null,
+          memo: this.editData.memo || ''
         };
 
         await this.api.updateTransaction(this.editingId, updates);
@@ -340,6 +376,7 @@ export default {
 
       } catch (error) {
         console.error('Error updating transaction:', error);
+        console.error('Update data was:', this.editData);
         this.showToast('Failed to update transaction', 'error');
       }
     },
@@ -348,11 +385,11 @@ export default {
       this.editIndex = -1;
       this.editData = {};
     },
-    deleteTransaction(txnId, index) {
-      this.confirmModal = {
-        title: "Delete Transaction",
-        message: "Are you sure you want to delete this transaction? This cannot be undone.",
-        callback: async () => {
+    confirmDelete(txnId, index) {
+      this.confirmDialog = {
+        show: true,
+        message: 'Are you sure you want to delete this transaction? This cannot be undone.',
+        onConfirm: async () => {
           try {
             await this.api.deleteTransaction(txnId);
             this.showToast('Transaction deleted', 'success');
@@ -362,11 +399,15 @@ export default {
             console.error('Error deleting transaction:', error);
             this.showToast('Failed to delete transaction', 'error');
           } finally {
-            this.showConfirmModal = false;
+            this.closeConfirmDialog();
           }
         }
       };
-      this.showConfirmModal = true;
+    },
+    closeConfirmDialog() {
+      this.confirmDialog.show = false;
+      this.confirmDialog.message = '';
+      this.confirmDialog.onConfirm = null;
     },
     onCurrencyChanged(currency) {
       // Store selected currency (can be used for display conversion later)

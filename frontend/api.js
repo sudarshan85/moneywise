@@ -181,7 +181,7 @@ export async function getTransactions(filters = {}) {
 
 /**
  * Create a new transaction.
- * @param {Object} transaction - Transaction data { date, amount, account_id, category_id, memo, is_transfer, transfer_id }
+ * @param {Object} transaction - Transaction data { date, inflow, outflow, account_id, category_id, memo, is_transfer, transfer_id }
  */
 export async function createTransaction(transaction) {
     try {

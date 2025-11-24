@@ -1702,12 +1702,16 @@ button,
     text-align: right;
 }
 
-.amount-cell.positive {
+.amount-cell.positive,
+.inflow-cell.positive {
     color: var(--color-success);
+    font-weight: 500;
 }
 
-.amount-cell.negative {
+.amount-cell.negative,
+.outflow-cell.negative {
     color: var(--color-danger);
+    font-weight: 500;
 }
 
 .account-cell,

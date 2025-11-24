@@ -252,7 +252,6 @@ export default {
                 <thead>
                     <tr>
                         <th>Category Name</th>
-                        <th>Rename History</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -269,24 +268,6 @@ export default {
                                 autofocus
                             />
                             <span v-else>{{ category.name }}</span>
-                        </td>
-                        <td class="rename-history">
-                            <div
-                                v-if="category.renamed_history && category.renamed_history.length > 0"
-                                class="rename-indicator"
-                                @mouseenter="hoveredCategoryId = category.id"
-                                @mouseleave="hoveredCategoryId = null"
-                            >
-                                <span class="rename-icon">ⓡ</span>
-                                <div v-if="hoveredCategoryId === category.id" class="rename-tooltip">
-                                    <div class="tooltip-title">Rename History</div>
-                                    <div v-for="(rename, idx) in category.renamed_history" :key="idx" class="rename-item">
-                                        <strong>{{ rename.old_name }}</strong>
-                                        <br/>
-                                        <small>{{ formatDate(rename.renamed_at) }}</small>
-                                    </div>
-                                </div>
-                            </div>
                         </td>
                         <td class="actions">
                             <button
@@ -381,7 +362,6 @@ export default {
             editingCategoryName: '',
             showHiddenAccounts: false,
             showHiddenCategories: false,
-            hoveredCategoryId: null,
             confirmDialog: {
                 show: false,
                 message: '',

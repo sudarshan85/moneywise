@@ -97,7 +97,8 @@ class Transaction(Base):
 
     id = Column(Integer, primary_key=True)
     date = Column(Date, nullable=False)
-    amount = Column(Numeric(12, 2), nullable=False)  # positive = inflow, negative = outflow
+    inflow = Column(Numeric(12, 2), nullable=False, default=0)  # income/deposits
+    outflow = Column(Numeric(12, 2), nullable=False, default=0)  # expenses/withdrawals
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     memo = Column(String(500), nullable=True)
@@ -118,7 +119,7 @@ class Transaction(Base):
     )
 
     def __repr__(self):
-        return f"<Transaction(id={self.id}, date={self.date}, amount={self.amount}, account_id={self.account_id})>"
+        return f"<Transaction(id={self.id}, date={self.date}, inflow={self.inflow}, outflow={self.outflow}, account_id={self.account_id})>"
 
 
 class CategoryTransfer(Base):

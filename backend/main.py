@@ -214,7 +214,8 @@ async def list_transactions(
         result.append({
             "id": txn.id,
             "date": txn.date,
-            "amount": float(txn.amount),
+            "inflow": float(txn.inflow),
+            "outflow": float(txn.outflow),
             "account_id": txn.account_id,
             "account_name": txn.account.name if txn.account else "Unknown",
             "category_id": txn.category_id,
@@ -238,7 +239,8 @@ async def create_transaction(
     return {
         "id": txn.id,
         "date": txn.date,
-        "amount": float(txn.amount),
+        "inflow": float(txn.inflow),
+        "outflow": float(txn.outflow),
         "account_id": txn.account_id,
         "account_name": txn.account.name if txn.account else "Unknown",
         "category_id": txn.category_id,
@@ -264,7 +266,8 @@ async def get_transaction(
     return {
         "id": txn.id,
         "date": txn.date,
-        "amount": float(txn.amount),
+        "inflow": float(txn.inflow),
+        "outflow": float(txn.outflow),
         "account_id": txn.account_id,
         "account_name": txn.account.name if txn.account else "Unknown",
         "category_id": txn.category_id,
@@ -291,7 +294,8 @@ async def update_transaction(
     return {
         "id": txn.id,
         "date": txn.date,
-        "amount": float(txn.amount),
+        "inflow": float(txn.inflow),
+        "outflow": float(txn.outflow),
         "account_id": txn.account_id,
         "account_name": txn.account.name if txn.account else "Unknown",
         "category_id": txn.category_id,

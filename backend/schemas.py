@@ -76,7 +76,8 @@ class CategoryResponse(BaseModel):
 class TransactionCreate(BaseModel):
     """Schema for creating a new transaction."""
     date: date
-    amount: float
+    inflow: float = 0
+    outflow: float = 0
     account_id: int
     category_id: Optional[int] = None
     memo: Optional[str] = None
@@ -86,9 +87,10 @@ class TransactionCreate(BaseModel):
 
 class TransactionUpdate(BaseModel):
     """Schema for updating a transaction."""
-    date: Optional[date] = None
-    amount: Optional[float] = None
-    account_id: Optional[int] = None
+    date: date
+    inflow: float = 0
+    outflow: float = 0
+    account_id: int
     category_id: Optional[int] = None
     memo: Optional[str] = None
     is_transfer: Optional[bool] = None
@@ -99,7 +101,8 @@ class TransactionResponse(BaseModel):
     """Schema for transaction API responses."""
     id: int
     date: date
-    amount: float
+    inflow: float
+    outflow: float
     account_id: int
     account_name: str
     category_id: Optional[int]

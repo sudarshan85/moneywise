@@ -182,7 +182,8 @@ async def create_transaction(db: AsyncSession, transaction_data: TransactionCrea
     """Create a new transaction."""
     transaction = Transaction(
         date=transaction_data.date,
-        amount=transaction_data.amount,
+        inflow=transaction_data.inflow,
+        outflow=transaction_data.outflow,
         account_id=transaction_data.account_id,
         category_id=transaction_data.category_id,
         memo=transaction_data.memo,
@@ -280,7 +281,7 @@ async def delete_transaction(db: AsyncSession, transaction_id: int) -> bool:
 
 
 async def get_category_balance(db: AsyncSession, category_id: int) -> Decimal:
-    """Get total balance for a category (sum of all transactions in that category)."""
+    """Get total balance for a category (sum of inflows minus outflows)."""
     stmt = select(Transaction).where(
         Transaction.category_id == category_id
     )
@@ -289,6 +290,6 @@ async def get_category_balance(db: AsyncSession, category_id: int) -> Decimal:
 
     balance = Decimal("0.00")
     for txn in transactions:
-        balance += txn.amount
+        balance += Decimal(str(txn.inflow)) - Decimal(str(txn.outflow))
 
     return balance
