@@ -96,7 +96,7 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(Integer, primary_key=True)
-    date = Column(Date, nullable=False)
+    date = Column(Date, nullable=True)
     inflow = Column(Numeric(12, 2), nullable=False, default=0)  # income/deposits
     outflow = Column(Numeric(12, 2), nullable=False, default=0)  # expenses/withdrawals
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)

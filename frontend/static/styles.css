@@ -1753,6 +1753,34 @@ button,
     border-color: var(--color-primary);
 }
 
+/* ============================================================================
+   PENDING/POSTED TRANSACTION STYLING
+   ============================================================================ */
+
+.pending-transaction {
+    background-color: rgba(251, 191, 36, 0.15);
+    animation: pulse-pending 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.posted-transaction {
+    background-color: transparent;
+}
+
+@keyframes pulse-pending {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.pending-indicator {
+    color: var(--color-warning);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .transactions-container {

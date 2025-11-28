@@ -2,7 +2,7 @@
 CRUD operations for database models.
 """
 
-from sqlalchemy import select
+from sqlalchemy import select, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from datetime import datetime, date
@@ -221,7 +221,11 @@ async def get_transactions(
     end_date: date | None = None,
     limit: int = 1000
 ) -> list[Transaction]:
-    """Get transactions with optional filters, ordered newest first."""
+    """Get transactions with optional filters, ordered newest first.
+
+    Pending transactions (no date) appear first sorted by created_at DESC,
+    followed by posted transactions (with date) sorted by date DESC.
+    """
     stmt = (
         select(Transaction)
         .options(
@@ -240,8 +244,12 @@ async def get_transactions(
     if end_date is not None:
         stmt = stmt.where(Transaction.date <= end_date)
 
-    # Order by date descending (newest first), limit results
-    stmt = stmt.order_by(Transaction.date.desc()).limit(limit)
+    # Order: pending (null date) first by created_at DESC, then posted by date DESC
+    stmt = stmt.order_by(
+        case((Transaction.date.is_(None), 0), else_=1),  # Pending (0) before Posted (1)
+        Transaction.created_at.desc(),  # For pending, sort by created_at DESC
+        Transaction.date.desc()  # For posted, sort by date DESC
+    ).limit(limit)
 
     result = await db.execute(stmt)
     return result.scalars().all()

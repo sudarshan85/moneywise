@@ -2,8 +2,8 @@
 Pydantic schemas for API request/response validation.
 """
 
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, field_validator, ConfigDict
+from typing import Optional, List, Union
 from datetime import datetime, date
 from enum import Enum
 
@@ -75,7 +75,9 @@ class CategoryResponse(BaseModel):
 
 class TransactionCreate(BaseModel):
     """Schema for creating a new transaction."""
-    date: date
+    model_config = ConfigDict(from_attributes=True)
+
+    date: Union[date, None] = None
     inflow: float = 0
     outflow: float = 0
     account_id: int
@@ -84,23 +86,45 @@ class TransactionCreate(BaseModel):
     is_transfer: bool = False
     transfer_id: Optional[str] = None
 
+    @field_validator('date', mode='before')
+    @classmethod
+    def parse_date(cls, v):
+        """Parse date string or None."""
+        if v is None or v == '':
+            return None
+        if isinstance(v, str):
+            return date.fromisoformat(v)
+        return v
+
 
 class TransactionUpdate(BaseModel):
     """Schema for updating a transaction."""
-    date: date
-    inflow: float = 0
-    outflow: float = 0
-    account_id: int
+    model_config = ConfigDict(from_attributes=True)
+
+    date: Union[date, None] = None
+    inflow: Optional[float] = None
+    outflow: Optional[float] = None
+    account_id: Optional[int] = None
     category_id: Optional[int] = None
     memo: Optional[str] = None
     is_transfer: Optional[bool] = None
     transfer_id: Optional[str] = None
 
+    @field_validator('date', mode='before')
+    @classmethod
+    def parse_date(cls, v):
+        """Parse date string or None."""
+        if v is None or v == '':
+            return None
+        if isinstance(v, str):
+            return date.fromisoformat(v)
+        return v
+
 
 class TransactionResponse(BaseModel):
     """Schema for transaction API responses."""
     id: int
-    date: date
+    date: Union[date, None]
     inflow: float
     outflow: float
     account_id: int

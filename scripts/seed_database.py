@@ -139,7 +139,7 @@ def seed_database():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY,
-                date DATE NOT NULL,
+                date DATE,
                 inflow NUMERIC(12, 2) NOT NULL DEFAULT 0,
                 outflow NUMERIC(12, 2) NOT NULL DEFAULT 0,
                 account_id INTEGER NOT NULL,

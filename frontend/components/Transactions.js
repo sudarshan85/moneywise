@@ -151,14 +151,21 @@ export default {
                   <td colspan="7">No transactions found</td>
                 </tr>
                 <tr
-                  v-for="(txn, index) in filteredTransactions"
+                  v-for="txn in filteredTransactions"
                   :key="txn.id"
                   class="transaction-row"
-                  :class="{ 'edit-mode': editingId === txn.id }"
+                  :class="{
+                    'edit-mode': editingId === txn.id,
+                    'pending-transaction': !txn.date,
+                    'posted-transaction': txn.date
+                  }"
                 >
                   <!-- Display Mode -->
                   <template v-if="editingId !== txn.id">
-                    <td class="date-cell">{{ formatDate(txn.date) }}</td>
+                    <td class="date-cell" @click="startEdit(txn)" style="cursor: pointer;">
+                      <span v-if="!txn.date" class="pending-indicator">{{ formatDate(txn.date) }}</span>
+                      <span v-else>{{ formatDate(txn.date) }}</span>
+                    </td>
                     <td class="outflow-cell" :class="{ negative: txn.outflow > 0 }" v-if="txn.outflow > 0">{{ formatAmount(txn.outflow) }}</td>
                     <td class="outflow-cell" v-else>-</td>
                     <td class="inflow-cell" :class="{ positive: txn.inflow > 0 }" v-if="txn.inflow > 0">{{ formatAmount(txn.inflow) }}</td>
@@ -167,8 +174,8 @@ export default {
                     <td class="category-cell">{{ txn.category_name || '-' }}</td>
                     <td class="memo-cell">{{ txn.memo || '-' }}</td>
                     <td class="actions-cell">
-                      <button @click="startEdit(index)" class="btn btn-small">Edit</button>
-                      <button @click="confirmDelete(txn.id, index)" class="btn btn-small btn-danger">Delete</button>
+                      <button @click="startEdit(txn)" class="btn btn-small">Edit</button>
+                      <button @click="confirmDelete(txn.id)" class="btn btn-small btn-danger">Delete</button>
                     </td>
                   </template>
 
@@ -202,7 +209,7 @@ export default {
                       <input v-model="editData.memo" type="text" class="form-input-inline" placeholder="Memo">
                     </td>
                     <td class="actions-cell">
-                      <button @click="saveEdit(index)" class="btn btn-small btn-success">Save</button>
+                      <button @click="saveEdit" class="btn btn-small btn-success">Save</button>
                       <button @click="cancelEdit" class="btn btn-small">Cancel</button>
                     </td>
                   </template>
@@ -220,7 +227,7 @@ export default {
       accounts: [],
       categories: [],
       newTransaction: {
-        date: new Date().toISOString().split('T')[0],
+        date: null,
         inflow: 0,
         outflow: 0,
         account_id: null,
@@ -295,8 +302,8 @@ export default {
     },
     async addTransaction() {
       // Validate input
-      if (!this.newTransaction.date || !this.newTransaction.account_id) {
-        this.showToast('Please fill in date and account', 'error');
+      if (!this.newTransaction.account_id) {
+        this.showToast('Please fill in account', 'error');
         return;
       }
       if (this.newTransaction.inflow === 0 && this.newTransaction.outflow === 0) {
@@ -317,7 +324,7 @@ export default {
 
         // Reset form
         this.newTransaction = {
-          date: new Date().toISOString().split('T')[0],
+          date: null,
           inflow: 0,
           outflow: 0,
           account_id: null,
@@ -336,39 +343,44 @@ export default {
         this.showToast('Failed to add transaction', 'error');
       }
     },
-    startEdit(index) {
-      this.editingId = this.transactions[index].id;
-      this.editIndex = index;
-      this.editData = { ...this.transactions[index] };
+    startEdit(txn) {
+      this.editingId = txn.id;
+      this.editData = { ...txn };
       // Ensure date is in YYYY-MM-DD format for date input
       if (this.editData.date && typeof this.editData.date === 'string') {
         this.editData.date = this.editData.date.split('T')[0];
       }
     },
-    async saveEdit(index) {
+    async saveEdit() {
       if (!this.editingId) return;
 
-      // Validate required fields
-      if (!this.editData.date || !this.editData.account_id) {
-        this.showToast('Please fill in date and account', 'error');
-        return;
-      }
-
       try {
-        const updates = {
-          date: this.editData.date,
-          inflow: parseFloat(this.editData.inflow) || 0,
-          outflow: parseFloat(this.editData.outflow) || 0,
-          account_id: parseInt(this.editData.account_id),
-          category_id: this.editData.category_id ? parseInt(this.editData.category_id) : null,
-          memo: this.editData.memo || ''
-        };
+        const updates = {};
+
+        // Only include fields that exist in editData (partial update)
+        if (this.editData.date !== undefined) {
+          updates.date = this.editData.date || null;
+        }
+        if (this.editData.inflow !== undefined) {
+          updates.inflow = parseFloat(this.editData.inflow);
+        }
+        if (this.editData.outflow !== undefined) {
+          updates.outflow = parseFloat(this.editData.outflow);
+        }
+        if (this.editData.account_id !== undefined) {
+          updates.account_id = parseInt(this.editData.account_id);
+        }
+        if (this.editData.category_id !== undefined) {
+          updates.category_id = this.editData.category_id ? parseInt(this.editData.category_id) : null;
+        }
+        if (this.editData.memo !== undefined) {
+          updates.memo = this.editData.memo;
+        }
 
         await this.api.updateTransaction(this.editingId, updates);
         this.showToast('Transaction updated successfully', 'success');
 
         this.editingId = null;
-        this.editIndex = -1;
         this.editData = {};
 
         await this.loadTransactions();
@@ -377,15 +389,32 @@ export default {
       } catch (error) {
         console.error('Error updating transaction:', error);
         console.error('Update data was:', this.editData);
-        this.showToast('Failed to update transaction', 'error');
+        if (error.response && error.response.data) {
+          console.error('Full API error response:', JSON.stringify(error.response.data, null, 2));
+          const details = error.response.data.detail;
+          console.error('Details:', details);
+          if (Array.isArray(details) && details.length > 0) {
+            console.error('First detail:', details[0]);
+            const msgs = details.map(d => {
+              const loc = Array.isArray(d.loc) ? d.loc.join('.') : d.loc;
+              return `${loc}: ${d.msg}`;
+            }).join(' | ');
+            this.showToast(`Failed to update: ${msgs}`, 'error');
+          } else if (typeof details === 'string') {
+            this.showToast(`Failed to update transaction: ${details}`, 'error');
+          } else {
+            this.showToast(`Failed to update transaction: ${JSON.stringify(details)}`, 'error');
+          }
+        } else {
+          this.showToast('Failed to update transaction', 'error');
+        }
       }
     },
     cancelEdit() {
       this.editingId = null;
-      this.editIndex = -1;
       this.editData = {};
     },
-    confirmDelete(txnId, index) {
+    confirmDelete(txnId) {
       this.confirmDialog = {
         show: true,
         message: 'Are you sure you want to delete this transaction? This cannot be undone.',
@@ -421,6 +450,9 @@ export default {
       }).format(num);
     },
     formatDate(dateStr) {
+      if (!dateStr) {
+        return 'Pending';
+      }
       const date = new Date(dateStr + 'T00:00:00');
       return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     },
