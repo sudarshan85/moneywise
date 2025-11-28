@@ -2,7 +2,7 @@
 Pydantic schemas for API request/response validation.
 """
 
-from pydantic import BaseModel, field_validator, ConfigDict
+from pydantic import BaseModel, field_validator, ConfigDict, Field, field_serializer
 from typing import Optional, List, Union
 from datetime import datetime, date
 from enum import Enum
@@ -77,7 +77,7 @@ class TransactionCreate(BaseModel):
     """Schema for creating a new transaction."""
     model_config = ConfigDict(from_attributes=True)
 
-    date: Union[date, None] = None
+    date: Optional[date] = None
     inflow: float = 0
     outflow: float = 0
     account_id: int
@@ -86,22 +86,27 @@ class TransactionCreate(BaseModel):
     is_transfer: bool = False
     transfer_id: Optional[str] = None
 
-    @field_validator('date', mode='before')
+    @field_validator('date', mode='wrap')
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v, handler):
         """Parse date string or None."""
         if v is None or v == '':
             return None
         if isinstance(v, str):
-            return date.fromisoformat(v)
-        return v
+            try:
+                return date.fromisoformat(v)
+            except (ValueError, TypeError):
+                return None
+        if isinstance(v, date):
+            return v
+        return handler(v)
 
 
 class TransactionUpdate(BaseModel):
     """Schema for updating a transaction."""
     model_config = ConfigDict(from_attributes=True)
 
-    date: Union[date, None] = None
+    date: Optional[date] = None
     inflow: Optional[float] = None
     outflow: Optional[float] = None
     account_id: Optional[int] = None
@@ -110,21 +115,26 @@ class TransactionUpdate(BaseModel):
     is_transfer: Optional[bool] = None
     transfer_id: Optional[str] = None
 
-    @field_validator('date', mode='before')
+    @field_validator('date', mode='wrap')
     @classmethod
-    def parse_date(cls, v):
+    def parse_date(cls, v, handler):
         """Parse date string or None."""
         if v is None or v == '':
             return None
         if isinstance(v, str):
-            return date.fromisoformat(v)
-        return v
+            try:
+                return date.fromisoformat(v)
+            except (ValueError, TypeError):
+                return None
+        if isinstance(v, date):
+            return v
+        return handler(v)
 
 
 class TransactionResponse(BaseModel):
     """Schema for transaction API responses."""
     id: int
-    date: Union[date, None]
+    date: Optional[date]
     inflow: float
     outflow: float
     account_id: int

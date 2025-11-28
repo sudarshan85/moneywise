@@ -287,8 +287,6 @@ async def update_transaction(
     db: AsyncSession = Depends(get_session)
 ):
     """Update a transaction."""
-    print(f"DEBUG: Received transaction_update: {transaction_update}")
-    print(f"DEBUG: transaction_update.date = {transaction_update.date}, type = {type(transaction_update.date)}")
     txn = await crud.update_transaction(db, transaction_id, transaction_update)
     if not txn:
         raise HTTPException(status_code=404, detail="Transaction not found")
