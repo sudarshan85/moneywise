@@ -150,35 +150,43 @@ class TransactionResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
-class ExchangeRateResponse(BaseModel):
-    """Schema for exchange rate API responses."""
-    base_currency: str
-    target_currency: str
-    rate: float
-    fetched_at: datetime
-
-    class Config:
-        from_attributes = True
+    @field_serializer('date', when_used='json')
+    def serialize_date(self, value: Optional[date]) -> Optional[str]:
+        """Serialize date to ISO format string or None."""
+        if value is None:
+            return None
+        return value.isoformat() if isinstance(value, date) else None
 
 
-class ExchangeRatesResponse(BaseModel):
-    """Schema for multiple exchange rates response."""
-    base_currency: str
-    rates: dict
-    fetched_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class CurrencyConvertResponse(BaseModel):
-    """Schema for currency conversion response."""
-    amount: float
-    from_currency: str
-    to_currency: str
-    rate: float
-    converted_amount: float
-
-    class Config:
-        from_attributes = True
+# FEATURE DEFERRED: Currency/exchange rate schemas - commented out for future implementation
+# class ExchangeRateResponse(BaseModel):
+#     """Schema for exchange rate API responses."""
+#     base_currency: str
+#     target_currency: str
+#     rate: float
+#     fetched_at: datetime
+#
+#     class Config:
+#         from_attributes = True
+#
+#
+# class ExchangeRatesResponse(BaseModel):
+#     """Schema for multiple exchange rates response."""
+#     base_currency: str
+#     rates: dict
+#     fetched_at: datetime
+#
+#     class Config:
+#         from_attributes = True
+#
+#
+# class CurrencyConvertResponse(BaseModel):
+#     """Schema for currency conversion response."""
+#     amount: float
+#     from_currency: str
+#     to_currency: str
+#     rate: float
+#     converted_amount: float
+#
+#     class Config:
+#         from_attributes = True

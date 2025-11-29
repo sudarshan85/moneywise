@@ -16,9 +16,9 @@ from backend.schemas import (
     AccountCreate, AccountUpdate, AccountResponse,
     CategoryCreate, CategoryUpdate, CategoryResponse,
     TransactionCreate, TransactionUpdate, TransactionResponse,
-    ExchangeRatesResponse, CurrencyConvertResponse
+    # ExchangeRatesResponse, CurrencyConvertResponse  # FEATURE DEFERRED
 )
-from backend.currency import CurrencyService
+# from backend.currency import CurrencyService  # FEATURE DEFERRED
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -320,74 +320,74 @@ async def delete_transaction(
 
 
 # ============================================================================
-# CURRENCY ENDPOINTS
+# CURRENCY ENDPOINTS - FEATURE DEFERRED: Commented out for future implementation
 # ============================================================================
-
-@app.get("/api/currency/rates", response_model=ExchangeRatesResponse)
-async def get_exchange_rates(
-    base: str = "USD",
-    targets: str | None = None,
-    db: AsyncSession = Depends(get_session)
-):
-    """Get exchange rates for base currency to target currencies."""
-    currency_service = CurrencyService(db)
-
-    # Use configured ticker currencies if targets not specified
-    if not targets:
-        target_list = settings.ticker_currencies
-    else:
-        target_list = [t.strip().upper() for t in targets.split(",")]
-
-    rates = {}
-    now = datetime.utcnow()
-    for target in target_list:
-        rate = await currency_service.get_rate(base.upper(), target.upper())
-        rates[target.upper()] = float(rate)
-
-    await currency_service.close()
-
-    return {
-        "base_currency": base.upper(),
-        "rates": rates,
-        "fetched_at": now
-    }
-
-
-@app.post("/api/currency/refresh")
-async def refresh_exchange_rates(db: AsyncSession = Depends(get_session)):
-    """Force refresh of all configured exchange rates."""
-    currency_service = CurrencyService(db)
-    success = await currency_service.refresh_all_rates()
-    await currency_service.close()
-
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to refresh exchange rates")
-
-    return {"status": "success", "message": "Exchange rates refreshed"}
-
-
-@app.get("/api/currency/convert", response_model=CurrencyConvertResponse)
-async def convert_currency(
-    amount: Decimal,
-    from_currency: str = "USD",
-    to_currency: str = "USD",
-    db: AsyncSession = Depends(get_session)
-):
-    """Convert amount from one currency to another."""
-    currency_service = CurrencyService(db)
-
-    rate = await currency_service.get_rate(from_currency.upper(), to_currency.upper())
-    converted = await currency_service.convert_amount(amount, from_currency, to_currency)
-
-    await currency_service.close()
-
-    return {
-        "amount": float(amount),
-        "from_currency": from_currency.upper(),
-        "to_currency": to_currency.upper(),
-        "rate": float(rate),
-        "converted_amount": float(converted)
-    }
+#
+# @app.get("/api/currency/rates", response_model=ExchangeRatesResponse)
+# async def get_exchange_rates(
+#     base: str = "USD",
+#     targets: str | None = None,
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     """Get exchange rates for base currency to target currencies."""
+#     currency_service = CurrencyService(db)
+#
+#     # Use configured ticker currencies if targets not specified
+#     if not targets:
+#         target_list = settings.ticker_currencies
+#     else:
+#         target_list = [t.strip().upper() for t in targets.split(",")]
+#
+#     rates = {}
+#     now = datetime.utcnow()
+#     for target in target_list:
+#         rate = await currency_service.get_rate(base.upper(), target.upper())
+#         rates[target.upper()] = float(rate)
+#
+#     await currency_service.close()
+#
+#     return {
+#         "base_currency": base.upper(),
+#         "rates": rates,
+#         "fetched_at": now
+#     }
+#
+#
+# @app.post("/api/currency/refresh")
+# async def refresh_exchange_rates(db: AsyncSession = Depends(get_session)):
+#     """Force refresh of all configured exchange rates."""
+#     currency_service = CurrencyService(db)
+#     success = await currency_service.refresh_all_rates()
+#     await currency_service.close()
+#
+#     if not success:
+#         raise HTTPException(status_code=500, detail="Failed to refresh exchange rates")
+#
+#     return {"status": "success", "message": "Exchange rates refreshed"}
+#
+#
+# @app.get("/api/currency/convert", response_model=CurrencyConvertResponse)
+# async def convert_currency(
+#     amount: Decimal,
+#     from_currency: str = "USD",
+#     to_currency: str = "USD",
+#     db: AsyncSession = Depends(get_session)
+# ):
+#     """Convert amount from one currency to another."""
+#     currency_service = CurrencyService(db)
+#
+#     rate = await currency_service.get_rate(from_currency.upper(), to_currency.upper())
+#     converted = await currency_service.convert_amount(amount, from_currency, to_currency)
+#
+#     await currency_service.close()
+#
+#     return {
+#         "amount": float(amount),
+#         "from_currency": from_currency.upper(),
+#         "to_currency": to_currency.upper(),
+#         "rate": float(rate),
+#         "converted_amount": float(converted)
+#     }
 
 
 # Mount static files (frontend) with SPA fallback for Vue Router

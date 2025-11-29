@@ -237,59 +237,59 @@ export async function deleteTransaction(transactionId) {
 }
 
 // ============================================================================
-// CURRENCY API FUNCTIONS
+// CURRENCY API FUNCTIONS - FEATURE DEFERRED: Commented out for future implementation
 // ============================================================================
-
-/**
- * Get exchange rates.
- * @param {string} base - Base currency code (default: USD)
- * @param {Array<string>} targets - Target currency codes (optional)
- */
-export async function getExchangeRates(base = 'USD', targets = null) {
-    try {
-        let url = `${API_BASE_URL}/currency/rates?base=${base}`;
-        if (targets && targets.length > 0) {
-            url += `&targets=${targets.join(',')}`;
-        }
-        const response = await axios.get(url);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching exchange rates:', error);
-        throw error;
-    }
-}
-
-/**
- * Refresh exchange rates from API.
- */
-export async function refreshExchangeRates() {
-    try {
-        const response = await axios.post(`${API_BASE_URL}/currency/refresh`);
-        return response.data;
-    } catch (error) {
-        console.error('Error refreshing exchange rates:', error);
-        throw error;
-    }
-}
-
-/**
- * Convert amount between currencies.
- * @param {number} amount - Amount to convert
- * @param {string} fromCurrency - Source currency code
- * @param {string} toCurrency - Target currency code
- */
-export async function convertCurrency(amount, fromCurrency = 'USD', toCurrency = 'USD') {
-    try {
-        const response = await axios.get(`${API_BASE_URL}/currency/convert`, {
-            params: {
-                amount,
-                from_currency: fromCurrency,
-                to_currency: toCurrency
-            }
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error converting currency:', error);
-        throw error;
-    }
-}
+//
+// /**
+//  * Get exchange rates.
+//  * @param {string} base - Base currency code (default: USD)
+//  * @param {Array<string>} targets - Target currency codes (optional)
+//  */
+// export async function getExchangeRates(base = 'USD', targets = null) {
+//     try {
+//         let url = `${API_BASE_URL}/currency/rates?base=${base}`;
+//         if (targets && targets.length > 0) {
+//             url += `&targets=${targets.join(',')}`;
+//         }
+//         const response = await axios.get(url);
+//         return response.data;
+//     } catch (error) {
+//         console.error('Error fetching exchange rates:', error);
+//         throw error;
+//     }
+// }
+//
+// /**
+//  * Refresh exchange rates from API.
+//  */
+// export async function refreshExchangeRates() {
+//     try {
+//         const response = await axios.post(`${API_BASE_URL}/currency/refresh`);
+//         return response.data;
+//     } catch (error) {
+//         console.error('Error refreshing exchange rates:', error);
+//         throw error;
+//     }
+// }
+//
+// /**
+//  * Convert amount between currencies.
+//  * @param {number} amount - Amount to convert
+//  * @param {string} fromCurrency - Source currency code
+//  * @param {string} toCurrency - Target currency code
+//  */
+// export async function convertCurrency(amount, fromCurrency = 'USD', toCurrency = 'USD') {
+//     try {
+//         const response = await axios.get(`${API_BASE_URL}/currency/convert`, {
+//             params: {
+//                 amount,
+//                 from_currency: fromCurrency,
+//                 to_currency: toCurrency
+//             }
+//         });
+//         return response.data;
+//     } catch (error) {
+//         console.error('Error converting currency:', error);
+//         throw error;
+//     }
+// }

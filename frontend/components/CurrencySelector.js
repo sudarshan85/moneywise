@@ -1,9 +1,11 @@
 /**
- * CurrencySelector Component
+ * CurrencySelector Component - FEATURE DEFERRED
  * Displays currency dropdown and exchange rate ticker
  * Handles currency selection and rate refreshing
+ * Commented out for future implementation
  */
 
+/*
 export default {
   name: "CurrencySelector",
   template: `
@@ -125,3 +127,4 @@ export default {
     }
   }
 };
+*/

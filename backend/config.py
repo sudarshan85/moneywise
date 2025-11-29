@@ -27,16 +27,16 @@ class Settings(BaseSettings):
     currency_symbol: str = "$"
     date_format: str = "MM/DD/YYYY"
 
-    # Currency
-    base_currency: str = "USD"
-    display_currency: str = "USD"
-    ticker_currencies: list[str] = ["USD", "AED", "INR"]
-
-    # Exchange Rates
-    api_provider: str = "exchangerate-api"
-    api_url: str = "https://api.exchangerate-api.com/v4/latest/"
-    cache_duration_hours: int = 24
-    auto_update: bool = True
+    # FEATURE DEFERRED: Currency and Exchange Rate settings - commented out for future implementation
+    # base_currency: str = "USD"
+    # display_currency: str = "USD"
+    # ticker_currencies: list[str] = ["USD", "AED", "INR"]
+    #
+    # # Exchange Rates
+    # api_provider: str = "exchangerate-api"
+    # api_url: str = "https://api.exchangerate-api.com/v4/latest/"
+    # cache_duration_hours: int = 24
+    # auto_update: bool = True
 
     # Server
     host: str = "127.0.0.1"
@@ -69,17 +69,17 @@ def load_config(config_path: str = "config.toml") -> Settings:
                 "auto_backup_on_start": False,
             },
             "ui": {"currency_symbol": "$", "date_format": "MM/DD/YYYY"},
-            "currency": {
-                "base_currency": "USD",
-                "display_currency": "USD",
-                "ticker_currencies": ["USD", "AED", "INR"],
-            },
-            "exchange_rates": {
-                "api_provider": "exchangerate-api",
-                "api_url": "https://api.exchangerate-api.com/v4/latest/",
-                "cache_duration_hours": 24,
-                "auto_update": True,
-            },
+            # "currency": {
+            #     "base_currency": "USD",
+            #     "display_currency": "USD",
+            #     "ticker_currencies": ["USD", "AED", "INR"],
+            # },
+            # "exchange_rates": {
+            #     "api_provider": "exchangerate-api",
+            #     "api_url": "https://api.exchangerate-api.com/v4/latest/",
+            #     "cache_duration_hours": 24,
+            #     "auto_update": True,
+            # },
             "server": {
                 "host": "127.0.0.1",
                 "port": 8000,
@@ -105,23 +105,23 @@ def load_config(config_path: str = "config.toml") -> Settings:
         ),
         "currency_symbol": config_dict.get("ui", {}).get("currency_symbol", "$"),
         "date_format": config_dict.get("ui", {}).get("date_format", "MM/DD/YYYY"),
-        "base_currency": config_dict.get("currency", {}).get("base_currency", "USD"),
-        "display_currency": config_dict.get("currency", {}).get(
-            "display_currency", "USD"
-        ),
-        "ticker_currencies": config_dict.get("currency", {}).get(
-            "ticker_currencies", ["USD", "AED", "INR"]
-        ),
-        "api_provider": config_dict.get("exchange_rates", {}).get(
-            "api_provider", "exchangerate-api"
-        ),
-        "api_url": config_dict.get("exchange_rates", {}).get(
-            "api_url", "https://api.exchangerate-api.com/v4/latest/"
-        ),
-        "cache_duration_hours": config_dict.get("exchange_rates", {}).get(
-            "cache_duration_hours", 24
-        ),
-        "auto_update": config_dict.get("exchange_rates", {}).get("auto_update", True),
+        # "base_currency": config_dict.get("currency", {}).get("base_currency", "USD"),
+        # "display_currency": config_dict.get("currency", {}).get(
+        #     "display_currency", "USD"
+        # ),
+        # "ticker_currencies": config_dict.get("currency", {}).get(
+        #     "ticker_currencies", ["USD", "AED", "INR"]
+        # ),
+        # "api_provider": config_dict.get("exchange_rates", {}).get(
+        #     "api_provider", "exchangerate-api"
+        # ),
+        # "api_url": config_dict.get("exchange_rates", {}).get(
+        #     "api_url", "https://api.exchangerate-api.com/v4/latest/"
+        # ),
+        # "cache_duration_hours": config_dict.get("exchange_rates", {}).get(
+        #     "cache_duration_hours", 24
+        # ),
+        # "auto_update": config_dict.get("exchange_rates", {}).get("auto_update", True),
         "host": config_dict.get("server", {}).get("host", "127.0.0.1"),
         "port": config_dict.get("server", {}).get("port", 8000),
         "auto_open_browser": config_dict.get("server", {}).get(

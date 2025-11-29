@@ -4,12 +4,13 @@
  * Includes currency selector and category picker
  */
 
-import CurrencySelector from './CurrencySelector.js';
+// FEATURE DEFERRED: Currency selector component commented out for future implementation
+// import CurrencySelector from './CurrencySelector.js';
 
 export default {
   name: "Transactions",
   components: {
-    CurrencySelector
+    // CurrencySelector
   },
   template: `
     <div class="transactions-page">
@@ -31,7 +32,9 @@ export default {
 
       <div class="transactions-header">
         <h1>Transactions</h1>
+        <!-- FEATURE DEFERRED: CurrencySelector component commented out
         <CurrencySelector @currency-changed="onCurrencyChanged" />
+        -->
       </div>
 
       <div class="transactions-container">
@@ -438,10 +441,11 @@ export default {
       this.confirmDialog.message = '';
       this.confirmDialog.onConfirm = null;
     },
-    onCurrencyChanged(currency) {
-      // Store selected currency (can be used for display conversion later)
-      localStorage.setItem('displayCurrency', currency);
-    },
+    // FEATURE DEFERRED: onCurrencyChanged method commented out for future implementation
+    // onCurrencyChanged(currency) {
+    //   // Store selected currency (can be used for display conversion later)
+    //   localStorage.setItem('displayCurrency', currency);
+    // },
     formatAmount(amount) {
       const num = parseFloat(amount);
       return new Intl.NumberFormat('en-US', {

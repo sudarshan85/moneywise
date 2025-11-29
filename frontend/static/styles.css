@@ -1135,6 +1135,8 @@ button,
    CURRENCY SELECTOR STYLES
    ============================================================================ */
 
+/* FEATURE DEFERRED: Currency selector styles - commented out for future implementation */
+/*
 .currency-selector {
     background: white;
     padding: var(--spacing-lg);
@@ -1243,6 +1245,7 @@ button,
     margin-top: var(--spacing-md);
     margin-bottom: 0;
 }
+*/
 
 /* ============================================================================
    TRANSACTIONS PAGE STYLES
@@ -1798,6 +1801,8 @@ button,
 }
 
 @media (max-width: 768px) {
+    /* FEATURE DEFERRED: Currency controls responsive - commented out for future implementation */
+    /*
     .currency-controls {
         flex-direction: column;
         align-items: stretch;
@@ -1810,6 +1815,7 @@ button,
     .btn-refresh {
         width: 100%;
     }
+    */
 
     .form-grid {
         grid-template-columns: 1fr;
@@ -1832,8 +1838,11 @@ button,
         width: 100%;
     }
 
+    /* FEATURE DEFERRED: Ticker responsive - commented out for future implementation */
+    /*
     .ticker-item {
         flex: 1;
         min-width: 120px;
     }
+    */
 }

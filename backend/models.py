@@ -171,25 +171,26 @@ class Reconciliation(Base):
         return f"<Reconciliation(id={self.id}, account_id={self.account_id}, reconciled_date={self.reconciled_date})>"
 
 
-class ExchangeRate(Base):
-    """Cache for currency exchange rates."""
-
-    __tablename__ = "exchange_rates"
-
-    id = Column(Integer, primary_key=True)
-    base_currency = Column(String(3), nullable=False)
-    target_currency = Column(String(3), nullable=False)
-    rate = Column(Numeric(12, 6), nullable=False)
-    fetched_at = Column(DateTime, default=datetime.utcnow)
-
-    # Unique constraint on currency pair
-    __table_args__ = (
-        UniqueConstraint(
-            "base_currency",
-            "target_currency",
-            name="uq_exchange_rates_pair",
-        ),
-    )
-
-    def __repr__(self):
-        return f"<ExchangeRate(id={self.id}, {self.base_currency}->{self.target_currency}: {self.rate})>"
+# FEATURE DEFERRED: Exchange rate caching - commented out for future implementation
+# class ExchangeRate(Base):
+#     """Cache for currency exchange rates."""
+#
+#     __tablename__ = "exchange_rates"
+#
+#     id = Column(Integer, primary_key=True)
+#     base_currency = Column(String(3), nullable=False)
+#     target_currency = Column(String(3), nullable=False)
+#     rate = Column(Numeric(12, 6), nullable=False)
+#     fetched_at = Column(DateTime, default=datetime.utcnow)
+#
+#     # Unique constraint on currency pair
+#     __table_args__ = (
+#         UniqueConstraint(
+#             "base_currency",
+#             "target_currency",
+#             name="uq_exchange_rates_pair",
+#         ),
+#     )
+#
+#     def __repr__(self):
+#         return f"<ExchangeRate(id={self.id}, {self.base_currency}->{self.target_currency}: {self.rate})>"
