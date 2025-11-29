@@ -192,135 +192,330 @@ Cache currency exchange rates:
 - Unique compound index on `exchange_rates(base_currency, target_currency)` for fast lookups
 
 ---
-## Feature: Pending/Posted Transactions
+
+## Feature: Dashboard View (v0.4.0-alpha)
 
 ### Overview
 
-MoneyWise tracks when transactions are pending (not yet posted) vs posted (confirmed with final date). This is critical for credit cards and bank transfers which take time to post. A transaction is marked as pending by leaving the Date field empty, and automatically becomes posted once you fill in the Date.
+The Dashboard provides a budget overview showing account balances, category balances, and "Available to budget" calculations. This is the primary view where users understand their financial position at a glance. The Dashboard replaces the category sidebar balance display in the Transactions page to eliminate redundancy.
 
-### Design
+### Design Principles
 
-- **Single Transactions Table** - Both pending and posted transactions appear in one table
-- **Pending Indicator** - Rows without a date have a subtle yellow/amber background
-- **Auto-Promotion** - Fill in the date field → transaction automatically becomes posted
-- **Sorting** - Pending transactions (no date) appear at top sorted by creation time, followed by posted transactions sorted by date (newest first)
-- **Fields**:
-  - Date: **Optional** (NULL = pending, filled = posted)
-  - Outflow/Inflow: **Required** (one must be non-zero)
-  - Account: **Required**
-  - Category: **Optional**
-  - Memo: **Optional**
-
-### Workflow Example
-
-1. **Wife sends you shopping split** (Jan 15, but transaction not posted yet)
-   - Enter: Outflow=$45, Account=Chase CC, Category=Groceries
-   - Leave Date empty
-   - Transaction appears at top with yellow background (pending)
-
-2. **Transaction posts in credit card** (Jan 17)
-   - Click on the date cell for that transaction
-   - Enter the date (Jan 17)
-   - Transaction background changes to normal (posted)
-   - Automatically sorted with other posted transactions
+- **Single source of truth**: Category balances calculated once in backend, displayed in Dashboard only
+- **Account-centric**: Show all account balances to see total available money
+- **Category-centric**: Show all category balances to see how money is allocated
+- **Month-focused**: Display current month spending separately from total balances
+- **At-a-glance stats**: Top banner with key numbers (Available to budget, spent this month, etc.)
 
 ### Implementation Plan
 
-#### Phase 1: Database Schema
+#### Phase 1: Backend Dashboard Calculations
 
-**Task 1.1: Make Transaction.date Nullable**
-- File: `backend/models.py` (Transaction class)
-- Change: `date = Column(Date, nullable=True)`
-- Testing: Create transaction without date, verify it saves with NULL date in database
+**Task 1.1: Add get_account_balances() to CRUD**
+- File: `backend/crud.py`
+- Function: Calculate balance for each account (sum of all transactions per account)
+- Input: account_id (optional - if provided, get balance for one account; if None, get all)
+- Output: Dict mapping account_id → balance (Decimal)
+- Logic: Sum of (inflow - outflow) for all transactions in account
+- Testing: Create transactions for multiple accounts, verify balances match manual calculation
 
-#### Phase 2: Pydantic Schemas
+**Task 1.2: Add get_category_balances() to CRUD**
+- File: `backend/crud.py`
+- Function: Calculate balance for each category (sum of all transactions per category)
+- Input: category_id (optional - if provided, get balance for one; if None, get all)
+- Output: Dict mapping category_id → balance (Decimal)
+- Logic: Sum of (inflow - outflow) for all transactions in category
+- Testing: Create transactions for multiple categories, verify balances correct
 
-**Task 2.1: Update TransactionCreate Schema**
-- File: `backend/schemas.py` (TransactionCreate class)
-- Change: `date: Optional[date] = None`
-- Testing: POST request without date field, verify 201 response with null date
+**Task 1.3: Add get_current_month_spending() to CRUD**
+- File: `backend/crud.py`
+- Function: Calculate current month spending by category
+- Input: None (uses today's date to determine month)
+- Output: Dict mapping category_id → spending amount (negative for outflow)
+- Logic: Sum of transactions where date is in current month AND category_id matches
+- Note: Should only sum outflows (negative amounts), ignore inflows
+- Testing: Add transactions in current month and past months, verify filtering correct
 
-**Task 2.2: Update TransactionUpdate Schema**
-- File: `backend/schemas.py` (TransactionUpdate class)
-- Change: `date: Optional[date] = None`
-- Testing: PATCH request without date field, verify transaction unchanged
+**Task 1.4: Add get_available_to_budget() to CRUD**
+- File: `backend/crud.py`
+- Function: Calculate "Available to budget" = sum of all account balances
+- Input: None
+- Output: Decimal (single number)
+- Logic: Sum of get_account_balances() for all accounts
+- Note: This is total money in accounts (category transfers will reduce this later in Phase 5)
+- Testing: Verify equals sum of all account balances
 
-**Task 2.3: TransactionResponse Schema**
-- File: `backend/schemas.py` (TransactionResponse class)
-- Status: No changes needed (already supports null dates)
-- Testing: Fetch transactions, verify null dates in response
+**Task 1.5: Add get_pending_transaction_count() to CRUD**
+- File: `backend/crud.py`
+- Function: Count transactions without a date (pending)
+- Input: None
+- Output: Integer count
+- Logic: Count transactions where date IS NULL
+- Testing: Create some pending transactions, verify count correct
 
-#### Phase 3: Backend CRUD Sorting
+#### Phase 2: Backend Dashboard Schemas
 
-**Task 3.1: Update get_transactions() Sorting**
-- File: `backend/crud.py` (get_transactions function)
-- Change: Use SQL CASE expression to sort pending (by created_at DESC) before posted (by date DESC)
-- Testing: Create pending/posted transactions, verify pending always appears first
+**Task 2.1: Create AccountWithBalance schema**
+- File: `backend/schemas.py`
+- Fields: id, name, account_type, balance (Decimal), last_transaction_date (optional)
+- Validation: balance must be numeric
 
-#### Phase 4: Frontend Form Validation
+**Task 2.2: Create CategoryWithBalance schema**
+- File: `backend/schemas.py`
+- Fields: id, name, balance (Decimal), current_month_spending (Decimal), monthly_budget (Decimal)
+- Validation: All amounts must be numeric
+- Note: monthly_budget defaults to 0 if not set
 
-**Task 4.1: Remove Date Validation from Add Transaction**
-- File: `frontend/components/Transactions.js` (addTransaction method)
-- Change: Remove date from required field check, keep account and amount validation
-- Testing: Add pending transaction without date, verify it's created
+**Task 2.3: Create DashboardResponse schema**
+- File: `backend/schemas.py`
+- Fields:
+  - available_to_budget (Decimal)
+  - spent_this_month (Decimal - total of all category outflows this month)
+  - budgeted_this_month (Decimal - sum of all monthly_budget fields)
+  - pending_count (int)
+  - accounts (list of AccountWithBalance)
+  - categories (list of CategoryWithBalance)
+  - current_date (date)
+- Validation: All Decimal fields must be numeric
 
-**Task 4.2: Remove Date Validation from Edit Transaction**
-- File: `frontend/components/Transactions.js` (updateTransaction method)
-- Change: Remove date from required field check, keep account and amount validation
-- Testing: Edit pending transaction without changing date, verify update succeeds
+#### Phase 3: Backend API Endpoint
 
-#### Phase 5: Frontend Visual Styling
+**Task 3.1: Create GET /api/dashboard endpoint**
+- File: `backend/main.py`
+- Route: `GET /api/dashboard`
+- Response: DashboardResponse schema
+- Logic:
+  1. Call get_available_to_budget()
+  2. Call get_current_month_spending() for all categories, sum the outflows
+  3. Get all categories with monthly_budget field, sum them
+  4. Call get_pending_transaction_count()
+  5. Get all accounts with get_account_balances(), include last_transaction_date from database
+  6. Get all categories with get_category_balances() and get_current_month_spending()
+  7. Build and return DashboardResponse
+- Error handling: Return 500 if calculation fails, with error message
+- Testing: Call endpoint, verify all fields present and correct
 
-**Task 5.1: Add CSS for Pending Transactions**
+#### Phase 4: Frontend API Client
+
+**Task 4.1: Add getDashboardData() function**
+- File: `frontend/api.js`
+- Function: Async function that calls GET /api/dashboard
+- Returns: Promise resolving to dashboard data object
+- Error handling: Catch and log errors, re-throw for component handling
+- Testing: Call from console, verify data structure matches DashboardResponse
+
+#### Phase 5: Frontend Dashboard Component
+
+**Task 5.1: Create Dashboard template structure**
+- File: `frontend/components/Dashboard.js`
+- Layout:
+  - Top banner (stat boxes)
+  - Two-column layout: accounts sidebar (left) + categories table (right)
+- Stat boxes (4 boxes in grid):
+  - Available to budget (green box)
+  - Spent this month (red box)
+  - Budgeted this month (blue box)
+  - Pending count (gray box)
+- Each stat box shows: title, large number, currency symbol
+- Testing: Verify layout renders without errors
+
+**Task 5.2: Create accounts sidebar**
+- File: `frontend/components/Dashboard.js`
+- Display: List of all accounts with balances
+- Columns: Account name, Balance
+- Styling: Green text for positive balances, red for negative
+- Show: "Last transaction: [date]" under each account
+- Click behavior: No action yet (reserved for future drill-down)
+- Testing: Verify all accounts display with correct balances and dates
+
+**Task 5.3: Create categories table**
+- File: `frontend/components/Dashboard.js`
+- Display: Table of all categories with balance info
+- Columns: Category, Available, Activity, Budgeted
+- Column definitions:
+  - Category: Category name
+  - Available: Current category balance (color-coded green/red)
+  - Activity: Current month spending only (negative in red)
+  - Budgeted: Monthly budget limit (if set)
+- Sorting: Alphabetical by category name
+- Click behavior: No action yet (reserved for future drill-down)
+- Testing: Verify all categories display with correct calculations
+
+**Task 5.4: Load dashboard data on mount**
+- File: `frontend/components/Dashboard.js`
+- Hook: created() or mounted()
+- Logic:
+  1. Call getDashboardData()
+  2. Store data in component state
+  3. Calculate spent_this_month as sum of activity (already comes from backend)
+  4. Format all numbers as currency
+- Error handling: Show error message if data fails to load
+- Testing: Navigate to Dashboard, verify data loads and displays
+
+**Task 5.5: Add auto-refresh capability**
+- File: `frontend/components/Dashboard.js`
+- Feature: Optionally refresh data every 30 seconds (or on manual click)
+- Implementation: Use setInterval or manual refresh button
+- Testing: Verify data updates when transactions added in another window
+
+#### Phase 6: Dashboard Styling
+
+**Task 6.1: Add stat box styling**
 - File: `frontend/static/styles.css`
-- Add: `.pending-transaction { background-color: rgba(251, 191, 36, 0.15); }` with pulse animation
-- Add: `.posted-transaction { background-color: transparent; }`
-- Testing: Verify pending rows have yellow/amber background
+- Class: `.stat-box`
+- Styles:
+  - Large card with colored background (green/red/blue/gray based on class)
+  - Large bold number (font-size 32px)
+  - Smaller label text
+  - Box shadow and border radius
+  - Responsive: Stack on small screens
+- Variants:
+  - `.stat-box-available` (green)
+  - `.stat-box-spent` (red)
+  - `.stat-box-budgeted` (blue)
+  - `.stat-box-pending` (gray)
 
-**Task 5.2: Apply CSS Classes to Rows**
-- File: `frontend/components/Transactions.js` (table row template)
-- Change: Add `:class="transaction.date ? 'posted-transaction' : 'pending-transaction'"`
-- Testing: Verify CSS classes applied, add/edit date changes background color
+**Task 6.2: Add dashboard layout styling**
+- File: `frontend/static/styles.css`
+- Class: `.dashboard-container`
+- Styles:
+  - Main layout with sidebar (300px fixed) + content area
+  - Flexbox layout
+  - Responsive: On small screens, sidebar becomes full-width stacked
 
-#### Phase 6: Client-Side Sorting
+**Task 6.3: Add accounts sidebar styling**
+- File: `frontend/static/styles.css`
+- Class: `.dashboard-accounts-sidebar`
+- Styles:
+  - Card design with border
+  - List of accounts
+  - Account row: name on left, balance on right
+  - Green text for positive, red for negative
+  - Last transaction date in smaller gray text
 
-**Task 6.1: Verify Frontend Sort Order**
-- File: `frontend/components/Transactions.js` (filteredTransactions method)
-- Status: No changes needed (already uses backend sort order)
-- Testing: Create mixed pending/posted, verify correct sort with filters applied
+**Task 6.4: Add categories table styling**
+- File: `frontend/static/styles.css`
+- Class: `.dashboard-categories-table`
+- Styles:
+  - Table with striped rows
+  - Column headers with light background
+  - Amount columns right-aligned
+  - Color-coded amounts (green positive, red negative)
+  - Hover effect on rows
+  - Responsive: On very small screens, hide some columns or use horizontal scroll
 
-#### Phase 7: Integration Testing
+**Task 6.5: Update Dashboard component import**
+- File: `frontend/components/Dashboard.js`
+- Add: Import api from '../api.js'
+- Verify: CSS classes in template match defined styles
 
-**Task 7.1: End-to-End Workflow**
-- Create pending transaction (no date)
-- Verify it appears at top with yellow background
-- Edit to add date
-- Verify it becomes posted with normal background
-- Test with multiple pending/posted and filters
+#### Phase 7: Remove Redundancy from Transactions Page
 
-#### Phase 8: Edge Cases
+**Task 7.1: Remove category balance display from sidebar**
+- File: `frontend/components/Transactions.js`
+- Change: Remove the `.category-balance` span from category items
+- Remove line: `<span class="category-balance" :class="{ negative: getCategoryBalance(category.id) < 0 }">{{ formatAmount(getCategoryBalance(category.id)) }}</span>`
+- Result: Category sidebar shows only category names, no balances
+- Testing: Navigate to Transactions page, verify sidebar shows categories without balances
 
-**Task 8.1: Test Edge Cases**
-- No amount specified → error
-- No account specified → error
-- Multiple edits to pending transaction → stays pending until date added
-- Remove date from posted transaction → becomes pending again
-- Filters preserve pending/posted order
+**Task 7.2: Remove getCategoryBalance() method (if no longer used)**
+- File: `frontend/components/Transactions.js`
+- Check: If getCategoryBalance() is used elsewhere in the component (besides sidebar display)
+- If only used for sidebar balances: Remove the method entirely
+- If used elsewhere: Keep the method but remove only the sidebar usage
+- Testing: Verify Transactions component still works (filter by category)
 
-**Task 8.2: Documentation Update**
-- Document pending vs posted in user guide
-- Explain that empty date = pending
-- Explain visual distinction
+**Task 7.3: Remove calculateCategoryBalances() calls**
+- File: `frontend/components/Transactions.js`
+- Find: All calls to calculateCategoryBalances()
+- Locations: likely in addTransaction(), updateTransaction(), deleteTransaction()
+- Action: Remove these method calls (no longer needed, Dashboard will display balances)
+- Testing: Add/edit/delete transactions, verify no errors
 
-### Summary
+**Task 7.4: Remove categoryBalances state variable**
+- File: `frontend/components/Transactions.js`
+- In data(): Remove `categoryBalances: {}`
+- In methods(): Remove entire calculateCategoryBalances() function definition
+- Testing: Verify component mounts and functions normally
+
+**Task 7.5: Update category sidebar styling**
+- File: `frontend/static/styles.css`
+- Check: `.category-item` and related classes
+- Verify: Sidebar still looks good without balance display
+- Optional: Add class to center category names vertically
+- Testing: Transactions page sidebar renders cleanly
+
+#### Phase 8: Integration Testing
+
+**Task 8.1: Test dashboard loads correctly**
+- Navigate to Dashboard
+- Verify all 4 stat boxes display with correct values
+- Verify account list shows all accounts with balances
+- Verify categories table shows all categories
+- Test: Create new transaction in different window, refresh Dashboard
+
+**Task 8.2: Test calculations with sample data**
+- Create several transactions across different accounts
+- Verify account balances sum correctly
+- Create transactions in current month and past months
+- Verify "Spent this month" shows only current month spending
+- Manually calculate and compare with Dashboard display
+
+**Task 8.3: Test transactions page changes**
+- Navigate to Transactions page
+- Verify category sidebar shows only names (no balances)
+- Verify category filtering still works
+- Add/edit/delete transactions
+- Verify no console errors
+- Return to Dashboard and verify balances updated
+
+**Task 8.4: Test responsive design**
+- View Dashboard on narrow window (600px width)
+- Verify layout doesn't break
+- Verify tables/sidebars stack appropriately
+- Check stat boxes remain readable
+- Test Transactions page still functions
+
+**Task 8.5: Test edge cases**
+- Empty database (no transactions): Should show $0 everywhere
+- Transactions with null category: Should not appear in category balances
+- Multiple accounts with negative balances: Should display correctly in red
+- No pending transactions: Count should be 0
+- Future-dated transactions: Should still count in balances
+
+#### Phase 9: User Acceptance Testing
+
+**Task 9.1: User reviews Dashboard accuracy**
+- User manually adds transactions
+- User verifies Dashboard balances match expectations
+- User checks that "Available to budget" equals total account balance
+- User verifies "Spent this month" only includes current month
+- User confirms all accounts and categories present
+
+**Task 9.2: User confirms redundancy removal**
+- User reviews Transactions page sidebar
+- User confirms no duplicate balance information
+- User verifies filtering still works
+- User confirms simpler sidebar doesn't impact usability
+
+**Task 9.3: User performance check**
+- Load Dashboard with 50+ transactions
+- Verify page loads quickly
+- Verify no lag when navigating between pages
+
+### Summary of Changes
 
 **Files Modified**: 5
-- `backend/models.py` (1 change)
-- `backend/schemas.py` (2 schemas)
-- `backend/crud.py` (sorting logic)
-- `frontend/components/Transactions.js` (validation + styling)
-- `frontend/static/styles.css` (new styles)
+- `backend/crud.py` (5 new functions for calculations)
+- `backend/schemas.py` (3 new schemas)
+- `backend/main.py` (1 new API endpoint)
+- `frontend/api.js` (1 new function)
+- `frontend/components/Dashboard.js` (complete component implementation)
+- `frontend/components/Transactions.js` (remove category balance display)
+- `frontend/static/styles.css` (new Dashboard styles)
 
-**Total Tasks**: 11 atomic, user-testable tasks
+**Total Tasks**: 32 atomic, testable, verifiable tasks across 9 phases
 
-**Implementation Order**: Backend (Phases 1-3) → Frontend (Phases 4-5) → Testing (Phases 6-8)
+**Implementation Order**: Backend (Phases 1-3) → Frontend (Phases 4-6) → Cleanup (Phase 7) → Testing (Phases 8-9)
+
+**Key Principle**: No redundant data. Category balances calculated once, displayed in Dashboard only. Transactions page sidebar simplified to category names only for filtering.
