@@ -85,6 +85,113 @@ moneywise/
 
 ---
 
+## Default Configuration
+
+Create `config.toml` in project root with these defaults (if file doesn't exist on first run):
+
+```toml
+[database]
+path = "./moneywise.db"
+
+[backup]
+enabled = true
+path = "./backups"
+auto_backup_on_start = false
+
+[ui]
+currency_symbol = "$"
+date_format = "MM/DD/YYYY"
+
+[currency]
+base_currency = "USD"
+display_currency = "USD"
+ticker_currencies = ["USD", "AED", "INR"]
+
+[exchange_rates]
+api_provider = "exchangerate-api"  # Free API, no key needed
+api_url = "https://api.exchangerate-api.com/v4/latest/"
+cache_duration_hours = 24
+auto_update = true
+
+[server]
+host = "127.0.0.1"
+port = 8000
+auto_open_browser = true
+```
+
+---
+
+## Database Schema
+
+Design a SQLite database with the following tables using SQLAlchemy ORM:
+
+### **accounts** table
+- `id` - Integer primary key
+- `name` - String, unique, not null (e.g., "Checking", "Wells Fargo Card")
+- `account_type` - String, not null, either "bank" or "credit"
+- `is_hidden` - Boolean, default False (for hiding old accounts)
+- `created_at` - DateTime
+- `updated_at` - DateTime
+
+### **categories** table
+- `id` - Integer primary key
+- `name` - String, unique, not null (e.g., "Groceries", "Dining Out")
+- `is_hidden` - Boolean, default False (for hiding old categories)
+- `created_at` - DateTime
+- `updated_at` - DateTime
+
+### **category_renames** table
+Track history when categories are renamed:
+- `id` - Integer primary key
+- `category_id` - Foreign key to categories
+- `old_name` - String, not null
+- `renamed_at` - DateTime, not null
+
+### **transactions** table
+- `id` - Integer primary key
+- `date` - Date, not null
+- `amount` - Decimal(12, 2), not null (positive = inflow, negative = outflow)
+- `account_id` - Foreign key to accounts, not null
+- `category_id` - Foreign key to categories, nullable (null for transfers)
+- `memo` - String, nullable (description/note)
+- `is_transfer` - Boolean, default False (true for account transfers)
+- `transfer_id` - String, nullable (UUID linking paired transfer transactions)
+- `created_at` - DateTime
+- `updated_at` - DateTime
+
+### **category_transfers** table
+Moving money between budget categories:
+- `id` - Integer primary key
+- `date` - Date, not null
+- `amount` - Decimal(12, 2), not null (always positive)
+- `from_category_id` - Foreign key to categories, nullable (null if from "Available to budget")
+- `to_category_id` - Foreign key to categories, not null
+- `memo` - String, nullable
+- `created_at` - DateTime
+
+### **reconciliations** table
+Track when accounts were reconciled:
+- `id` - Integer primary key
+- `account_id` - Foreign key to accounts, not null
+- `reconciled_date` - Date, not null
+- `created_at` - DateTime
+
+### **exchange_rates** table
+Cache currency exchange rates:
+- `id` - Integer primary key
+- `base_currency` - String(3), not null (e.g., "USD")
+- `target_currency` - String(3), not null (e.g., "EUR")
+- `rate` - Decimal(12, 6), not null
+- `fetched_at` - DateTime, not null
+
+**Important indexes to create:**
+- Index on `transactions.date` for date range queries
+- Index on `transactions.account_id` for filtering by account
+- Index on `transactions.category_id` for filtering by category
+- Index on `category_transfers.date` for date range queries
+- Unique compound index on `exchange_rates(base_currency, target_currency)` for fast lookups
+
+---
 ## Feature: Pending/Posted Transactions
 
 ### Overview
