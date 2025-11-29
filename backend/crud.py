@@ -247,8 +247,7 @@ async def get_transactions(
     # Order: pending (null date) first by created_at DESC, then posted by date DESC
     stmt = stmt.order_by(
         case((Transaction.date.is_(None), 0), else_=1),  # Pending (0) before Posted (1)
-        Transaction.created_at.desc(),  # For pending, sort by created_at DESC
-        Transaction.date.desc()  # For posted, sort by date DESC
+        case((Transaction.date.is_(None), Transaction.created_at), else_=Transaction.date).desc()
     ).limit(limit)
 
     result = await db.execute(stmt)

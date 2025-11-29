@@ -150,7 +150,7 @@ class TransactionResponse(BaseModel):
     class Config:
         from_attributes = True
 
-    @field_serializer('date', when_used='json')
+    @field_serializer('date')
     def serialize_date(self, value: Optional[date]) -> Optional[str]:
         """Serialize date to ISO format string or None."""
         if value is None:
