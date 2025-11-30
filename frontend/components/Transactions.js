@@ -57,9 +57,6 @@ export default {
               @click="selectCategory(category)"
             >
               <span class="category-name">{{ category.name }}</span>
-              <span class="category-balance" :class="{ negative: getCategoryBalance(category.id) < 0 }">
-                {{ formatAmount(getCategoryBalance(category.id)) }}
-              </span>
             </div>
           </div>
         </div>
@@ -243,7 +240,6 @@ export default {
       editingId: null,
       editData: {},
       editIndex: -1,
-      categoryBalances: {},
       confirmDialog: {
         show: false,
         message: '',
@@ -265,13 +261,13 @@ export default {
   async mounted() {
     await this.loadData();
   },
+  // Note: Dashboard now displays category balances, so we removed local balance calculations
   methods: {
     async loadData() {
       try {
         this.accounts = await this.api.getAccounts();
         this.categories = await this.api.getCategories();
         await this.loadTransactions();
-        await this.calculateCategoryBalances();
       } catch (error) {
         console.error('Error loading data:', error);
         this.showToast('Failed to load data', 'error');
@@ -284,21 +280,6 @@ export default {
         console.error('Error loading transactions:', error);
         this.showToast('Failed to load transactions', 'error');
       }
-    },
-    async calculateCategoryBalances() {
-      this.categoryBalances = {};
-      for (const category of this.categories) {
-        let balance = 0;
-        for (const txn of this.transactions) {
-          if (txn.category_id === category.id) {
-            balance += parseFloat(txn.inflow) - parseFloat(txn.outflow);
-          }
-        }
-        this.categoryBalances[category.id] = balance;
-      }
-    },
-    getCategoryBalance(categoryId) {
-      return this.categoryBalances[categoryId] || 0;
     },
     selectCategory(category) {
       this.selectedCategory = category;
@@ -339,7 +320,6 @@ export default {
 
         // Reload data
         await this.loadTransactions();
-        await this.calculateCategoryBalances();
 
       } catch (error) {
         console.error('Error adding transaction:', error);
@@ -387,7 +367,6 @@ export default {
         this.editData = {};
 
         await this.loadTransactions();
-        await this.calculateCategoryBalances();
 
       } catch (error) {
         console.error('Error updating transaction:', error);
@@ -426,7 +405,6 @@ export default {
             await this.api.deleteTransaction(txnId);
             this.showToast('Transaction deleted', 'success');
             await this.loadTransactions();
-            await this.calculateCategoryBalances();
           } catch (error) {
             console.error('Error deleting transaction:', error);
             this.showToast('Failed to delete transaction', 'error');

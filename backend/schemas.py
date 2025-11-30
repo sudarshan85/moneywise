@@ -158,6 +158,48 @@ class TransactionResponse(BaseModel):
         return value.isoformat() if isinstance(value, date) else None
 
 
+# ============================================================================
+# DASHBOARD SCHEMAS
+# ============================================================================
+
+class AccountWithBalance(BaseModel):
+    """Account with current balance for dashboard display."""
+    id: int
+    name: str
+    account_type: AccountType
+    balance: float
+    last_transaction_date: Optional[date] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CategoryWithBalance(BaseModel):
+    """Category with balance and spending info for dashboard display."""
+    id: int
+    name: str
+    balance: float
+    current_month_spending: float = 0
+    monthly_budget: float = 0
+
+    class Config:
+        from_attributes = True
+
+
+class DashboardResponse(BaseModel):
+    """Dashboard overview response with key metrics and lists."""
+    available_to_budget: float
+    spent_this_month: float
+    budgeted_this_month: float
+    pending_count: int
+    accounts: List[AccountWithBalance]
+    categories: List[CategoryWithBalance]
+    current_date: date
+
+    class Config:
+        from_attributes = True
+
+
 # FEATURE DEFERRED: Currency/exchange rate schemas - commented out for future implementation
 # class ExchangeRateResponse(BaseModel):
 #     """Schema for exchange rate API responses."""

@@ -237,6 +237,23 @@ export async function deleteTransaction(transactionId) {
 }
 
 // ============================================================================
+// DASHBOARD API FUNCTIONS
+// ============================================================================
+
+/**
+ * Get dashboard data with account/category balances and key metrics.
+ */
+export async function getDashboardData() {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/dashboard`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        throw error;
+    }
+}
+
+// ============================================================================
 // CURRENCY API FUNCTIONS - FEATURE DEFERRED: Commented out for future implementation
 // ============================================================================
 //

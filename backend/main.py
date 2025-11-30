@@ -16,6 +16,7 @@ from backend.schemas import (
     AccountCreate, AccountUpdate, AccountResponse,
     CategoryCreate, CategoryUpdate, CategoryResponse,
     TransactionCreate, TransactionUpdate, TransactionResponse,
+    AccountWithBalance, CategoryWithBalance, DashboardResponse,
     # ExchangeRatesResponse, CurrencyConvertResponse  # FEATURE DEFERRED
 )
 # from backend.currency import CurrencyService  # FEATURE DEFERRED
@@ -317,6 +318,81 @@ async def delete_transaction(
     success = await crud.delete_transaction(db, transaction_id)
     if not success:
         raise HTTPException(status_code=404, detail="Transaction not found")
+
+
+# ============================================================================
+# DASHBOARD ENDPOINTS
+# ============================================================================
+
+@app.get("/api/dashboard", response_model=DashboardResponse)
+async def get_dashboard(db: AsyncSession = Depends(get_session)):
+    """Get dashboard overview with account/category balances and key metrics."""
+    try:
+        # Get account balances and pending count
+        account_balances = await crud.get_account_balances(db)
+        category_balances = await crud.get_category_balances(db)
+        current_month_spending = await crud.get_current_month_spending(db)
+        available_to_budget = await crud.get_available_to_budget(db)
+        pending_count = await crud.get_pending_transaction_count(db)
+
+        # Build accounts list with balances
+        accounts = await crud.get_all_accounts(db)
+        accounts_with_balance = []
+        for account in accounts:
+            balance = account_balances.get(account.id, Decimal("0.00"))
+
+            # Get last transaction date for this account
+            last_txn = None
+            account_txns = await crud.get_transactions(db, account_id=account.id, limit=1)
+            if account_txns:
+                last_txn = account_txns[0].date
+
+            accounts_with_balance.append({
+                "id": account.id,
+                "name": account.name,
+                "account_type": account.account_type,
+                "balance": float(balance),
+                "last_transaction_date": last_txn
+            })
+
+        # Build categories list with balances and spending
+        categories = await crud.get_all_categories(db)
+        categories_with_balance = []
+        total_budgeted = Decimal("0.00")
+
+        for category in categories:
+            balance = category_balances.get(category.id, Decimal("0.00"))
+            spending = current_month_spending.get(category.id, Decimal("0.00"))
+
+            categories_with_balance.append({
+                "id": category.id,
+                "name": category.name,
+                "balance": float(balance),
+                "current_month_spending": float(spending),
+                "monthly_budget": 0  # TODO: Add monthly_budget field to Category model in phase 2
+            })
+
+        # Calculate total spending this month (sum of outflows)
+        spent_this_month = Decimal("0.00")
+        for spending_amount in current_month_spending.values():
+            spent_this_month += spending_amount
+
+        # Sort lists for consistent display
+        accounts_with_balance.sort(key=lambda x: x["name"])
+        categories_with_balance.sort(key=lambda x: x["name"])
+
+        return {
+            "available_to_budget": float(available_to_budget),
+            "spent_this_month": float(spent_this_month),
+            "budgeted_this_month": float(total_budgeted),
+            "pending_count": pending_count,
+            "accounts": accounts_with_balance,
+            "categories": categories_with_balance,
+            "current_date": date.today()
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching dashboard data: {str(e)}")
 
 
 # ============================================================================

@@ -300,3 +300,120 @@ async def get_category_balance(db: AsyncSession, category_id: int) -> Decimal:
         balance += Decimal(str(txn.inflow)) - Decimal(str(txn.outflow))
 
     return balance
+
+
+# ============================================================================
+# DASHBOARD CALCULATIONS
+# ============================================================================
+
+async def get_account_balances(db: AsyncSession, account_id: int | None = None) -> dict[int, Decimal]:
+    """Get balance for each account (sum of inflows minus outflows).
+
+    Args:
+        db: Database session
+        account_id: If provided, returns only balance for this account as {account_id: balance}
+                   If None, returns balances for all accounts
+
+    Returns:
+        Dict mapping account_id to balance (Decimal)
+    """
+    stmt = select(Transaction)
+
+    if account_id is not None:
+        stmt = stmt.where(Transaction.account_id == account_id)
+
+    result = await db.execute(stmt)
+    transactions = result.scalars().all()
+
+    balances: dict[int, Decimal] = {}
+
+    for txn in transactions:
+        if txn.account_id not in balances:
+            balances[txn.account_id] = Decimal("0.00")
+        balances[txn.account_id] += Decimal(str(txn.inflow)) - Decimal(str(txn.outflow))
+
+    return balances
+
+
+async def get_category_balances(db: AsyncSession, category_id: int | None = None) -> dict[int, Decimal]:
+    """Get balance for each category (sum of inflows minus outflows).
+
+    Args:
+        db: Database session
+        category_id: If provided, returns only balance for this category as {category_id: balance}
+                    If None, returns balances for all categories
+
+    Returns:
+        Dict mapping category_id to balance (Decimal)
+    """
+    stmt = select(Transaction).where(Transaction.category_id.isnot(None))
+
+    if category_id is not None:
+        stmt = stmt.where(Transaction.category_id == category_id)
+
+    result = await db.execute(stmt)
+    transactions = result.scalars().all()
+
+    balances: dict[int, Decimal] = {}
+
+    for txn in transactions:
+        if txn.category_id not in balances:
+            balances[txn.category_id] = Decimal("0.00")
+        balances[txn.category_id] += Decimal(str(txn.inflow)) - Decimal(str(txn.outflow))
+
+    return balances
+
+
+async def get_current_month_spending(db: AsyncSession) -> dict[int, Decimal]:
+    """Get current month spending by category (sum of outflows only).
+
+    Returns:
+        Dict mapping category_id to spending amount (negative for outflows)
+    """
+    today = date.today()
+    month_start = date(today.year, today.month, 1)
+
+    stmt = (
+        select(Transaction)
+        .where(Transaction.date >= month_start)
+        .where(Transaction.date <= today)
+        .where(Transaction.category_id.isnot(None))
+    )
+
+    result = await db.execute(stmt)
+    transactions = result.scalars().all()
+
+    spending: dict[int, Decimal] = {}
+
+    for txn in transactions:
+        if txn.category_id not in spending:
+            spending[txn.category_id] = Decimal("0.00")
+        # Only sum outflows for spending
+        spending[txn.category_id] -= Decimal(str(txn.outflow))
+
+    return spending
+
+
+async def get_available_to_budget(db: AsyncSession) -> Decimal:
+    """Calculate "Available to budget" = sum of all account balances.
+
+    Returns:
+        Decimal total of all account balances
+    """
+    balances = await get_account_balances(db)
+    total = Decimal("0.00")
+    for balance in balances.values():
+        total += balance
+    return total
+
+
+async def get_pending_transaction_count(db: AsyncSession) -> int:
+    """Count transactions without a date (pending).
+
+    Returns:
+        Integer count of pending transactions
+    """
+    stmt = select(Transaction).where(Transaction.date.is_(None))
+    result = await db.execute(stmt)
+    transactions = result.scalars().all()
+    return len(transactions)
