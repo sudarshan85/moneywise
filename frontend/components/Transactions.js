@@ -38,31 +38,25 @@ export default {
       </div>
 
       <div class="transactions-container">
-        <!-- Category Picker Sidebar -->
-        <div class="category-picker-sidebar">
-          <h3>Categories</h3>
-          <div class="category-list">
-            <div
-              class="category-item"
-              :class="{ selected: selectedCategory === null }"
-              @click="selectCategory(null)"
-            >
-              <span>All Categories</span>
-            </div>
-            <div
+        <!-- Category Filter Dropdown -->
+        <div class="category-filter-container">
+          <label for="category-filter">Filter by Category:</label>
+          <select
+            id="category-filter"
+            v-model.number="selectedCategoryId"
+            @change="onCategoryFilterChange"
+            class="form-input category-filter-select"
+          >
+            <option :value="null">All Categories</option>
+            <option
               v-for="category in categories"
               :key="category.id"
-              class="category-item"
-              :class="{ selected: selectedCategory?.id === category.id }"
-              @click="selectCategory(category)"
+              :value="category.id"
             >
-              <span class="category-name">{{ category.name }}</span>
-            </div>
-          </div>
+              {{ category.name }}
+            </option>
+          </select>
         </div>
-
-        <!-- Main Content Area -->
-        <div class="transactions-main">
           <!-- Add Transaction Form -->
           <div class="add-transaction-form">
             <h3>Add Transaction</h3>
@@ -217,7 +211,6 @@ export default {
               </tbody>
             </table>
           </div>
-        </div>
       </div>
     </div>
   `,
@@ -236,7 +229,7 @@ export default {
         is_transfer: false,
         transfer_id: null
       },
-      selectedCategory: null,
+      selectedCategoryId: null,
       editingId: null,
       editData: {},
       editIndex: -1,
@@ -252,10 +245,10 @@ export default {
       return new Date().toISOString().split('T')[0];
     },
     filteredTransactions() {
-      if (!this.selectedCategory) {
+      if (!this.selectedCategoryId) {
         return this.transactions;
       }
-      return this.transactions.filter(txn => txn.category_id === this.selectedCategory.id);
+      return this.transactions.filter(txn => txn.category_id === this.selectedCategoryId);
     }
   },
   async mounted() {
@@ -281,8 +274,8 @@ export default {
         this.showToast('Failed to load transactions', 'error');
       }
     },
-    selectCategory(category) {
-      this.selectedCategory = category;
+    onCategoryFilterChange() {
+      // Handler for dropdown change - v-model updates selectedCategoryId
     },
     async addTransaction() {
       // Validate input

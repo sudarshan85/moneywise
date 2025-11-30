@@ -1282,9 +1282,7 @@ button,
 }
 
 .transactions-container {
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    gap: var(--spacing-lg);
+    display: block;
 }
 
 /* Category Picker Sidebar */
@@ -1339,6 +1337,27 @@ button,
 
 .category-name {
     flex: 1;
+}
+
+/* Category Filter Dropdown */
+.category-filter-container {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.category-filter-container label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-dark);
+}
+
+.category-filter-select {
+    width: 100%;
+    max-width: 300px;
 }
 
 /* Sidebar Toggle Button */
@@ -1407,14 +1426,11 @@ button,
 
 /* Transactions Container - Responsive Grid */
 .transactions-container {
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    gap: var(--spacing-lg);
-    transition: grid-template-columns var(--transition-smooth);
+    display: block;
 }
 
 .transactions-container.sidebar-collapsed {
-    grid-template-columns: 80px 1fr;
+    /* No longer used - sidebar removed */
 }
 
 /* Table Wrapper - Allow horizontal scroll only on table, not page */
@@ -1483,11 +1499,11 @@ button,
 /* Responsive: Small screens (768px - 1024px) */
 @media (max-width: 1024px) {
     .transactions-container {
-        grid-template-columns: 1fr;
+        display: block;
     }
 
     .transactions-container.sidebar-collapsed {
-        grid-template-columns: 1fr;
+        display: block;
     }
 
     .category-picker-sidebar {
