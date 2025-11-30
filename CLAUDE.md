@@ -193,329 +193,165 @@ Cache currency exchange rates:
 
 ---
 
-## Feature: Dashboard View (v0.4.0-alpha)
+## Feature: Category Budget Limits (v0.4.5-alpha)
 
 ### Overview
 
-The Dashboard provides a budget overview showing account balances, category balances, and "Available to budget" calculations. This is the primary view where users understand their financial position at a glance. The Dashboard replaces the category sidebar balance display in the Transactions page to eliminate redundancy.
+Allow users to set monthly spending limits for each category and display visual warnings on the Dashboard when actual spending exceeds those limits. This feature exposes the existing `monthly_budget` field in the Category model through the UI.
 
 ### Design Principles
 
-- **Single source of truth**: Category balances calculated once in backend, displayed in Dashboard only
-- **Account-centric**: Show all account balances to see total available money
-- **Category-centric**: Show all category balances to see how money is allocated
-- **Month-focused**: Display current month spending separately from total balances
-- **At-a-glance stats**: Top banner with key numbers (Available to budget, spent this month, etc.)
+- **Incremental enhancement**: Builds on top of Dashboard (Phase 3)
+- **Single source of truth**: Budget limits stored in database, calculated in backend
+- **Clear visual warnings**: Red indicators for overspending categories
+- **Non-breaking**: $0 budgets treated as "no limit" (no warnings)
 
 ### Implementation Plan
 
-#### Phase 1: Backend Dashboard Calculations
+#### Phase 1: Backend Schema Updates
 
-**Task 1.1: Add get_account_balances() to CRUD**
-- File: `backend/crud.py`
-- Function: Calculate balance for each account (sum of all transactions per account)
-- Input: account_id (optional - if provided, get balance for one account; if None, get all)
-- Output: Dict mapping account_id → balance (Decimal)
-- Logic: Sum of (inflow - outflow) for all transactions in account
-- Testing: Create transactions for multiple accounts, verify balances match manual calculation
-
-**Task 1.2: Add get_category_balances() to CRUD**
-- File: `backend/crud.py`
-- Function: Calculate balance for each category (sum of all transactions per category)
-- Input: category_id (optional - if provided, get balance for one; if None, get all)
-- Output: Dict mapping category_id → balance (Decimal)
-- Logic: Sum of (inflow - outflow) for all transactions in category
-- Testing: Create transactions for multiple categories, verify balances correct
-
-**Task 1.3: Add get_current_month_spending() to CRUD**
-- File: `backend/crud.py`
-- Function: Calculate current month spending by category
-- Input: None (uses today's date to determine month)
-- Output: Dict mapping category_id → spending amount (negative for outflow)
-- Logic: Sum of transactions where date is in current month AND category_id matches
-- Note: Should only sum outflows (negative amounts), ignore inflows
-- Testing: Add transactions in current month and past months, verify filtering correct
-
-**Task 1.4: Add get_available_to_budget() to CRUD**
-- File: `backend/crud.py`
-- Function: Calculate "Available to budget" = sum of all account balances
-- Input: None
-- Output: Decimal (single number)
-- Logic: Sum of get_account_balances() for all accounts
-- Note: This is total money in accounts (category transfers will reduce this later in Phase 5)
-- Testing: Verify equals sum of all account balances
-
-**Task 1.5: Add get_pending_transaction_count() to CRUD**
-- File: `backend/crud.py`
-- Function: Count transactions without a date (pending)
-- Input: None
-- Output: Integer count
-- Logic: Count transactions where date IS NULL
-- Testing: Create some pending transactions, verify count correct
-
-#### Phase 2: Backend Dashboard Schemas
-
-**Task 2.1: Create AccountWithBalance schema**
+**Task 1.1: Update CategoryCreate schema**
 - File: `backend/schemas.py`
-- Fields: id, name, account_type, balance (Decimal), last_transaction_date (optional)
-- Validation: balance must be numeric
+- Add `monthly_budget: Optional[float] = 0` field to CategoryCreate class (after line 54)
+- Add Pydantic Field validation: `monthly_budget: Optional[float] = Field(0, ge=0)` (must be >= 0)
+- Testing: Create category via API with budget, verify saved correctly
 
-**Task 2.2: Create CategoryWithBalance schema**
+**Task 1.2: Update CategoryUpdate and CategoryResponse schemas**
 - File: `backend/schemas.py`
-- Fields: id, name, balance (Decimal), current_month_spending (Decimal), monthly_budget (Decimal)
-- Validation: All amounts must be numeric
-- Note: monthly_budget defaults to 0 if not set
+- CategoryUpdate (line 57): Add `monthly_budget: Optional[float] = None`
+- CategoryResponse (line 63): Add `monthly_budget: float` field
+- Validation: monthly_budget >= 0
+- Testing: Update category budget via PATCH, verify response includes budget
 
-**Task 2.3: Create DashboardResponse schema**
-- File: `backend/schemas.py`
-- Fields:
-  - available_to_budget (Decimal)
-  - spent_this_month (Decimal - total of all category outflows this month)
-  - budgeted_this_month (Decimal - sum of all monthly_budget fields)
-  - pending_count (int)
-  - accounts (list of AccountWithBalance)
-  - categories (list of CategoryWithBalance)
-  - current_date (date)
-- Validation: All Decimal fields must be numeric
+#### Phase 2: Configuration UI - Budget Editing
 
-#### Phase 3: Backend API Endpoint
+**Task 2.1: Add Monthly Budget column to categories table**
+- File: `frontend/components/Configuration.js`
+- Location: Categories table (line 251)
+- Add `<th>Monthly Budget</th>` header between "Category Name" and "Actions"
+- Add `<td>` cell with number input in edit mode
+- Add `<td>` cell with formatted display in normal mode: `{{ formatAmount(category.monthly_budget || 0) }}`
+- Input: `v-model.number="editingCategoryBudget"`, type="number", step="0.01", min="0"
+- Testing: Verify column appears, displays budgets, allows editing
 
-**Task 3.1: Create GET /api/dashboard endpoint**
-- File: `backend/main.py`
-- Route: `GET /api/dashboard`
-- Response: DashboardResponse schema
-- Logic:
-  1. Call get_available_to_budget()
-  2. Call get_current_month_spending() for all categories, sum the outflows
-  3. Get all categories with monthly_budget field, sum them
-  4. Call get_pending_transaction_count()
-  5. Get all accounts with get_account_balances(), include last_transaction_date from database
-  6. Get all categories with get_category_balances() and get_current_month_spending()
-  7. Build and return DashboardResponse
-- Error handling: Return 500 if calculation fails, with error message
-- Testing: Call endpoint, verify all fields present and correct
+**Task 2.2: Update edit/save logic for budget field**
+- File: `frontend/components/Configuration.js`
+- Add to data(): `editingCategoryBudget: 0`
+- Update `startEditCategory(id, name, budget)`: Set `this.editingCategoryBudget = budget || 0`
+- Update `saveCategory(id)`: Include `monthly_budget: this.editingCategoryBudget` in PATCH call
+- Update `cancelEdit()`: Clear `this.editingCategoryBudget = 0`
+- Testing: Edit budget, save, verify persists; cancel, verify reverts
 
-#### Phase 4: Frontend API Client
+**Task 2.3: Add budget field to Add Category form**
+- File: `frontend/components/Configuration.js`
+- Location: Add category form (line 327)
+- Add form-group with label "Monthly Budget (optional)"
+- Input: `v-model.number="newCategory.monthly_budget"`, type="number", step="0.01", min="0", placeholder="0.00"
+- Add to data(): `monthly_budget: 0` in newCategory object
+- Update `addCategory()`: Include monthly_budget in API call
+- Clear after add: `this.newCategory.monthly_budget = 0`
+- Testing: Add category with budget, verify saved; add without budget, verify defaults to 0
 
-**Task 4.1: Add getDashboardData() function**
-- File: `frontend/api.js`
-- Function: Async function that calls GET /api/dashboard
-- Returns: Promise resolving to dashboard data object
-- Error handling: Catch and log errors, re-throw for component handling
-- Testing: Call from console, verify data structure matches DashboardResponse
+#### Phase 3: Dashboard - Overspending Warnings
 
-#### Phase 5: Frontend Dashboard Component
-
-**Task 5.1: Create Dashboard template structure**
+**Task 3.1: Add overspending detection methods**
 - File: `frontend/components/Dashboard.js`
-- Layout:
-  - Top banner (stat boxes)
-  - Two-column layout: accounts sidebar (left) + categories table (right)
-- Stat boxes (4 boxes in grid):
-  - Available to budget (green box)
-  - Spent this month (red box)
-  - Budgeted this month (blue box)
-  - Pending count (gray box)
-- Each stat box shows: title, large number, currency symbol
-- Testing: Verify layout renders without errors
+- Add method `isOverBudget(category)`:
+  ```javascript
+  isOverBudget(category) {
+    return category.monthly_budget > 0 &&
+           Math.abs(category.current_month_spending) > category.monthly_budget;
+  }
+  ```
+- Add method `getOverspendingAmount(category)`:
+  ```javascript
+  getOverspendingAmount(category) {
+    return Math.abs(category.current_month_spending) - category.monthly_budget;
+  }
+  ```
+- Testing: Verify logic correctly identifies overspending
 
-**Task 5.2: Create accounts sidebar**
+**Task 3.2: Add warning styling and indicators**
 - File: `frontend/components/Dashboard.js`
-- Display: List of all accounts with balances
-- Columns: Account name, Balance
-- Styling: Green text for positive balances, red for negative
-- Show: "Last transaction: [date]" under each account
-- Click behavior: No action yet (reserved for future drill-down)
-- Testing: Verify all accounts display with correct balances and dates
+- Update category row class binding (line 82): `:class="['category-row', { 'over-budget': isOverBudget(category) }]"`
+- Add warning icon in category name cell (line 83): `<span v-if="isOverBudget(category)" class="warning-icon">⚠️</span>`
+- Add overspending badge in Budgeted column (line 90):
+  ```html
+  <td class="col-budgeted">
+    {{ formatAmount(category.monthly_budget) }}
+    <span v-if="isOverBudget(category)" class="overspending-badge">
+      Over by {{ formatAmount(getOverspendingAmount(category)) }}
+    </span>
+  </td>
+  ```
+- Testing: Verify icon and badge appear for overspending categories only
 
-**Task 5.3: Create categories table**
-- File: `frontend/components/Dashboard.js`
-- Display: Table of all categories with balance info
-- Columns: Category, Available, Activity, Budgeted
-- Column definitions:
-  - Category: Category name
-  - Available: Current category balance (color-coded green/red)
-  - Activity: Current month spending only (negative in red)
-  - Budgeted: Monthly budget limit (if set)
-- Sorting: Alphabetical by category name
-- Click behavior: No action yet (reserved for future drill-down)
-- Testing: Verify all categories display with correct calculations
-
-**Task 5.4: Load dashboard data on mount**
-- File: `frontend/components/Dashboard.js`
-- Hook: created() or mounted()
-- Logic:
-  1. Call getDashboardData()
-  2. Store data in component state
-  3. Calculate spent_this_month as sum of activity (already comes from backend)
-  4. Format all numbers as currency
-- Error handling: Show error message if data fails to load
-- Testing: Navigate to Dashboard, verify data loads and displays
-
-**Task 5.5: Add auto-refresh capability**
-- File: `frontend/components/Dashboard.js`
-- Feature: Optionally refresh data every 30 seconds (or on manual click)
-- Implementation: Use setInterval or manual refresh button
-- Testing: Verify data updates when transactions added in another window
-
-#### Phase 6: Dashboard Styling
-
-**Task 6.1: Add stat box styling**
+**Task 3.3: Add CSS styles**
 - File: `frontend/static/styles.css`
-- Class: `.stat-box`
-- Styles:
-  - Large card with colored background (green/red/blue/gray based on class)
-  - Large bold number (font-size 32px)
-  - Smaller label text
-  - Box shadow and border radius
-  - Responsive: Stack on small screens
-- Variants:
-  - `.stat-box-available` (green)
-  - `.stat-box-spent` (red)
-  - `.stat-box-budgeted` (blue)
-  - `.stat-box-pending` (gray)
+- Add `.over-budget` row style: Red left border (4px solid #dc2626), light red background (rgba(220, 38, 38, 0.1))
+- Add `.warning-icon` style: Amber/yellow color (#f59e0b), margin-right: 0.5rem
+- Add `.overspending-badge` style: Red background (#dc2626), white text, rounded corners, padding, small font
+- Add `.col-budgeted` style: Right-aligned text
+- Add `.budget-input` style: Right-aligned number input in Configuration
+- Testing: Verify visual styling looks good and stands out
 
-**Task 6.2: Add dashboard layout styling**
-- File: `frontend/static/styles.css`
-- Class: `.dashboard-container`
-- Styles:
-  - Main layout with sidebar (300px fixed) + content area
-  - Flexbox layout
-  - Responsive: On small screens, sidebar becomes full-width stacked
+#### Phase 4: Integration Testing
 
-**Task 6.3: Add accounts sidebar styling**
-- File: `frontend/static/styles.css`
-- Class: `.dashboard-accounts-sidebar`
-- Styles:
-  - Card design with border
-  - List of accounts
-  - Account row: name on left, balance on right
-  - Green text for positive, red for negative
-  - Last transaction date in smaller gray text
+**Task 4.1: Test Configuration page budget editing**
+- Navigate to Configuration → Categories section
+- Verify "Monthly Budget" column appears in table
+- Click Edit on existing category
+- Change budget to $500.00, click Save
+- Verify budget persists
+- Edit again, press Escape without saving
+- Verify budget didn't change
 
-**Task 6.4: Add categories table styling**
-- File: `frontend/static/styles.css`
-- Class: `.dashboard-categories-table`
-- Styles:
-  - Table with striped rows
-  - Column headers with light background
-  - Amount columns right-aligned
-  - Color-coded amounts (green positive, red negative)
-  - Hover effect on rows
-  - Responsive: On very small screens, hide some columns or use horizontal scroll
+**Task 4.2: Test Add Category with budget**
+- Navigate to Configuration
+- Add new category "Test Groceries" with $400 budget
+- Verify category created
+- Add another category without budget
+- Verify defaults to $0.00
 
-**Task 6.5: Update Dashboard component import**
-- File: `frontend/components/Dashboard.js`
-- Add: Import api from '../api.js'
-- Verify: CSS classes in template match defined styles
-
-#### Phase 7: Remove Redundancy from Transactions Page
-
-**Task 7.1: Remove category balance display from sidebar**
-- File: `frontend/components/Transactions.js`
-- Change: Remove the `.category-balance` span from category items
-- Remove line: `<span class="category-balance" :class="{ negative: getCategoryBalance(category.id) < 0 }">{{ formatAmount(getCategoryBalance(category.id)) }}</span>`
-- Result: Category sidebar shows only category names, no balances
-- Testing: Navigate to Transactions page, verify sidebar shows categories without balances
-
-**Task 7.2: Remove getCategoryBalance() method (if no longer used)**
-- File: `frontend/components/Transactions.js`
-- Check: If getCategoryBalance() is used elsewhere in the component (besides sidebar display)
-- If only used for sidebar balances: Remove the method entirely
-- If used elsewhere: Keep the method but remove only the sidebar usage
-- Testing: Verify Transactions component still works (filter by category)
-
-**Task 7.3: Remove calculateCategoryBalances() calls**
-- File: `frontend/components/Transactions.js`
-- Find: All calls to calculateCategoryBalances()
-- Locations: likely in addTransaction(), updateTransaction(), deleteTransaction()
-- Action: Remove these method calls (no longer needed, Dashboard will display balances)
-- Testing: Add/edit/delete transactions, verify no errors
-
-**Task 7.4: Remove categoryBalances state variable**
-- File: `frontend/components/Transactions.js`
-- In data(): Remove `categoryBalances: {}`
-- In methods(): Remove entire calculateCategoryBalances() function definition
-- Testing: Verify component mounts and functions normally
-
-**Task 7.5: Update category sidebar styling**
-- File: `frontend/static/styles.css`
-- Check: `.category-item` and related classes
-- Verify: Sidebar still looks good without balance display
-- Optional: Add class to center category names vertically
-- Testing: Transactions page sidebar renders cleanly
-
-#### Phase 8: Integration Testing
-
-**Task 8.1: Test dashboard loads correctly**
+**Task 4.3: Test Dashboard displays budgets**
 - Navigate to Dashboard
-- Verify all 4 stat boxes display with correct values
-- Verify account list shows all accounts with balances
-- Verify categories table shows all categories
-- Test: Create new transaction in different window, refresh Dashboard
+- Verify all category budgets show in "Budgeted" column
+- Verify values match what was set in Configuration
+- Verify $0.00 for categories without budgets
 
-**Task 8.2: Test calculations with sample data**
-- Create several transactions across different accounts
-- Verify account balances sum correctly
-- Create transactions in current month and past months
-- Verify "Spent this month" shows only current month spending
-- Manually calculate and compare with Dashboard display
+**Task 4.4: Test overspending warnings**
+- Set "Groceries" budget to $100
+- In Transactions page, add outflow of $150 to Groceries
+- Navigate to Dashboard
+- Verify Groceries row has red styling
+- Verify ⚠️ warning icon appears next to "Groceries"
+- Verify "Over by $50.00" badge appears in Budgeted column
+- Add another transaction of $50 (bringing total to $100)
+- Refresh Dashboard
+- Verify warnings disappear
 
-**Task 8.3: Test transactions page changes**
-- Navigate to Transactions page
-- Verify category sidebar shows only names (no balances)
-- Verify category filtering still works
-- Add/edit/delete transactions
-- Verify no console errors
-- Return to Dashboard and verify balances updated
+**Task 4.5: Test edge cases**
+- Set budget to $0 - verify no warnings show
+- Set budget, add only inflows - verify no warnings triggered
+- Set very small budget (0.01) - verify formatting works
+- Set large budget (99999.99) - verify displays correctly
+- Multiple categories over budget - verify each shows warnings independently
 
-**Task 8.4: Test responsive design**
-- View Dashboard on narrow window (600px width)
-- Verify layout doesn't break
-- Verify tables/sidebars stack appropriately
-- Check stat boxes remain readable
-- Test Transactions page still functions
+### Files to Modify
 
-**Task 8.5: Test edge cases**
-- Empty database (no transactions): Should show $0 everywhere
-- Transactions with null category: Should not appear in category balances
-- Multiple accounts with negative balances: Should display correctly in red
-- No pending transactions: Count should be 0
-- Future-dated transactions: Should still count in balances
+1. `backend/schemas.py` - Add monthly_budget to category schemas
+2. `frontend/components/Configuration.js` - Add budget column and editing
+3. `frontend/components/Dashboard.js` - Add warning logic and display
+4. `frontend/static/styles.css` - Add budget warning styles
 
-#### Phase 9: User Acceptance Testing
+### Success Criteria
 
-**Task 9.1: User reviews Dashboard accuracy**
-- User manually adds transactions
-- User verifies Dashboard balances match expectations
-- User checks that "Available to budget" equals total account balance
-- User verifies "Spent this month" only includes current month
-- User confirms all accounts and categories present
-
-**Task 9.2: User confirms redundancy removal**
-- User reviews Transactions page sidebar
-- User confirms no duplicate balance information
-- User verifies filtering still works
-- User confirms simpler sidebar doesn't impact usability
-
-**Task 9.3: User performance check**
-- Load Dashboard with 50+ transactions
-- Verify page loads quickly
-- Verify no lag when navigating between pages
-
-### Summary of Changes
-
-**Files Modified**: 5
-- `backend/crud.py` (5 new functions for calculations)
-- `backend/schemas.py` (3 new schemas)
-- `backend/main.py` (1 new API endpoint)
-- `frontend/api.js` (1 new function)
-- `frontend/components/Dashboard.js` (complete component implementation)
-- `frontend/components/Transactions.js` (remove category balance display)
-- `frontend/static/styles.css` (new Dashboard styles)
-
-**Total Tasks**: 32 atomic, testable, verifiable tasks across 9 phases
-
-**Implementation Order**: Backend (Phases 1-3) → Frontend (Phases 4-6) → Cleanup (Phase 7) → Testing (Phases 8-9)
-
-**Key Principle**: No redundant data. Category balances calculated once, displayed in Dashboard only. Transactions page sidebar simplified to category names only for filtering.
+✅ Can set monthly budget when creating new category
+✅ Can edit monthly budget for existing categories
+✅ Budget persists across page refreshes
+✅ Dashboard shows budget amounts in "Budgeted" column
+✅ Dashboard shows red warning for overspending categories
+✅ Warning icon (⚠️) appears next to overspending category names
+✅ "Over by $X" badge shows exact overspending amount
+✅ Visual indicators are clear and readable
+✅ All edge cases handled correctly
