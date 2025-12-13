@@ -1,0 +1,5 @@
+The Balances tab can help you break down your transactions for any account.
+
+Account Selector [1]: By selecting an Account, you can see that Account’s activity broken down by Settled and Pending Transactions.
+
+Balances Table [2]: This table will show your Transactions for the selected account in reverse chronological order.

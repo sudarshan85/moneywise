@@ -1,0 +1,7 @@
+The Spending Reports tab will help you review your outflows and inflows for your reportable categories.
+
+Date Range Selectors [1]: These selectors will let you drill down into a specific time period for review.
+
+Category Selector [2]: This additional selector will help you narrow your focus by isolating one category for review.
+
+Spending Reports Table [3]: This table will show the transaction and activity data for the selected category and date range.
