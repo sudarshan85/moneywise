@@ -15,6 +15,11 @@ export async function getAccounts(includeHidden = false) {
     return handleResponse(response);
 }
 
+export async function getMoneyPotBalance() {
+    const response = await fetch(`${API_BASE}/accounts/moneypot`);
+    return handleResponse(response);
+}
+
 export async function getAccount(id) {
     const response = await fetch(`${API_BASE}/accounts/${id}`);
     return handleResponse(response);
@@ -45,44 +50,10 @@ export async function deleteAccount(id) {
     return handleResponse(response);
 }
 
-// ==================== CATEGORY GROUPS ====================
-
-export async function getCategoryGroups() {
-    const response = await fetch(`${API_BASE}/categories/groups`);
-    return handleResponse(response);
-}
-
-export async function createCategoryGroup(data) {
-    const response = await fetch(`${API_BASE}/categories/groups`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-}
-
-export async function updateCategoryGroup(id, data) {
-    const response = await fetch(`${API_BASE}/categories/groups/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-}
-
-export async function deleteCategoryGroup(id) {
-    const response = await fetch(`${API_BASE}/categories/groups/${id}`, {
-        method: 'DELETE',
-    });
-    return handleResponse(response);
-}
-
 // ==================== CATEGORIES ====================
 
-export async function getCategories(includeHidden = false, groupId = null) {
-    let url = `${API_BASE}/categories?includeHidden=${includeHidden}`;
-    if (groupId) url += `&groupId=${groupId}`;
-    const response = await fetch(url);
+export async function getCategories(includeHidden = false) {
+    const response = await fetch(`${API_BASE}/categories?includeHidden=${includeHidden}`);
     return handleResponse(response);
 }
 
@@ -118,5 +89,154 @@ export async function deleteCategory(id) {
 
 export async function getCategoryHistory(id) {
     const response = await fetch(`${API_BASE}/categories/${id}/history`);
+    return handleResponse(response);
+}
+
+// ==================== SETTINGS ====================
+
+export async function getSettings() {
+    const response = await fetch(`${API_BASE}/categories/settings`);
+    return handleResponse(response);
+}
+
+export async function updateSettings(data) {
+    const response = await fetch(`${API_BASE}/categories/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+}
+
+// ==================== TRANSACTIONS ====================
+
+export async function getTransactions(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.account_id) params.append('account_id', filters.account_id);
+    if (filters.category_id) params.append('category_id', filters.category_id);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.limit) params.append('limit', filters.limit);
+    if (filters.offset) params.append('offset', filters.offset);
+
+    const response = await fetch(`${API_BASE}/transactions?${params}`);
+    return handleResponse(response);
+}
+
+export async function getTransaction(id) {
+    const response = await fetch(`${API_BASE}/transactions/${id}`);
+    return handleResponse(response);
+}
+
+export async function createTransaction(data) {
+    const response = await fetch(`${API_BASE}/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+}
+
+export async function updateTransaction(id, data) {
+    const response = await fetch(`${API_BASE}/transactions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+}
+
+export async function deleteTransaction(id) {
+    const response = await fetch(`${API_BASE}/transactions/${id}`, {
+        method: 'DELETE',
+    });
+    return handleResponse(response);
+}
+
+export async function createAccountTransfer(data) {
+    const response = await fetch(`${API_BASE}/transactions/account-transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+}
+
+export async function toggleReconciliation(id) {
+    const response = await fetch(`${API_BASE}/transactions/${id}/toggle-reconciliation`, {
+        method: 'PATCH',
+    });
+    return handleResponse(response);
+}
+
+// ==================== BACKUP ====================
+
+export async function exportBackup() {
+    const response = await fetch(`${API_BASE}/backup/export`);
+    return handleResponse(response);
+}
+
+export async function importBackup(data) {
+    const response = await fetch(`${API_BASE}/backup/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+}
+
+export async function manualBackup() {
+    const response = await fetch(`${API_BASE}/backup/manual`, {
+        method: 'POST',
+    });
+    return handleResponse(response);
+}
+
+// ==================== STATUS TOGGLE ====================
+
+export async function toggleStatus(id) {
+    const response = await fetch(`${API_BASE}/transactions/${id}/toggle-status`, {
+        method: 'PATCH',
+    });
+    return handleResponse(response);
+}
+
+// ==================== CATEGORY TRANSFERS ====================
+
+export async function getTransfers(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.category_id) params.append('category_id', filters.category_id);
+    if (filters.limit) params.append('limit', filters.limit);
+    if (filters.offset) params.append('offset', filters.offset);
+
+    const response = await fetch(`${API_BASE}/transfers?${params}`);
+    return handleResponse(response);
+}
+
+export async function createTransfer(data) {
+    const response = await fetch(`${API_BASE}/transfers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+}
+
+export async function deleteTransfer(id) {
+    const response = await fetch(`${API_BASE}/transfers/${id}`, {
+        method: 'DELETE',
+    });
+    return handleResponse(response);
+}
+
+export async function updateTransfer(id, data) {
+    const response = await fetch(`${API_BASE}/transfers/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
     return handleResponse(response);
 }

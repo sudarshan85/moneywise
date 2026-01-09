@@ -1,0 +1,141 @@
+.icon-picker {
+    margin-bottom: 1rem;
+}
+
+.icon-picker label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary, #64748b);
+    margin-bottom: 0.5rem;
+}
+
+.icon-picker-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-medium, #cbd5e1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 48px;
+}
+
+.icon-picker-trigger:hover {
+    border-color: var(--honey-gold, #f5a623);
+}
+
+.icon-picker-trigger.open {
+    border-color: var(--honey-gold, #f5a623);
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2);
+}
+
+.icon-picker-trigger .placeholder {
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.9rem;
+}
+
+.icon-picker-trigger .dropdown-arrow {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    transition: transform 0.2s ease;
+}
+
+.icon-picker-trigger.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.selected-icon {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.selected-icon img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.selected-icon .clear-icon {
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.selected-icon .clear-icon:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.icon-picker-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-medium, #cbd5e1);
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    margin-top: 4px;
+    z-index: 1000;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.icon-picker-dropdown .loading,
+.icon-picker-dropdown .no-icons {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--text-muted, #94a3b8);
+}
+
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    gap: 0.5rem;
+    padding: 0.75rem;
+    padding-bottom: 1.5rem;
+}
+
+.icon-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.icon-option:hover {
+    background: rgba(245, 166, 35, 0.1);
+}
+
+.icon-option.selected {
+    background: rgba(245, 166, 35, 0.2);
+    border-color: var(--honey-gold, #f5a623);
+}
+
+.icon-option img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+/* Make icon picker relative for dropdown positioning */
+.icon-picker {
+    position: relative;
+}

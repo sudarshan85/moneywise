@@ -1,27 +1,24 @@
--- MoneyPot Database Schema
+-- MoneyWise Database Schema
 -- Envelope budgeting system
 
--- Category Groups (organizational containers)
-CREATE TABLE IF NOT EXISTS category_groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    sort_order INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+-- App Settings (key-value store)
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Categories (envelopes)
 CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_id INTEGER,
     name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('reportable', 'non_reportable', 'credit_card')),
+    icon TEXT,
     monthly_amount REAL DEFAULT 0,
+    is_system INTEGER DEFAULT 0,
     is_hidden INTEGER DEFAULT 0,
     sort_order INTEGER DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES category_groups(id)
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Category Rename History (track name changes)
@@ -34,11 +31,12 @@ CREATE TABLE IF NOT EXISTS category_rename_history (
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
--- Accounts (bank accounts and credit cards)
+-- Accounts (bank accounts, credit cards, investments, etc.)
 CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('bank', 'credit_card')),
+    icon TEXT,
+    type TEXT NOT NULL CHECK(type IN ('bank', 'credit_card', 'cash', 'investment', 'retirement', 'loan')),
     is_hidden INTEGER DEFAULT 0,
     sort_order INTEGER DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -48,7 +46,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 -- Transactions
 CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    date TEXT NOT NULL,
+    date TEXT,
     amount REAL NOT NULL,
     account_id INTEGER NOT NULL,
     category_id INTEGER,
@@ -82,5 +80,4 @@ CREATE TABLE IF NOT EXISTS category_transfers (
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
 CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
-CREATE INDEX IF NOT EXISTS idx_categories_group ON categories(group_id);
 CREATE INDEX IF NOT EXISTS idx_category_transfers_date ON category_transfers(date);

@@ -1,27 +1,49 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
+import IconPicker from '../components/IconPicker.jsx';
 import * as api from '../api/client.js';
 import './Configuration.css';
 
-// Type display helpers
+// Account types
 const ACCOUNT_TYPES = {
-    bank: { label: '🏦 Bank Account', emoji: '🏦' },
-    credit_card: { label: '💳 Credit Card', emoji: '💳' },
+    bank: { label: 'Bank Account' },
+    credit_card: { label: 'Credit Card' },
+    cash: { label: 'Cash' },
+    investment: { label: 'Investment' },
+    retirement: { label: 'Retirement' },
+    loan: { label: 'Loan' },
 };
 
-const CATEGORY_TYPES = {
-    reportable: { label: '✧ Reportable', emoji: '✧', color: '#22c55e' },
-    non_reportable: { label: '※ Non-reportable', emoji: '※', color: '#f59e0b' },
-    credit_card: { label: '◘ Credit Card', emoji: '◘', color: '#6366f1' },
+// Default icons
+const DEFAULT_ICONS = {
+    account: '/icons/briefcase.png',
+    category: '/icons/cat.png',
+    hide: '/icons/hide.png',
+    edit: '/icons/edit.png',
 };
+
+// Helper to check if icon is an emoji vs image path
+function isEmoji(str) {
+    if (!str) return false;
+    // Check if string starts with / (path) or contains typical emoji unicode ranges
+    return !str.startsWith('/') && !str.startsWith('http');
+}
+
+// Render icon - handles both emoji and image paths
+function IconDisplay({ icon, fallback, className = 'custom-icon' }) {
+    const iconSrc = icon || fallback;
+    if (isEmoji(iconSrc)) {
+        return <span className={`${className} emoji-icon`}>{iconSrc}</span>;
+    }
+    return <img src={iconSrc} alt="" className={className} />;
+}
 
 export default function Configuration() {
     const {
-        accounts, categories, categoryGroups, showHidden,
+        accounts, categories, settings, showHidden,
         fetchAll, toggleShowHidden,
         createAccount, updateAccount, deleteAccount,
-        createCategoryGroup, updateCategoryGroup, deleteCategoryGroup,
         createCategory, updateCategory, deleteCategory,
         error, clearError,
     } = useConfigStore();
@@ -29,9 +51,8 @@ export default function Configuration() {
     const [activeTab, setActiveTab] = useState('accounts');
 
     // Modal states
-    const [accountModal, setAccountModal] = useState({ open: false, account: null });
-    const [groupModal, setGroupModal] = useState({ open: false, group: null });
-    const [categoryModal, setCategoryModal] = useState({ open: false, category: null });
+    const [accountModal, setAccountModal] = useState({ open: false, account: null, icon: null });
+    const [categoryModal, setCategoryModal] = useState({ open: false, category: null, icon: null });
     const [deleteModal, setDeleteModal] = useState({ open: false, type: null, item: null });
     const [historyModal, setHistoryModal] = useState({ open: false, category: null, history: [] });
 
@@ -47,6 +68,19 @@ export default function Configuration() {
         }
     }, [error]);
 
+    // Reset icon when modal opens
+    useEffect(() => {
+        if (accountModal.open) {
+            setAccountModal(prev => ({ ...prev, icon: prev.account?.icon || null }));
+        }
+    }, [accountModal.open]);
+
+    useEffect(() => {
+        if (categoryModal.open) {
+            setCategoryModal(prev => ({ ...prev, icon: prev.category?.icon || null }));
+        }
+    }, [categoryModal.open]);
+
     // ==================== ACCOUNT HANDLERS ====================
 
     const handleSaveAccount = async (e) => {
@@ -55,6 +89,8 @@ export default function Configuration() {
         const data = {
             name: formData.get('name'),
             type: formData.get('type'),
+            icon: accountModal.icon,
+            in_moneypot: formData.get('in_moneypot') === 'on',
         };
 
         try {
@@ -63,7 +99,7 @@ export default function Configuration() {
             } else {
                 await createAccount(data);
             }
-            setAccountModal({ open: false, account: null });
+            setAccountModal({ open: false, account: null, icon: null });
         } catch (err) {
             // Error handled by store
         }
@@ -82,34 +118,6 @@ export default function Configuration() {
         }
     };
 
-    // ==================== CATEGORY GROUP HANDLERS ====================
-
-    const handleSaveGroup = async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = { name: formData.get('name') };
-
-        try {
-            if (groupModal.group) {
-                await updateCategoryGroup(groupModal.group.id, data);
-            } else {
-                await createCategoryGroup(data);
-            }
-            setGroupModal({ open: false, group: null });
-        } catch (err) {
-            // Error handled by store
-        }
-    };
-
-    const handleDeleteGroup = async () => {
-        try {
-            await deleteCategoryGroup(deleteModal.item.id);
-            setDeleteModal({ open: false, type: null, item: null });
-        } catch (err) {
-            setDeleteModal({ open: false, type: null, item: null });
-        }
-    };
-
     // ==================== CATEGORY HANDLERS ====================
 
     const handleSaveCategory = async (e) => {
@@ -117,8 +125,7 @@ export default function Configuration() {
         const formData = new FormData(e.target);
         const data = {
             name: formData.get('name'),
-            type: formData.get('type'),
-            group_id: formData.get('group_id') || null,
+            icon: categoryModal.icon,
             monthly_amount: parseFloat(formData.get('monthly_amount')) || 0,
         };
 
@@ -128,7 +135,7 @@ export default function Configuration() {
             } else {
                 await createCategory(data);
             }
-            setCategoryModal({ open: false, category: null });
+            setCategoryModal({ open: false, category: null, icon: null });
         } catch (err) {
             // Error handled by store
         }
@@ -156,13 +163,22 @@ export default function Configuration() {
         }
     };
 
-    // Group categories by group_id
-    const groupedCategories = categories.reduce((acc, cat) => {
-        const groupId = cat.group_id || 'ungrouped';
-        if (!acc[groupId]) acc[groupId] = [];
-        acc[groupId].push(cat);
-        return acc;
-    }, {});
+    // Separate system and user categories
+    const systemCategories = categories.filter(c => c.is_system);
+
+    // Sort user categories: those with monthly_amount > 0 first, then alphabetically
+    const userCategories = categories
+        .filter(c => !c.is_system)
+        .sort((a, b) => {
+            // First, prioritize categories with monthly amounts
+            if (a.monthly_amount > 0 && b.monthly_amount === 0) return -1;
+            if (a.monthly_amount === 0 && b.monthly_amount > 0) return 1;
+            // Then sort alphabetically
+            return a.name.localeCompare(b.name);
+        });
+
+    // Sort accounts alphabetically
+    const sortedAccounts = [...accounts].sort((a, b) => a.name.localeCompare(b.name));
 
     return (
         <div className="configuration-page">
@@ -190,13 +206,21 @@ export default function Configuration() {
                     className={`tab ${activeTab === 'accounts' ? 'active' : ''}`}
                     onClick={() => setActiveTab('accounts')}
                 >
-                    🏦 Accounts
+                    <img src={DEFAULT_ICONS.account} alt="" className="tab-icon" />
+                    Accounts
                 </button>
                 <button
                     className={`tab ${activeTab === 'categories' ? 'active' : ''}`}
                     onClick={() => setActiveTab('categories')}
                 >
-                    📁 Categories
+                    <img src={DEFAULT_ICONS.category} alt="" className="tab-icon" />
+                    Categories
+                </button>
+                <button
+                    className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('settings')}
+                >
+                    ⚙️ Settings
                 </button>
             </div>
 
@@ -204,60 +228,30 @@ export default function Configuration() {
                 {activeTab === 'accounts' && (
                     <div className="accounts-section">
                         <div className="section-header">
-                            <h2>Accounts</h2>
+                            <h2>Accounts <span className="count-badge">({sortedAccounts.length})</span></h2>
                             <button
                                 className="btn btn-primary"
-                                onClick={() => setAccountModal({ open: true, account: null })}
+                                onClick={() => setAccountModal({ open: true, account: null, icon: null })}
                             >
                                 + Add Account
                             </button>
                         </div>
 
                         <div className="items-grid">
-                            {accounts.length === 0 ? (
+                            {sortedAccounts.length === 0 ? (
                                 <div className="empty-state">
-                                    <span className="empty-icon">🏦</span>
+                                    <img src={DEFAULT_ICONS.account} alt="" className="empty-icon-img" />
                                     <p>No accounts yet. Add your first account!</p>
                                 </div>
                             ) : (
-                                accounts.map((account) => (
-                                    <div
+                                sortedAccounts.map((account) => (
+                                    <AccountCard
                                         key={account.id}
-                                        className={`item-card ${account.is_hidden ? 'hidden-item' : ''}`}
-                                    >
-                                        <div className="item-icon">
-                                            {ACCOUNT_TYPES[account.type].emoji}
-                                        </div>
-                                        <div className="item-info">
-                                            <h3>{account.name}</h3>
-                                            <span className="item-type">
-                                                {ACCOUNT_TYPES[account.type].label}
-                                            </span>
-                                        </div>
-                                        <div className="item-actions">
-                                            <button
-                                                className="btn btn-ghost"
-                                                onClick={() => setAccountModal({ open: true, account })}
-                                                title="Edit"
-                                            >
-                                                ✏️
-                                            </button>
-                                            <button
-                                                className="btn btn-ghost"
-                                                onClick={() => handleToggleAccountHidden(account)}
-                                                title={account.is_hidden ? 'Show' : 'Hide'}
-                                            >
-                                                {account.is_hidden ? '👁️' : '🙈'}
-                                            </button>
-                                            <button
-                                                className="btn btn-ghost"
-                                                onClick={() => setDeleteModal({ open: true, type: 'account', item: account })}
-                                                title="Delete"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    </div>
+                                        account={account}
+                                        onEdit={() => setAccountModal({ open: true, account, icon: account.icon })}
+                                        onToggleHidden={() => handleToggleAccountHidden(account)}
+                                        onDelete={() => setDeleteModal({ open: true, type: 'account', item: account })}
+                                    />
                                 ))
                             )}
                         </div>
@@ -266,98 +260,140 @@ export default function Configuration() {
 
                 {activeTab === 'categories' && (
                     <div className="categories-section">
-                        {/* Category Groups */}
+                        {/* System Categories */}
                         <div className="section-header">
-                            <h2>✦ Category Groups</h2>
-                            <button
-                                className="btn btn-primary btn-sm"
-                                onClick={() => setGroupModal({ open: true, group: null })}
-                            >
-                                + Add Group
-                            </button>
+                            <h2>🔒 System Categories</h2>
                         </div>
-
-                        <div className="groups-list">
-                            {categoryGroups.length === 0 ? (
-                                <p className="no-groups">No groups yet. Categories can be standalone or grouped.</p>
-                            ) : (
-                                categoryGroups.map((group) => (
-                                    <div key={group.id} className="group-chip">
-                                        <span>✦ {group.name}</span>
-                                        <button
-                                            className="btn btn-ghost btn-sm"
-                                            onClick={() => setGroupModal({ open: true, group })}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            className="btn btn-ghost btn-sm"
-                                            onClick={() => setDeleteModal({ open: true, type: 'group', item: group })}
-                                        >
-                                            🗑️
-                                        </button>
+                        <div className="items-grid">
+                            {systemCategories.map((category) => (
+                                <div key={category.id} className="item-card system-item">
+                                    <div className="item-icon">
+                                        <img src={category.icon || '/icons/tag.png'} alt="" className="custom-icon" />
                                     </div>
-                                ))
-                            )}
+                                    <div className="item-info">
+                                        <h3>{category.name}</h3>
+                                        <span className="system-badge">System</span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
 
-                        {/* Categories */}
+                        {/* User Categories */}
                         <div className="section-header" style={{ marginTop: '2rem' }}>
-                            <h2>✧ Categories</h2>
+                            <h2>
+                                <img src={DEFAULT_ICONS.category} alt="" className="section-icon" />
+                                Categories <span className="count-badge">({userCategories.length})</span>
+                            </h2>
                             <button
                                 className="btn btn-primary"
-                                onClick={() => setCategoryModal({ open: true, category: null })}
+                                onClick={() => setCategoryModal({ open: true, category: null, icon: null })}
                             >
                                 + Add Category
                             </button>
                         </div>
 
-                        {/* Ungrouped categories first */}
-                        {groupedCategories['ungrouped'] && (
-                            <div className="category-group">
-                                <h3 className="group-title">📂 Ungrouped</h3>
-                                <div className="items-grid">
-                                    {groupedCategories['ungrouped'].map((category) => (
-                                        <CategoryCard
-                                            key={category.id}
-                                            category={category}
-                                            onEdit={() => setCategoryModal({ open: true, category })}
-                                            onToggleHidden={() => handleToggleCategoryHidden(category)}
-                                            onDelete={() => setDeleteModal({ open: true, type: 'category', item: category })}
-                                            onShowHistory={() => handleShowHistory(category)}
+                        <div className="items-grid">
+                            {userCategories.length === 0 ? (
+                                <div className="empty-state">
+                                    <img src={DEFAULT_ICONS.category} alt="" className="empty-icon-img" />
+                                    <p>No categories yet. Add your first category!</p>
+                                </div>
+                            ) : (
+                                userCategories.map((category) => (
+                                    <CategoryCard
+                                        key={category.id}
+                                        category={category}
+                                        onEdit={() => setCategoryModal({ open: true, category, icon: category.icon })}
+                                        onToggleHidden={() => handleToggleCategoryHidden(category)}
+                                        onDelete={() => setDeleteModal({ open: true, type: 'category', item: category })}
+                                        onShowHistory={() => handleShowHistory(category)}
+                                    />
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'settings' && (
+                    <div className="settings-section">
+                        <div className="section-header">
+                            <h2>⚙️ Settings</h2>
+                        </div>
+
+                        <div className="settings-grid">
+                            <div className="setting-item">
+                                <label>Database Path</label>
+                                <div className="setting-value">
+                                    <code>{settings.database_path || 'Loading...'}</code>
+                                </div>
+                                <p className="setting-hint">Database location (read-only)</p>
+                            </div>
+
+                            <div className="setting-item">
+                                <label>📦 Data Backup</label>
+                                <p className="setting-hint">Export your accounts and categories to a JSON file for backup, or import from a previous backup.</p>
+                                <div className="backup-actions">
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={async () => {
+                                            try {
+                                                const data = await api.exportBackup();
+                                                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                                                const url = URL.createObjectURL(blob);
+                                                const a = document.createElement('a');
+                                                a.href = url;
+                                                a.download = `moneywise-backup-${new Date().toISOString().split('T')[0]}.json`;
+                                                a.click();
+                                                URL.revokeObjectURL(url);
+                                            } catch (err) {
+                                                alert('Export failed: ' + err.message);
+                                            }
+                                        }}
+                                    >
+                                        ⬇️ Export Data
+                                    </button>
+                                    <label className="btn btn-secondary import-btn">
+                                        ⬆️ Import Data
+                                        <input
+                                            type="file"
+                                            accept=".json"
+                                            style={{ display: 'none' }}
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+                                                try {
+                                                    const text = await file.text();
+                                                    const data = JSON.parse(text);
+                                                    const result = await api.importBackup(data);
+                                                    alert(result.message);
+                                                    fetchAll();
+                                                } catch (err) {
+                                                    alert('Import failed: ' + err.message);
+                                                }
+                                                e.target.value = '';
+                                            }}
                                         />
-                                    ))}
+                                    </label>
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={async () => {
+                                            try {
+                                                const result = await api.manualBackup();
+                                                if (result.success) {
+                                                    alert(`✅ Backup saved!\n\nPath: ${result.path}\n\nStats: ${result.stats.accounts} accounts, ${result.stats.categories} categories, ${result.stats.transactions} transactions`);
+                                                } else {
+                                                    alert('Backup failed: ' + result.error);
+                                                }
+                                            } catch (err) {
+                                                alert('Backup failed: ' + err.message);
+                                            }
+                                        }}
+                                    >
+                                        💾 Backup to Disk
+                                    </button>
                                 </div>
                             </div>
-                        )}
-
-                        {/* Grouped categories */}
-                        {categoryGroups.map((group) => (
-                            groupedCategories[group.id] && (
-                                <div key={group.id} className="category-group">
-                                    <h3 className="group-title">✦ {group.name}</h3>
-                                    <div className="items-grid">
-                                        {groupedCategories[group.id].map((category) => (
-                                            <CategoryCard
-                                                key={category.id}
-                                                category={category}
-                                                onEdit={() => setCategoryModal({ open: true, category })}
-                                                onToggleHidden={() => handleToggleCategoryHidden(category)}
-                                                onDelete={() => setDeleteModal({ open: true, type: 'category', item: category })}
-                                                onShowHistory={() => handleShowHistory(category)}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )
-                        ))}
-
-                        {categories.length === 0 && (
-                            <div className="empty-state">
-                                <span className="empty-icon">📁</span>
-                                <p>No categories yet. Add your first category!</p>
-                            </div>
-                        )}
+                        </div>
                     </div>
                 )}
             </div>
@@ -365,16 +401,21 @@ export default function Configuration() {
             {/* Account Modal */}
             <Modal
                 isOpen={accountModal.open}
-                onClose={() => setAccountModal({ open: false, account: null })}
-                title={accountModal.account ? '✏️ Edit Account' : '🏦 New Account'}
+                onClose={() => setAccountModal({ open: false, account: null, icon: null })}
+                title={accountModal.account ? 'Edit Account' : 'New Account'}
             >
                 <form onSubmit={handleSaveAccount}>
+                    <IconPicker
+                        value={accountModal.icon}
+                        onChange={(icon) => setAccountModal(prev => ({ ...prev, icon }))}
+                        label="Icon (optional)"
+                    />
                     <div className="form-group">
                         <label>Account Name</label>
                         <input
                             name="name"
                             type="text"
-                            placeholder="e.g., Checking, Savings, Visa..."
+                            placeholder="Enter account name"
                             defaultValue={accountModal.account?.name || ''}
                             required
                             autoFocus
@@ -386,12 +427,24 @@ export default function Configuration() {
                             name="type"
                             defaultValue={accountModal.account?.type || 'bank'}
                         >
-                            <option value="bank">🏦 Bank Account</option>
-                            <option value="credit_card">💳 Credit Card</option>
+                            {Object.entries(ACCOUNT_TYPES).map(([key, { label }]) => (
+                                <option key={key} value={key}>{label}</option>
+                            ))}
                         </select>
                     </div>
+                    <div className="form-group checkbox-group">
+                        <label className="checkbox-label">
+                            <input
+                                type="checkbox"
+                                name="in_moneypot"
+                                defaultChecked={accountModal.account?.in_moneypot ?? true}
+                            />
+                            <span>Include in Available to Budget</span>
+                        </label>
+                        <p className="form-hint">Count this account's balance toward your available budget</p>
+                    </div>
                     <div className="modal-actions">
-                        <button type="button" className="btn btn-secondary" onClick={() => setAccountModal({ open: false, account: null })}>
+                        <button type="button" className="btn btn-secondary" onClick={() => setAccountModal({ open: false, account: null, icon: null })}>
                             Cancel
                         </button>
                         <button type="submit" className="btn btn-primary">
@@ -401,79 +454,28 @@ export default function Configuration() {
                 </form>
             </Modal>
 
-            {/* Group Modal */}
-            <Modal
-                isOpen={groupModal.open}
-                onClose={() => setGroupModal({ open: false, group: null })}
-                title={groupModal.group ? '✏️ Edit Group' : '✦ New Category Group'}
-            >
-                <form onSubmit={handleSaveGroup}>
-                    <div className="form-group">
-                        <label>Group Name</label>
-                        <input
-                            name="name"
-                            type="text"
-                            placeholder="e.g., Monthly Bills, Savings Goals..."
-                            defaultValue={groupModal.group?.name || ''}
-                            required
-                            autoFocus
-                        />
-                    </div>
-                    <div className="modal-actions">
-                        <button type="button" className="btn btn-secondary" onClick={() => setGroupModal({ open: false, group: null })}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="btn btn-primary">
-                            {groupModal.group ? 'Save Changes' : 'Create Group'}
-                        </button>
-                    </div>
-                </form>
-            </Modal>
-
             {/* Category Modal */}
             <Modal
                 isOpen={categoryModal.open}
-                onClose={() => setCategoryModal({ open: false, category: null })}
-                title={categoryModal.category ? '✏️ Edit Category' : '✧ New Category'}
+                onClose={() => setCategoryModal({ open: false, category: null, icon: null })}
+                title={categoryModal.category ? 'Edit Category' : 'New Category'}
             >
                 <form onSubmit={handleSaveCategory}>
+                    <IconPicker
+                        value={categoryModal.icon}
+                        onChange={(icon) => setCategoryModal(prev => ({ ...prev, icon }))}
+                        label="Icon (optional)"
+                    />
                     <div className="form-group">
                         <label>Category Name</label>
                         <input
                             name="name"
                             type="text"
-                            placeholder="e.g., Groceries, Rent, Entertainment..."
+                            placeholder="Enter category name"
                             defaultValue={categoryModal.category?.name || ''}
                             required
                             autoFocus
                         />
-                    </div>
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label>Type</label>
-                            <select
-                                name="type"
-                                defaultValue={categoryModal.category?.type || 'reportable'}
-                            >
-                                <option value="reportable">✧ Reportable</option>
-                                <option value="non_reportable">※ Non-reportable</option>
-                                <option value="credit_card">◘ Credit Card</option>
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label>Group</label>
-                            <select
-                                name="group_id"
-                                defaultValue={categoryModal.category?.group_id || ''}
-                            >
-                                <option value="">No Group</option>
-                                {categoryGroups.map((group) => (
-                                    <option key={group.id} value={group.id}>
-                                        ✦ {group.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
                     </div>
                     <div className="form-group">
                         <label>Monthly Budget Amount</label>
@@ -487,7 +489,7 @@ export default function Configuration() {
                         />
                     </div>
                     <div className="modal-actions">
-                        <button type="button" className="btn btn-secondary" onClick={() => setCategoryModal({ open: false, category: null })}>
+                        <button type="button" className="btn btn-secondary" onClick={() => setCategoryModal({ open: false, category: null, icon: null })}>
                             Cancel
                         </button>
                         <button type="submit" className="btn btn-primary">
@@ -503,7 +505,6 @@ export default function Configuration() {
                 onClose={() => setDeleteModal({ open: false, type: null, item: null })}
                 onConfirm={() => {
                     if (deleteModal.type === 'account') handleDeleteAccount();
-                    else if (deleteModal.type === 'group') handleDeleteGroup();
                     else if (deleteModal.type === 'category') handleDeleteCategory();
                 }}
                 title={`Delete ${deleteModal.type}?`}
@@ -514,7 +515,7 @@ export default function Configuration() {
             <Modal
                 isOpen={historyModal.open}
                 onClose={() => setHistoryModal({ open: false, category: null, history: [] })}
-                title={`📜 Rename History: ${historyModal.category?.name}`}
+                title={`Rename History: ${historyModal.category?.name}`}
             >
                 {historyModal.history.length === 0 ? (
                     <p className="no-history">No rename history for this category.</p>
@@ -544,58 +545,120 @@ export default function Configuration() {
     );
 }
 
-// Category Card Component
-function CategoryCard({ category, onEdit, onToggleHidden, onDelete, onShowHistory }) {
-    const typeInfo = CATEGORY_TYPES[category.type];
+// ==================== CARD COMPONENTS ====================
+
+function AccountCard({ account, onEdit, onToggleHidden, onDelete }) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setMenuOpen(false);
+            }
+        }
+        if (menuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }
+    }, [menuOpen]);
 
     return (
-        <div className={`item-card ${category.is_hidden ? 'hidden-item' : ''}`}>
-            <div
-                className="item-icon category-icon"
-                style={{ color: typeInfo.color }}
-            >
-                {typeInfo.emoji}
+        <div
+            className={`item-card clickable ${account.is_hidden ? 'hidden-item' : ''}`}
+            onClick={onEdit}
+        >
+            <div className="item-icon">
+                <img
+                    src={account.icon || '/icons/briefcase.png'}
+                    alt=""
+                    className="custom-icon"
+                />
+            </div>
+            <div className="item-info">
+                <h3>{account.name}</h3>
+                <span className="item-type">
+                    {ACCOUNT_TYPES[account.type]?.label || account.type}
+                </span>
+            </div>
+            <div className="item-menu" ref={menuRef}>
+                <button
+                    className="menu-trigger"
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+                    title="More actions"
+                >
+                    ⋮
+                </button>
+                {menuOpen && (
+                    <div className="menu-dropdown">
+                        <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleHidden(); }}>
+                            <img src="/icons/hide.png" alt="" />
+                            {account.is_hidden ? 'Show' : 'Hide'}
+                        </button>
+                        <button className="danger" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}>
+                            🗑️ Delete
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function CategoryCard({ category, onEdit, onToggleHidden, onDelete, onShowHistory }) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setMenuOpen(false);
+            }
+        }
+        if (menuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }
+    }, [menuOpen]);
+
+    return (
+        <div
+            className={`item-card clickable ${category.is_hidden ? 'hidden-item' : ''}`}
+            onClick={onEdit}
+        >
+            <div className="item-icon">
+                <IconDisplay icon={category.icon} fallback="/icons/cat.png" />
             </div>
             <div className="item-info">
                 <h3>{category.name}</h3>
-                <span className="item-type" style={{ color: typeInfo.color }}>
-                    {typeInfo.label}
-                </span>
                 {category.monthly_amount > 0 && (
                     <span className="monthly-amount">
-                        💰 ${category.monthly_amount.toFixed(2)}/mo
+                        ${category.monthly_amount.toFixed(2)}/mo
                     </span>
                 )}
             </div>
-            <div className="item-actions">
+            <div className="item-menu" ref={menuRef}>
                 <button
-                    className="btn btn-ghost"
-                    onClick={onShowHistory}
-                    title="Rename History"
+                    className="menu-trigger"
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+                    title="More actions"
                 >
-                    📜
+                    ⋮
                 </button>
-                <button
-                    className="btn btn-ghost"
-                    onClick={onEdit}
-                    title="Edit"
-                >
-                    ✏️
-                </button>
-                <button
-                    className="btn btn-ghost"
-                    onClick={onToggleHidden}
-                    title={category.is_hidden ? 'Show' : 'Hide'}
-                >
-                    {category.is_hidden ? '👁️' : '🙈'}
-                </button>
-                <button
-                    className="btn btn-ghost"
-                    onClick={onDelete}
-                    title="Delete"
-                >
-                    🗑️
-                </button>
+                {menuOpen && (
+                    <div className="menu-dropdown">
+                        <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleHidden(); }}>
+                            <img src="/icons/hide.png" alt="" />
+                            {category.is_hidden ? 'Show' : 'Hide'}
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onShowHistory(); }}>
+                            📜 Rename History
+                        </button>
+                        <button className="danger" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}>
+                            🗑️ Delete
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

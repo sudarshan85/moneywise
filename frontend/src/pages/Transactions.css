@@ -1,0 +1,649 @@
+/* Transactions Page Styles */
+
+/* ==================== PENDING TRAY ==================== */
+.pending-tray {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.1));
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.pending-tray-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+}
+
+.pending-tray-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-weight: 600;
+    color: var(--color-warning);
+}
+
+.pending-tray-title .emoji {
+    font-size: 1.2rem;
+}
+
+.pending-tray-count {
+    background: var(--color-warning);
+    color: var(--color-bg-primary);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.pending-tray-toggle {
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.pending-tray-toggle:hover {
+    background: rgba(251, 191, 36, 0.2);
+}
+
+.pending-tray-content {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.pending-tray-empty {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    text-align: center;
+    padding: var(--spacing-sm);
+}
+
+/* ==================== FILTER BAR ==================== */
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.filter-label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-select,
+.filter-input {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+    min-width: 120px;
+}
+
+.filter-select:focus,
+.filter-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* ==================== LAYOUT ==================== */
+.transactions-layout {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+}
+
+.transactions-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.transactions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg-secondary, #f8fafc);
+    border-radius: var(--radius-lg, 12px);
+}
+
+/* ==================== SIDEBAR FILTERS ==================== */
+.filter-sidebar {
+    position: fixed;
+    left: -300px;
+    top: 0;
+    height: 100vh;
+    width: 280px;
+    background: var(--color-bg-primary, #fff);
+    border-right: 1px solid var(--color-border, #e2e8f0);
+    padding: 1rem;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+}
+
+.filter-sidebar.open {
+    left: 0;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border, #e2e8f0);
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.sidebar-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--color-text-muted, #64748b);
+    padding: 0.25rem;
+}
+
+.sidebar-close:hover {
+    color: var(--color-text-primary, #1e293b);
+}
+
+.filter-sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.filter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-section .filter-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted, #64748b);
+    margin-bottom: 0.25rem;
+}
+
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.filter-sublabel {
+    font-size: 0.75rem;
+    color: var(--color-text-muted, #94a3b8);
+}
+
+.filter-section .filter-select,
+.filter-section .filter-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+}
+
+.clear-filters-btn {
+    margin-top: 1rem;
+    width: 100%;
+    justify-content: center;
+}
+
+/* ==================== TRANSACTIONS TABLE ==================== */
+.transactions-table-container {
+    overflow-x: auto;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.transactions-table th {
+    text-align: left;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.transactions-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+
+.transactions-table tr:hover {
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.transactions-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Reconciliation row indicator */
+.transactions-table tr.is-reconciliation-point {
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.transactions-table tr.is-reconciliation-point:hover {
+    background: rgba(16, 185, 129, 0.12);
+}
+
+/* Pending row styling */
+.transactions-table tr.is-pending {
+    background: rgba(251, 191, 36, 0.08);
+}
+
+.transactions-table tr.is-pending:hover {
+    background: rgba(251, 191, 36, 0.12);
+}
+
+/* Section divider between pending and settled */
+.transactions-table tr.section-divider {
+    background: transparent;
+}
+
+.transactions-table tr.section-divider:hover {
+    background: transparent;
+}
+
+.transactions-table tr.section-divider td {
+    padding: 0;
+    border-bottom: none;
+}
+
+.divider-line {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg-tertiary, #f1f5f9);
+}
+
+.divider-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted, #64748b);
+}
+
+/* ==================== AMOUNT STYLING ==================== */
+.amount {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.amount.positive {
+    color: var(--color-income, #22C55E);
+}
+
+.amount.negative {
+    color: var(--color-expense, #EF4444);
+}
+
+/* ==================== STATUS BADGE ==================== */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-badge.settled {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--color-success);
+}
+
+.status-badge.pending {
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--color-warning);
+}
+
+/* ==================== RECONCILIATION MARKER ==================== */
+.reconciliation-marker {
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+
+.reconciliation-marker:hover {
+    transform: scale(1.2);
+}
+
+.reconciliation-marker.active {
+    color: var(--color-success);
+}
+
+.reconciliation-marker.inactive {
+    color: var(--color-text-muted);
+    opacity: 0.5;
+}
+
+/* ==================== ACCOUNT/CATEGORY CELL ==================== */
+.cell-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cell-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+/* ==================== ACTIONS COLUMN ==================== */
+.transaction-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.transactions-table tr:hover .transaction-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    background: transparent;
+    border: none;
+    padding: var(--spacing-xs);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-secondary);
+    transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+    background: var(--color-bg-tertiary);
+    color: var(--color-primary);
+}
+
+.action-btn.delete:hover {
+    color: var(--color-danger);
+}
+
+/* ==================== TRANSFER INDICATOR ==================== */
+.transfer-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* ==================== MEMO CELL ==================== */
+.memo-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-text-secondary);
+}
+
+/* ==================== EMPTY STATE ==================== */
+.transactions-empty {
+    text-align: center;
+    padding: var(--spacing-2xl);
+    color: var(--color-text-muted);
+}
+
+.transactions-empty .emoji {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+/* ==================== TRANSACTION MODAL ==================== */
+.transaction-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+.form-row.single {
+    grid-template-columns: 1fr;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.form-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: var(--spacing-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+/* ==================== TRANSFER FORM SPECIFIC ==================== */
+.transfer-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--color-primary);
+    margin: var(--spacing-sm) 0;
+}
+
+/* ==================== FLOW TOGGLE ==================== */
+.flow-toggle {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.flow-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-light, #E2E8F0);
+    border-radius: 8px;
+    background: var(--bg-card, #fff);
+    color: var(--text-secondary, #64748B);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.flow-btn:hover {
+    border-color: var(--border-medium, #CBD5E1);
+}
+
+.flow-btn.outflow.active {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: #EF4444;
+    color: #EF4444;
+}
+
+.flow-btn.inflow.active {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: #22C55E;
+    color: #22C55E;
+}
+
+/* Amount input color coding */
+.form-group input.amount-outflow {
+    border-color: #EF4444;
+    color: #EF4444;
+}
+
+.form-group input.amount-outflow:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.form-group input.amount-inflow {
+    border-color: #22C55E;
+    color: #22C55E;
+}
+
+.form-group input.amount-inflow:focus {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+/* ==================== STATUS TOGGLE (ROW) ==================== */
+.status-toggle {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.status-toggle:hover {
+    transform: scale(1.2);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.status-toggle.pending {
+    opacity: 0.7;
+}
+
+/* ==================== STATUS TOGGLE GROUP (FORM) ==================== */
+.status-toggle-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.status-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-light, #E2E8F0);
+    border-radius: 8px;
+    background: var(--bg-card, #fff);
+    color: var(--text-secondary, #64748B);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-btn:hover {
+    border-color: var(--border-medium, #CBD5E1);
+}
+
+.status-btn.active.settled {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: #22C55E;
+    color: #22C55E;
+}
+
+.status-btn.active.pending {
+    background: rgba(251, 191, 36, 0.1);
+    border-color: #FBBF24;
+    color: #D97706;
+}
+
+/* ==================== FORM IMPROVEMENTS ==================== */
+.form-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-muted, #64748b);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+.memo-input {
+    border: 2px solid var(--border-light, #E2E8F0) !important;
+    background: var(--bg-card, #fff) !important;
+}
+
+.memo-input:focus {
+    border-color: var(--color-primary, #6366f1) !important;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .filter-sidebar {
+        width: 100%;
+        left: -100%;
+    }
+
+    .filter-sidebar.open {
+        left: 0;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .transactions-table {
+        font-size: 0.75rem;
+    }
+
+    .transactions-table th,
+    .transactions-table td {
+        padding: var(--spacing-xs) var(--spacing-sm);
+    }
+
+    .memo-cell {
+        max-width: 100px;
+    }
+}

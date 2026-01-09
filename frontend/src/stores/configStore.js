@@ -5,7 +5,7 @@ export const useConfigStore = create((set, get) => ({
     // State
     accounts: [],
     categories: [],
-    categoryGroups: [],
+    settings: {},
     showHidden: false,
     isLoading: false,
     error: null,
@@ -45,6 +45,8 @@ export const useConfigStore = create((set, get) => ({
                 accounts: state.accounts.map((a) => (a.id === id ? account : a)),
                 isLoading: false,
             }));
+            // Trigger refresh of Available to Budget in header
+            window.dispatchEvent(new CustomEvent('moneywise:refresh-balance'));
             return account;
         } catch (error) {
             set({ error: error.message, isLoading: false });
@@ -58,59 +60,6 @@ export const useConfigStore = create((set, get) => ({
             await api.deleteAccount(id);
             set((state) => ({
                 accounts: state.accounts.filter((a) => a.id !== id),
-                isLoading: false,
-            }));
-        } catch (error) {
-            set({ error: error.message, isLoading: false });
-            throw error;
-        }
-    },
-
-    // ==================== CATEGORY GROUPS ====================
-
-    fetchCategoryGroups: async () => {
-        set({ isLoading: true, error: null });
-        try {
-            const categoryGroups = await api.getCategoryGroups();
-            set({ categoryGroups, isLoading: false });
-        } catch (error) {
-            set({ error: error.message, isLoading: false });
-        }
-    },
-
-    createCategoryGroup: async (data) => {
-        set({ isLoading: true, error: null });
-        try {
-            const group = await api.createCategoryGroup(data);
-            set((state) => ({ categoryGroups: [...state.categoryGroups, group], isLoading: false }));
-            return group;
-        } catch (error) {
-            set({ error: error.message, isLoading: false });
-            throw error;
-        }
-    },
-
-    updateCategoryGroup: async (id, data) => {
-        set({ isLoading: true, error: null });
-        try {
-            const group = await api.updateCategoryGroup(id, data);
-            set((state) => ({
-                categoryGroups: state.categoryGroups.map((g) => (g.id === id ? group : g)),
-                isLoading: false,
-            }));
-            return group;
-        } catch (error) {
-            set({ error: error.message, isLoading: false });
-            throw error;
-        }
-    },
-
-    deleteCategoryGroup: async (id) => {
-        set({ isLoading: true, error: null });
-        try {
-            await api.deleteCategoryGroup(id);
-            set((state) => ({
-                categoryGroups: state.categoryGroups.filter((g) => g.id !== id),
                 isLoading: false,
             }));
         } catch (error) {
@@ -172,12 +121,35 @@ export const useConfigStore = create((set, get) => ({
         }
     },
 
+    // ==================== SETTINGS ====================
+
+    fetchSettings: async () => {
+        try {
+            const settings = await api.getSettings();
+            set({ settings });
+        } catch (error) {
+            set({ error: error.message });
+        }
+    },
+
+    updateSettings: async (data) => {
+        set({ isLoading: true, error: null });
+        try {
+            const settings = await api.updateSettings(data);
+            set({ settings, isLoading: false });
+            return settings;
+        } catch (error) {
+            set({ error: error.message, isLoading: false });
+            throw error;
+        }
+    },
+
     // Fetch all data
     fetchAll: async () => {
         await Promise.all([
             get().fetchAccounts(),
-            get().fetchCategoryGroups(),
             get().fetchCategories(),
+            get().fetchSettings(),
         ]);
     },
 

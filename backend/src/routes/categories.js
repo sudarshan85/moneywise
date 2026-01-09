@@ -1,136 +1,77 @@
 import express from 'express';
-import db from '../db/database.js';
+import db, { getDatabasePath } from '../db/database.js';
 
 const router = express.Router();
 
-// ==================== CATEGORY GROUPS ====================
+// ==================== SETTINGS ====================
 
-// GET /api/categories/groups - Get all category groups
-router.get('/groups', (req, res) => {
+// GET /api/categories/settings - Get app settings
+router.get('/settings', (req, res) => {
     try {
-        const groups = db.prepare('SELECT * FROM category_groups ORDER BY sort_order, name').all();
-        res.json(groups);
+        const settings = db.prepare('SELECT key, value FROM app_settings').all();
+        const settingsObj = settings.reduce((acc, s) => {
+            acc[s.key] = s.value;
+            return acc;
+        }, {});
+
+        // Add database path (read-only)
+        settingsObj.database_path = getDatabasePath();
+
+        res.json(settingsObj);
     } catch (error) {
-        console.error('Error fetching category groups:', error);
-        res.status(500).json({ error: 'Failed to fetch category groups' });
+        console.error('Error fetching settings:', error);
+        res.status(500).json({ error: 'Failed to fetch settings' });
     }
 });
 
-// POST /api/categories/groups - Create new category group
-router.post('/groups', (req, res) => {
+// PUT /api/categories/settings - Update app settings
+router.put('/settings', (req, res) => {
     try {
-        const { name } = req.body;
+        const updates = req.body;
 
-        if (!name) {
-            return res.status(400).json({ error: 'Name is required' });
+        const upsertStmt = db.prepare(`
+            INSERT INTO app_settings (key, value, updated_at) 
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
+        `);
+
+        for (const [key, value] of Object.entries(updates)) {
+            // Don't allow updating database_path through API
+            if (key === 'database_path') continue;
+            upsertStmt.run(key, value, value);
         }
 
-        const result = db.prepare(`
-            INSERT INTO category_groups (name, sort_order)
-            VALUES (?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM category_groups))
-        `).run(name);
+        // Return updated settings
+        const settings = db.prepare('SELECT key, value FROM app_settings').all();
+        const settingsObj = settings.reduce((acc, s) => {
+            acc[s.key] = s.value;
+            return acc;
+        }, {});
+        settingsObj.database_path = getDatabasePath();
 
-        const group = db.prepare('SELECT * FROM category_groups WHERE id = ?').get(result.lastInsertRowid);
-        res.status(201).json(group);
+        res.json(settingsObj);
     } catch (error) {
-        console.error('Error creating category group:', error);
-        res.status(500).json({ error: 'Failed to create category group' });
-    }
-});
-
-// PATCH /api/categories/groups/:id - Update category group
-router.patch('/groups/:id', (req, res) => {
-    try {
-        const { name, sort_order } = req.body;
-        const id = req.params.id;
-
-        const existing = db.prepare('SELECT * FROM category_groups WHERE id = ?').get(id);
-        if (!existing) {
-            return res.status(404).json({ error: 'Category group not found' });
-        }
-
-        const updates = [];
-        const values = [];
-
-        if (name !== undefined) {
-            updates.push('name = ?');
-            values.push(name);
-        }
-        if (sort_order !== undefined) {
-            updates.push('sort_order = ?');
-            values.push(sort_order);
-        }
-
-        if (updates.length === 0) {
-            return res.status(400).json({ error: 'No fields to update' });
-        }
-
-        updates.push('updated_at = CURRENT_TIMESTAMP');
-        values.push(id);
-
-        db.prepare(`UPDATE category_groups SET ${updates.join(', ')} WHERE id = ?`).run(...values);
-
-        const group = db.prepare('SELECT * FROM category_groups WHERE id = ?').get(id);
-        res.json(group);
-    } catch (error) {
-        console.error('Error updating category group:', error);
-        res.status(500).json({ error: 'Failed to update category group' });
-    }
-});
-
-// DELETE /api/categories/groups/:id - Delete category group (only if empty)
-router.delete('/groups/:id', (req, res) => {
-    try {
-        const id = req.params.id;
-
-        const existing = db.prepare('SELECT * FROM category_groups WHERE id = ?').get(id);
-        if (!existing) {
-            return res.status(404).json({ error: 'Category group not found' });
-        }
-
-        const hasCategories = db.prepare('SELECT COUNT(*) as count FROM categories WHERE group_id = ?').get(id);
-        if (hasCategories.count > 0) {
-            return res.status(400).json({
-                error: 'Cannot delete group with categories. Move or delete categories first.',
-                categoryCount: hasCategories.count
-            });
-        }
-
-        db.prepare('DELETE FROM category_groups WHERE id = ?').run(id);
-        res.json({ message: 'Category group deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting category group:', error);
-        res.status(500).json({ error: 'Failed to delete category group' });
+        console.error('Error updating settings:', error);
+        res.status(500).json({ error: 'Failed to update settings' });
     }
 });
 
 // ==================== CATEGORIES ====================
 
-// GET /api/categories - Get all categories (with optional group info)
+// GET /api/categories - Get all categories
 router.get('/', (req, res) => {
     try {
         const includeHidden = req.query.includeHidden === 'true';
-        const groupId = req.query.groupId;
 
-        let query = `
-            SELECT c.*, cg.name as group_name
-            FROM categories c
-            LEFT JOIN category_groups cg ON c.group_id = cg.id
-            WHERE 1=1
-        `;
-        const params = [];
+        let query = 'SELECT * FROM categories WHERE 1=1';
 
         if (!includeHidden) {
-            query += ' AND c.is_hidden = 0';
-        }
-        if (groupId) {
-            query += ' AND c.group_id = ?';
-            params.push(groupId);
+            query += ' AND is_hidden = 0';
         }
 
-        query += ' ORDER BY cg.sort_order, c.sort_order, c.name';
+        query += ' ORDER BY is_system DESC, sort_order, name';
 
-        const categories = db.prepare(query).all(...params);
+        const categories = db.prepare(query).all();
         res.json(categories);
     } catch (error) {
         console.error('Error fetching categories:', error);
@@ -141,12 +82,7 @@ router.get('/', (req, res) => {
 // GET /api/categories/:id - Get single category with rename history
 router.get('/:id', (req, res) => {
     try {
-        const category = db.prepare(`
-            SELECT c.*, cg.name as group_name
-            FROM categories c
-            LEFT JOIN category_groups cg ON c.group_id = cg.id
-            WHERE c.id = ?
-        `).get(req.params.id);
+        const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(req.params.id);
 
         if (!category) {
             return res.status(404).json({ error: 'Category not found' });
@@ -170,36 +106,18 @@ router.get('/:id', (req, res) => {
 // POST /api/categories - Create new category
 router.post('/', (req, res) => {
     try {
-        const { name, group_id, type, monthly_amount } = req.body;
+        const { name, icon, monthly_amount } = req.body;
 
-        if (!name || !type) {
-            return res.status(400).json({ error: 'Name and type are required' });
-        }
-
-        if (!['reportable', 'non_reportable', 'credit_card'].includes(type)) {
-            return res.status(400).json({ error: 'Type must be "reportable", "non_reportable", or "credit_card"' });
-        }
-
-        // Verify group exists if provided
-        if (group_id) {
-            const group = db.prepare('SELECT id FROM category_groups WHERE id = ?').get(group_id);
-            if (!group) {
-                return res.status(400).json({ error: 'Category group not found' });
-            }
+        if (!name) {
+            return res.status(400).json({ error: 'Name is required' });
         }
 
         const result = db.prepare(`
-            INSERT INTO categories (name, group_id, type, monthly_amount, sort_order)
-            VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM categories WHERE group_id IS ?))
-        `).run(name, group_id || null, type, monthly_amount || 0, group_id || null);
+            INSERT INTO categories (name, icon, monthly_amount, sort_order)
+            VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM categories WHERE is_system = 0))
+        `).run(name, icon || null, monthly_amount || 0);
 
-        const category = db.prepare(`
-            SELECT c.*, cg.name as group_name
-            FROM categories c
-            LEFT JOIN category_groups cg ON c.group_id = cg.id
-            WHERE c.id = ?
-        `).get(result.lastInsertRowid);
-
+        const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(result.lastInsertRowid);
         res.status(201).json(category);
     } catch (error) {
         console.error('Error creating category:', error);
@@ -210,7 +128,7 @@ router.post('/', (req, res) => {
 // PATCH /api/categories/:id - Update category (tracks renames)
 router.patch('/:id', (req, res) => {
     try {
-        const { name, group_id, type, monthly_amount, is_hidden, sort_order } = req.body;
+        const { name, icon, monthly_amount, is_hidden, sort_order } = req.body;
         const id = req.params.id;
 
         const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
@@ -218,8 +136,13 @@ router.patch('/:id', (req, res) => {
             return res.status(404).json({ error: 'Category not found' });
         }
 
-        // Track rename if name is changing
-        if (name !== undefined && name !== existing.name) {
+        // Prevent editing system category names
+        if (existing.is_system && name !== undefined && name !== existing.name) {
+            return res.status(400).json({ error: 'Cannot rename system categories' });
+        }
+
+        // Track rename if name is changing (only for non-system categories)
+        if (name !== undefined && name !== existing.name && !existing.is_system) {
             db.prepare(`
                 INSERT INTO category_rename_history (category_id, old_name, new_name)
                 VALUES (?, ?, ?)
@@ -229,33 +152,19 @@ router.patch('/:id', (req, res) => {
         const updates = [];
         const values = [];
 
-        if (name !== undefined) {
+        if (name !== undefined && !existing.is_system) {
             updates.push('name = ?');
             values.push(name);
         }
-        if (group_id !== undefined) {
-            // Verify group exists if not null
-            if (group_id !== null) {
-                const group = db.prepare('SELECT id FROM category_groups WHERE id = ?').get(group_id);
-                if (!group) {
-                    return res.status(400).json({ error: 'Category group not found' });
-                }
-            }
-            updates.push('group_id = ?');
-            values.push(group_id);
-        }
-        if (type !== undefined) {
-            if (!['reportable', 'non_reportable', 'credit_card'].includes(type)) {
-                return res.status(400).json({ error: 'Type must be "reportable", "non_reportable", or "credit_card"' });
-            }
-            updates.push('type = ?');
-            values.push(type);
+        if (icon !== undefined) {
+            updates.push('icon = ?');
+            values.push(icon || null);
         }
         if (monthly_amount !== undefined) {
             updates.push('monthly_amount = ?');
             values.push(monthly_amount);
         }
-        if (is_hidden !== undefined) {
+        if (is_hidden !== undefined && !existing.is_system) {
             updates.push('is_hidden = ?');
             values.push(is_hidden ? 1 : 0);
         }
@@ -273,13 +182,7 @@ router.patch('/:id', (req, res) => {
 
         db.prepare(`UPDATE categories SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 
-        const category = db.prepare(`
-            SELECT c.*, cg.name as group_name
-            FROM categories c
-            LEFT JOIN category_groups cg ON c.group_id = cg.id
-            WHERE c.id = ?
-        `).get(id);
-
+        const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
         res.json(category);
     } catch (error) {
         console.error('Error updating category:', error);
@@ -287,7 +190,7 @@ router.patch('/:id', (req, res) => {
     }
 });
 
-// DELETE /api/categories/:id - Delete category (only if no transactions)
+// DELETE /api/categories/:id - Delete category (only if no transactions and not system)
 router.delete('/:id', (req, res) => {
     try {
         const id = req.params.id;
@@ -295,6 +198,11 @@ router.delete('/:id', (req, res) => {
         const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
         if (!existing) {
             return res.status(404).json({ error: 'Category not found' });
+        }
+
+        // Prevent deleting system categories
+        if (existing.is_system) {
+            return res.status(400).json({ error: 'Cannot delete system categories' });
         }
 
         // Check for transactions
@@ -318,7 +226,7 @@ router.delete('/:id', (req, res) => {
             });
         }
 
-        // Delete rename history first (cascade should handle this, but being explicit)
+        // Delete rename history first
         db.prepare('DELETE FROM category_rename_history WHERE category_id = ?').run(id);
         db.prepare('DELETE FROM categories WHERE id = ?').run(id);
 

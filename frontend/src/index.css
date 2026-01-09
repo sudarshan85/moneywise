@@ -1,4 +1,4 @@
-/* 🍯 MoneyPot Design System */
+/* 💰 MoneyWise Design System */
 
 /* ===== CSS Variables ===== */
 :root {
@@ -6,42 +6,42 @@
   --honey-gold: #F5A623;
   --honey-light: #FFD93D;
   --honey-dark: #C77800;
-  
+
   /* Semantic Colors */
   --color-income: #22C55E;
   --color-income-light: #4ADE80;
   --color-income-bg: rgba(34, 197, 94, 0.1);
-  
+
   --color-expense: #EF4444;
   --color-expense-light: #F87171;
   --color-expense-bg: rgba(239, 68, 68, 0.1);
-  
+
   --color-transfer: #3B82F6;
   --color-transfer-light: #60A5FA;
   --color-transfer-bg: rgba(59, 130, 246, 0.1);
-  
+
   --color-pending: #F59E0B;
   --color-pending-bg: rgba(245, 158, 11, 0.1);
-  
+
   /* Neutrals */
   --bg-primary: #FEFEFE;
   --bg-secondary: #F8FAFC;
   --bg-tertiary: #F1F5F9;
   --bg-card: #FFFFFF;
-  
+
   --text-primary: #1E293B;
   --text-secondary: #64748B;
   --text-muted: #94A3B8;
   --text-inverse: #FFFFFF;
-  
+
   --border-light: #E2E8F0;
   --border-medium: #CBD5E1;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  
+
   /* Spacing */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -49,14 +49,14 @@
   --space-lg: 1.5rem;
   --space-xl: 2rem;
   --space-2xl: 3rem;
-  
+
   /* Border Radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   --radius-full: 9999px;
-  
+
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-size-xs: 0.75rem;
@@ -66,7 +66,7 @@
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 1.875rem;
-  
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
@@ -74,7 +74,9 @@
 }
 
 /* ===== Reset & Base ===== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -126,6 +128,46 @@ body {
   gap: var(--space-sm);
 }
 
+.app-logo {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+}
+
+/* MoneyPot Balance Display in Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.moneypot-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.95));
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.moneypot-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.moneypot-balance {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4ADE80;
+  font-variant-numeric: tabular-nums;
+}
+
+.moneypot-balance.negative {
+  color: #F87171;
+}
+
 /* ===== Tab Navigation ===== */
 .tab-nav {
   background: var(--bg-card);
@@ -174,6 +216,12 @@ body {
 
 .tab-button .emoji {
   font-size: var(--font-size-lg);
+}
+
+.tab-button .tab-icon {
+  height: 20px;
+  width: 20px;
+  object-fit: contain;
 }
 
 /* ===== Main Content ===== */
@@ -388,19 +436,58 @@ body {
 }
 
 /* ===== Utility Classes ===== */
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.text-muted { color: var(--text-muted); }
-.text-success { color: var(--color-income); }
-.text-danger { color: var(--color-expense); }
+.text-center {
+  text-align: center;
+}
 
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-sm { gap: var(--space-sm); }
-.gap-md { gap: var(--space-md); }
+.text-right {
+  text-align: right;
+}
 
-.mt-sm { margin-top: var(--space-sm); }
-.mt-md { margin-top: var(--space-md); }
-.mb-md { margin-bottom: var(--space-md); }
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-success {
+  color: var(--color-income);
+}
+
+.text-danger {
+  color: var(--color-expense);
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-sm {
+  gap: var(--space-sm);
+}
+
+.gap-md {
+  gap: var(--space-md);
+}
+
+.mt-sm {
+  margin-top: var(--space-sm);
+}
+
+.mt-md {
+  margin-top: var(--space-md);
+}
+
+.mb-md {
+  margin-bottom: var(--space-md);
+}
