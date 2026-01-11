@@ -38,11 +38,16 @@ export default function Transactions() {
         transactions,
         total,
         isLoading,
+        isLoadingMore,
         error,
         filters,
         setFilters,
+        setPageSize,
         resetFilters,
+        resetPagination,
+        hasMore,
         fetchTransactions,
+        loadMore,
         createTransaction,
         updateTransaction,
         deleteTransaction,
@@ -59,6 +64,7 @@ export default function Transactions() {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [pendingTrayOpen, setPendingTrayOpen] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [pageSizeInput, setPageSizeInput] = useState(filters.limit.toString());
 
     // Load data on mount
     useEffect(() => {
@@ -67,10 +73,13 @@ export default function Transactions() {
         fetchCategories();
     }, []);
 
-    // Reload when filters change
+    // Reload when filter criteria change (but NOT offset - that's handled by loadMore)
     useEffect(() => {
-        fetchTransactions();
-    }, [filters]);
+        // Only refetch if we're NOT loading more (offset change triggers loadMore, not this)
+        if (filters.offset === 0) {
+            fetchTransactions();
+        }
+    }, [filters.account_id, filters.category_id, filters.status, filters.startDate, filters.endDate, filters.limit]);
 
     // Separate pending and settled transactions
     const pendingTransactions = transactions.filter(t => t.status === 'pending');
@@ -161,12 +170,36 @@ export default function Transactions() {
                 <div className="transactions-main">
                     {/* Header with actions */}
                     <div className="transactions-header">
-                        <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                        >
-                            🔍 Filter
-                        </button>
+                        <div className="header-left">
+                            <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => setSidebarOpen(!sidebarOpen)}
+                            >
+                                🔍 Filter
+                            </button>
+                            <div className="page-size-control">
+                                <label>Show:</label>
+                                <input
+                                    type="number"
+                                    min="10"
+                                    max="500"
+                                    value={pageSizeInput}
+                                    onChange={(e) => setPageSizeInput(e.target.value)}
+                                    onBlur={(e) => {
+                                        setPageSize(e.target.value);
+                                        setPageSizeInput(filters.limit.toString());
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            setPageSize(e.target.value);
+                                            setPageSizeInput(filters.limit.toString());
+                                            e.target.blur();
+                                        }
+                                    }}
+                                    className="page-size-input"
+                                />
+                            </div>
+                        </div>
                         <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
                             + Add Transaction
                         </button>
@@ -197,10 +230,34 @@ export default function Transactions() {
                         )}
                     </div>
 
-                    {/* Total Count */}
+                    {/* Pagination Footer */}
                     {total > 0 && (
-                        <div className="text-muted text-sm mt-md">
-                            Showing {transactions.length} of {total} transactions
+                        <div className="pagination-footer">
+                            <span className="pagination-count">
+                                Showing {transactions.length} of {total} transactions
+                            </span>
+                            <div className="pagination-actions">
+                                {filters.offset > 0 && (
+                                    <button
+                                        className="btn btn-secondary btn-sm"
+                                        onClick={() => {
+                                            resetPagination();
+                                            fetchTransactions();
+                                        }}
+                                    >
+                                        ↩ Reset
+                                    </button>
+                                )}
+                                {hasMore() && (
+                                    <button
+                                        className="btn btn-primary btn-sm load-more-btn"
+                                        onClick={loadMore}
+                                        disabled={isLoadingMore}
+                                    >
+                                        {isLoadingMore ? '⏳ Loading...' : '↓ Load More'}
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

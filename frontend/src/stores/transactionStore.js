@@ -6,6 +6,7 @@ export const useTransactionStore = create((set, get) => ({
     transactions: [],
     total: 0,
     isLoading: false,
+    isLoadingMore: false,
     error: null,
 
     // Filters
@@ -15,8 +16,14 @@ export const useTransactionStore = create((set, get) => ({
         status: null, // 'settled', 'pending', or null for all
         startDate: null,
         endDate: null,
-        limit: 100,
+        limit: 20,
         offset: 0,
+    },
+
+    // Computed: has more pages to load
+    hasMore: () => {
+        const state = get();
+        return state.transactions.length < state.total;
     },
 
     // Derived: pending transactions
@@ -29,10 +36,18 @@ export const useTransactionStore = create((set, get) => ({
         return get().transactions.filter(t => t.status === 'settled');
     },
 
-    // Set filters
+    // Set filters (resets offset to 0)
     setFilters: (newFilters) => {
         set((state) => ({
             filters: { ...state.filters, ...newFilters, offset: 0 }
+        }));
+    },
+
+    // Set page size (updates limit and resets offset)
+    setPageSize: (size) => {
+        const validSize = Math.max(10, Math.min(500, parseInt(size) || 20));
+        set((state) => ({
+            filters: { ...state.filters, limit: validSize, offset: 0 }
         }));
     },
 
@@ -45,10 +60,17 @@ export const useTransactionStore = create((set, get) => ({
                 status: null,
                 startDate: null,
                 endDate: null,
-                limit: 100,
+                limit: 20,
                 offset: 0,
             }
         });
+    },
+
+    // Reset pagination (go back to first page)
+    resetPagination: () => {
+        set((state) => ({
+            filters: { ...state.filters, offset: 0 }
+        }));
     },
 
     // ==================== FETCH TRANSACTIONS ====================
@@ -57,15 +79,18 @@ export const useTransactionStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const filters = get().filters;
-            // Clean up null values
+            // Build clean filters for API call
             const cleanFilters = {};
             Object.keys(filters).forEach(key => {
                 if (filters[key] !== null && filters[key] !== undefined) {
                     cleanFilters[key] = filters[key];
                 }
             });
+            // Always fetch from offset 0 for fresh fetch
+            cleanFilters.offset = 0;
 
             const result = await api.getTransactions(cleanFilters);
+            // Only update data, NOT filters (to avoid infinite loop)
             set({
                 transactions: result.transactions,
                 total: result.total,
@@ -73,6 +98,37 @@ export const useTransactionStore = create((set, get) => ({
             });
         } catch (error) {
             set({ error: error.message, isLoading: false });
+        }
+    },
+
+    // ==================== LOAD MORE TRANSACTIONS ====================
+
+    loadMore: async () => {
+        const state = get();
+        if (state.isLoadingMore || !state.hasMore()) return;
+
+        set({ isLoadingMore: true, error: null });
+        try {
+            const filters = state.filters;
+            const newOffset = filters.offset + filters.limit;
+
+            // Build clean filters with new offset
+            const cleanFilters = { ...filters, offset: newOffset };
+            Object.keys(cleanFilters).forEach(key => {
+                if (cleanFilters[key] === null || cleanFilters[key] === undefined) {
+                    delete cleanFilters[key];
+                }
+            });
+
+            const result = await api.getTransactions(cleanFilters);
+            set({
+                transactions: [...state.transactions, ...result.transactions],
+                total: result.total,
+                filters: { ...filters, offset: newOffset },
+                isLoadingMore: false
+            });
+        } catch (error) {
+            set({ error: error.message, isLoadingMore: false });
         }
     },
 

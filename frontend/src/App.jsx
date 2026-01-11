@@ -69,10 +69,32 @@ function TabIcon({ icon }) {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // Get initial tab from URL hash or default to 'dashboard'
+  const getTabFromHash = () => {
+    const hash = window.location.hash.replace('#', '');
+    const validTabs = TABS.map(t => t.id);
+    return validTabs.includes(hash) ? hash : 'dashboard';
+  };
+
+  const [activeTab, setActiveTab] = useState(getTabFromHash);
   const [apiStatus, setApiStatus] = useState(null);
   const [moneyPotBalance, setMoneyPotBalance] = useState(null);
   const [balanceRefreshKey, setBalanceRefreshKey] = useState(0);
+
+  // Update URL hash when tab changes
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    window.location.hash = tabId;
+  };
+
+  // Listen for browser back/forward navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      setActiveTab(getTabFromHash());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Check API health on mount
   useEffect(() => {
@@ -127,7 +149,7 @@ function App() {
           <button
             key={tab.id}
             className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
           >
             <TabIcon icon={tab.icon} />
             {tab.label}

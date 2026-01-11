@@ -31,6 +31,7 @@ export default function Transfers() {
     const [transfers, setTransfers] = useState([]);
     const [total, setTotal] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingTransfer, setEditingTransfer] = useState(null);
@@ -38,16 +39,30 @@ export default function Transfers() {
     const [isAutoPopulating, setIsAutoPopulating] = useState(false);
     const [autoPopulateDate, setAutoPopulateDate] = useState(getTodayDate());
 
+    // Pagination state
+    const [pageSize, setPageSize] = useState(20);
+    const [offset, setOffset] = useState(0);
+    const [pageSizeInput, setPageSizeInput] = useState('20');
+
+    // Computed
+    const hasMore = transfers.length < total;
+
     // Load data
     useEffect(() => {
         fetchCategories();
         loadTransfers();
     }, []);
 
+    // Reload when page size changes
+    useEffect(() => {
+        loadTransfers();
+    }, [pageSize]);
+
     const loadTransfers = async () => {
         setIsLoading(true);
+        setOffset(0);
         try {
-            const result = await api.getTransfers();
+            const result = await api.getTransfers({ limit: pageSize, offset: 0 });
             setTransfers(result.transfers);
             setTotal(result.total);
         } catch (err) {
@@ -55,6 +70,29 @@ export default function Transfers() {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const loadMoreTransfers = async () => {
+        if (isLoadingMore || !hasMore) return;
+
+        setIsLoadingMore(true);
+        const newOffset = offset + pageSize;
+        try {
+            const result = await api.getTransfers({ limit: pageSize, offset: newOffset });
+            setTransfers(prev => [...prev, ...result.transfers]);
+            setTotal(result.total);
+            setOffset(newOffset);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
+    const handlePageSizeChange = (value) => {
+        const validSize = Math.max(10, Math.min(500, parseInt(value) || 20));
+        setPageSize(validSize);
+        setPageSizeInput(validSize.toString());
     };
 
     const handleCreate = async (data) => {
@@ -111,9 +149,29 @@ export default function Transfers() {
         <div className="transfers-page">
             {/* Header */}
             <div className="transfers-header">
-                <div>
-                    <h2>🔄 Category Transfers</h2>
-                    <p className="header-hint">Allocate and rebalance money between budget categories</p>
+                <div className="header-left">
+                    <div>
+                        <h2>🔄 Category Transfers</h2>
+                        <p className="header-hint">Allocate and rebalance money between budget categories</p>
+                    </div>
+                    <div className="page-size-control">
+                        <label>Show:</label>
+                        <input
+                            type="number"
+                            min="10"
+                            max="500"
+                            value={pageSizeInput}
+                            onChange={(e) => setPageSizeInput(e.target.value)}
+                            onBlur={(e) => handlePageSizeChange(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handlePageSizeChange(e.target.value);
+                                    e.target.blur();
+                                }
+                            }}
+                            className="page-size-input"
+                        />
+                    </div>
                 </div>
                 <div className="header-actions">
                     <div className="auto-populate-section">
@@ -220,10 +278,31 @@ export default function Transfers() {
                 )}
             </div>
 
-            {/* Total count */}
+            {/* Pagination Footer */}
             {total > 0 && (
-                <div className="text-muted text-sm mt-md">
-                    {total} transfer{total !== 1 ? 's' : ''}
+                <div className="pagination-footer">
+                    <span className="pagination-count">
+                        Showing {transfers.length} of {total} transfers
+                    </span>
+                    <div className="pagination-actions">
+                        {offset > 0 && (
+                            <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => loadTransfers()}
+                            >
+                                ↩ Reset
+                            </button>
+                        )}
+                        {hasMore && (
+                            <button
+                                className="btn btn-primary btn-sm load-more-btn"
+                                onClick={loadMoreTransfers}
+                                disabled={isLoadingMore}
+                            >
+                                {isLoadingMore ? '⏳ Loading...' : '↓ Load More'}
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
 
