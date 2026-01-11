@@ -55,6 +55,8 @@ export default function Configuration() {
     const [categoryModal, setCategoryModal] = useState({ open: false, category: null, icon: null });
     const [deleteModal, setDeleteModal] = useState({ open: false, type: null, item: null });
     const [historyModal, setHistoryModal] = useState({ open: false, category: null, history: [] });
+    const [monthlyIncome, setMonthlyIncome] = useState('');
+    const [isEditingIncome, setIsEditingIncome] = useState(false);
 
     useEffect(() => {
         fetchAll();
@@ -67,6 +69,13 @@ export default function Configuration() {
             return () => clearTimeout(timer);
         }
     }, [error]);
+
+    // Load monthly income from settings
+    useEffect(() => {
+        if (settings?.monthly_income) {
+            setMonthlyIncome(settings.monthly_income);
+        }
+    }, [settings]);
 
     // Reset icon when modal opens
     useEffect(() => {
@@ -184,14 +193,45 @@ export default function Configuration() {
         <div className="configuration-page">
             <div className="config-header">
                 <h1>⚙️ Configuration</h1>
-                <label className="show-hidden-toggle">
-                    <input
-                        type="checkbox"
-                        checked={showHidden}
-                        onChange={toggleShowHidden}
-                    />
-                    <span>Show hidden items</span>
-                </label>
+                <div className="header-right">
+                    <div className="monthly-income-field">
+                        <label>Monthly Income:</label>
+                        {isEditingIncome ? (
+                            <input
+                                type="number"
+                                value={monthlyIncome}
+                                onChange={(e) => setMonthlyIncome(e.target.value)}
+                                onBlur={async () => {
+                                    await api.updateSettings({ monthly_income: monthlyIncome });
+                                    setIsEditingIncome(false);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.target.blur();
+                                    }
+                                }}
+                                autoFocus
+                                className="income-input"
+                            />
+                        ) : (
+                            <span
+                                className="income-value"
+                                onClick={() => setIsEditingIncome(true)}
+                                title="Click to edit"
+                            >
+                                ${parseFloat(monthlyIncome || 0).toLocaleString()}
+                            </span>
+                        )}
+                    </div>
+                    <label className="show-hidden-toggle">
+                        <input
+                            type="checkbox"
+                            checked={showHidden}
+                            onChange={toggleShowHidden}
+                        />
+                        <span>Show hidden items</span>
+                    </label>
+                </div>
             </div>
 
             {error && (
@@ -228,7 +268,9 @@ export default function Configuration() {
                 {activeTab === 'accounts' && (
                     <div className="accounts-section">
                         <div className="section-header">
-                            <h2>Accounts <span className="count-badge">({sortedAccounts.length})</span></h2>
+                            <h2>
+                                Accounts <span className="count-badge">({sortedAccounts.length})</span>
+                            </h2>
                             <button
                                 className="btn btn-primary"
                                 onClick={() => setAccountModal({ open: true, account: null, icon: null })}
@@ -431,17 +473,6 @@ export default function Configuration() {
                                 <option key={key} value={key}>{label}</option>
                             ))}
                         </select>
-                    </div>
-                    <div className="form-group checkbox-group">
-                        <label className="checkbox-label">
-                            <input
-                                type="checkbox"
-                                name="in_moneypot"
-                                defaultChecked={accountModal.account?.in_moneypot ?? true}
-                            />
-                            <span>Include in Available to Budget</span>
-                        </label>
-                        <p className="form-hint">Count this account's balance toward your available budget</p>
                     </div>
                     <div className="modal-actions">
                         <button type="button" className="btn btn-secondary" onClick={() => setAccountModal({ open: false, account: null, icon: null })}>

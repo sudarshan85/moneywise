@@ -240,3 +240,12 @@ export async function updateTransfer(id, data) {
     });
     return handleResponse(response);
 }
+
+export async function autoPopulateTransfers(date) {
+    const response = await fetch(`${API_BASE}/transfers/auto-populate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date }),
+    });
+    return handleResponse(response);
+}

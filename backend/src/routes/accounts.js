@@ -6,51 +6,63 @@ const router = express.Router();
 // Valid account types
 const VALID_ACCOUNT_TYPES = ['bank', 'credit_card', 'cash', 'investment', 'retirement', 'loan'];
 
-// GET /api/accounts/moneypot - Get Available to Budget (MoneyPot balance minus allocated amounts)
+// GET /api/accounts/moneypot - Get Available to Budget
+// Simplified Formula: Bank Account balances - Sum of all category balances
+// Category balance = Transfers IN - Spending
 router.get('/moneypot', (req, res) => {
     try {
-        // Get sum of all account balances that are in MoneyPot
-        const accountsResult = db.prepare(`
+        // Get sum of all BANK account balances (type = 'bank')
+        const bankResult = db.prepare(`
             SELECT COALESCE(SUM(t.amount), 0) as total_balance
             FROM accounts a
             LEFT JOIN transactions t ON t.account_id = a.id AND t.status = 'settled'
-            WHERE a.in_moneypot = 1 AND a.is_hidden = 0
+            WHERE a.type = 'bank' AND a.is_hidden = 0
         `).get();
 
-        // Get the Available to Budget category ID
-        const availableToBudgetCategory = db.prepare(`
+        // Get "Available to Budget" system category ID
+        const atbCategory = db.prepare(`
             SELECT id FROM categories WHERE name = 'Available to Budget' AND is_system = 1
         `).get();
 
-        let transfersOut = 0;
-        let transfersIn = 0;
+        // Calculate total category balances for user categories
+        // Category Balance = Transfers IN from ATB - Spending
+        let totalCategoryBalance = 0;
 
-        if (availableToBudgetCategory) {
-            // Get sum of transfers OUT of Available to Budget (allocated to categories)
-            const outResult = db.prepare(`
+        if (atbCategory) {
+            // Get sum of transfers FROM "Available to Budget" to user categories
+            const transfersFromATB = db.prepare(`
                 SELECT COALESCE(SUM(amount), 0) as total
                 FROM category_transfers
                 WHERE from_category_id = ?
-            `).get(availableToBudgetCategory.id);
-            transfersOut = outResult.total;
+            `).get(atbCategory.id);
 
-            // Get sum of transfers INTO Available to Budget (returned from categories)
-            const inResult = db.prepare(`
+            // Get sum of transfers TO "Available to Budget" (money returned)
+            const transfersToATB = db.prepare(`
                 SELECT COALESCE(SUM(amount), 0) as total
                 FROM category_transfers
                 WHERE to_category_id = ?
-            `).get(availableToBudgetCategory.id);
-            transfersIn = inResult.total;
+            `).get(atbCategory.id);
+
+            // Get sum of spending in user categories
+            // (negative amounts = outflow/spending)
+            const spendingResult = db.prepare(`
+                SELECT COALESCE(SUM(t.amount), 0) as total
+                FROM transactions t
+                JOIN categories c ON t.category_id = c.id
+                WHERE c.is_system = 0 AND t.status = 'settled'
+            `).get();
+
+            // Category Balance = Transfers In - Transfers Out + Spending (spending is negative)
+            totalCategoryBalance = transfersFromATB.total - transfersToATB.total + spendingResult.total;
         }
 
-        // Available to Budget = Account balances - Transferred out + Transferred back in
-        const availableToBudget = accountsResult.total_balance - transfersOut + transfersIn;
+        // Available to Budget = Bank Balances - Category Balances
+        const availableToBudget = bankResult.total_balance - totalCategoryBalance;
 
         res.json({
             balance: availableToBudget,
-            accountBalance: accountsResult.total_balance,
-            allocatedOut: transfersOut,
-            returnedIn: transfersIn
+            bankBalance: bankResult.total_balance,
+            categoryBalance: totalCategoryBalance
         });
     } catch (error) {
         console.error('Error fetching Available to Budget:', error);
@@ -106,10 +118,10 @@ router.post('/', (req, res) => {
             });
         }
 
-        // Default in_moneypot based on account type if not specified
+        // Default in_moneypot to false if not specified
         const moneypotValue = in_moneypot !== undefined
             ? (in_moneypot ? 1 : 0)
-            : (['bank', 'cash', 'investment', 'retirement'].includes(type) ? 1 : 0);
+            : 0;
 
         const result = db.prepare(`
             INSERT INTO accounts (name, type, icon, in_moneypot, sort_order)

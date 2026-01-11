@@ -35,6 +35,8 @@ export default function Transfers() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingTransfer, setEditingTransfer] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [isAutoPopulating, setIsAutoPopulating] = useState(false);
+    const [autoPopulateDate, setAutoPopulateDate] = useState(getTodayDate());
 
     // Load data
     useEffect(() => {
@@ -85,14 +87,55 @@ export default function Transfers() {
         }
     };
 
+    const handleAutoPopulate = async () => {
+        setIsAutoPopulating(true);
+        try {
+            const result = await api.autoPopulateTransfers(autoPopulateDate);
+            if (result.created.length > 0) {
+                loadTransfers();
+                // Refresh Available to Budget in header
+                window.dispatchEvent(new CustomEvent('moneywise:refresh-balance'));
+            }
+            // Show summary
+            if (result.created.length === 0) {
+                setError('All budgeted categories are already funded for this month.');
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsAutoPopulating(false);
+        }
+    };
+
     return (
         <div className="transfers-page">
             {/* Header */}
             <div className="transfers-header">
-                <h2>🔄 Category Transfers</h2>
-                <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-                    + New Transfer
-                </button>
+                <div>
+                    <h2>🔄 Category Transfers</h2>
+                    <p className="header-hint">Allocate and rebalance money between budget categories</p>
+                </div>
+                <div className="header-actions">
+                    <div className="auto-populate-section">
+                        <span className="auto-populate-label">Auto-Populate for:</span>
+                        <input
+                            type="date"
+                            value={autoPopulateDate}
+                            onChange={(e) => setAutoPopulateDate(e.target.value)}
+                            className="auto-populate-date"
+                        />
+                        <button
+                            className="btn btn-secondary"
+                            onClick={handleAutoPopulate}
+                            disabled={isAutoPopulating}
+                        >
+                            {isAutoPopulating ? '⏳...' : '📥 Go'}
+                        </button>
+                    </div>
+                    <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                        + New Transfer
+                    </button>
+                </div>
             </div>
 
             {/* Error */}
@@ -114,7 +157,7 @@ export default function Transfers() {
                     <div className="transfers-empty">
                         <div className="emoji">🔄</div>
                         <p>No category transfers yet</p>
-                        <p className="hint">Move money between budget categories when you overspend</p>
+                        <p className="hint">Move money between categories when you overspend or want to rebalance</p>
                     </div>
                 ) : (
                     <table className="transfers-table">
@@ -226,19 +269,14 @@ export default function Transfers() {
 }
 
 // Transfer Form Component
+// Only allows transfers between user categories (not system categories)
 function TransferForm({ categories, onSave, onCancel, transfer }) {
-    // Find Available to Budget category to use as default
-    const availableToBudgetCategory = categories.find(c => c.name === 'Available to Budget');
-
-    // Get current month name for default memo
-    const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
     const [formData, setFormData] = useState({
         date: transfer?.date?.split('T')[0] || getTodayDate(),
-        from_category_id: transfer?.from_category_id?.toString() || availableToBudgetCategory?.id?.toString() || '',
+        from_category_id: transfer?.from_category_id?.toString() || '',
         to_category_id: transfer?.to_category_id?.toString() || '',
         amount: transfer?.amount?.toString() || '',
-        memo: transfer?.memo || (transfer ? '' : `Allocation for ${currentMonth}`),
+        memo: transfer?.memo || '',
     });
 
     const handleSubmit = (e) => {
@@ -258,8 +296,13 @@ function TransferForm({ categories, onSave, onCancel, transfer }) {
         });
     };
 
-    // Filter out system categories except Available to Budget for the dropdowns
-    const categoryOptions = categories.filter(c => !c.is_system || c.name === 'Available to Budget');
+    // From Category: include "Available to Budget" system category
+    const fromCategoryOptions = categories.filter(c =>
+        (!c.is_system && !c.is_hidden) || c.name === 'Available to Budget'
+    );
+
+    // To Category: only user categories (not system)
+    const toCategoryOptions = categories.filter(c => !c.is_system && !c.is_hidden);
 
     return (
         <form className="transfer-form" onSubmit={handleSubmit}>
@@ -282,7 +325,7 @@ function TransferForm({ categories, onSave, onCancel, transfer }) {
                         required
                     >
                         <option value="">Select category</option>
-                        {categoryOptions.map(cat => (
+                        {fromCategoryOptions.map(cat => (
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
                     </select>
@@ -296,7 +339,7 @@ function TransferForm({ categories, onSave, onCancel, transfer }) {
                         required
                     >
                         <option value="">Select category</option>
-                        {categoryOptions.map(cat => (
+                        {toCategoryOptions.map(cat => (
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
                     </select>

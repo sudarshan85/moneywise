@@ -36,6 +36,52 @@
     color: var(--text-color, #fff);
 }
 
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.monthly-income-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.monthly-income-field label {
+    color: var(--text-muted, #888);
+}
+
+.monthly-income-field .income-value {
+    color: #22c55e;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.monthly-income-field .income-value:hover {
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.monthly-income-field .income-input {
+    width: 100px;
+    padding: 0.25rem 0.5rem;
+    border: 2px solid var(--accent-color, #7c3aed);
+    border-radius: 4px;
+    background: #fff;
+    color: #1e293b;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.monthly-income-field .income-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
 /* Error banner */
 .error-banner {
     background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
@@ -117,6 +163,16 @@
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--text-muted, #94A3B8);
+}
+
+.budget-count-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.15);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    margin-left: 0.75rem;
 }
 
 /* Items grid */

@@ -20,6 +20,44 @@
     font-size: 1.25rem;
 }
 
+.transfers-header .header-hint {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+    color: var(--color-text-muted, #888);
+    font-weight: normal;
+}
+
+.transfers-header .header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.auto-populate-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(124, 58, 237, 0.1);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md, 8px);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.auto-populate-label {
+    font-size: 0.85rem;
+    color: var(--color-text-muted, #888);
+    white-space: nowrap;
+}
+
+.auto-populate-date {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: var(--radius-md, 8px);
+    background: var(--color-bg-primary, #fff);
+    color: var(--color-text-primary, #1e293b);
+    font-size: 0.85rem;
+}
+
 .transfers-content {
     background: var(--color-bg-secondary);
     border-radius: var(--radius-lg);

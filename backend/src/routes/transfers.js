@@ -243,4 +243,96 @@ router.patch('/:id', (req, res) => {
     }
 });
 
+// POST /api/transfers/auto-populate - Create transfers for all budgeted categories
+// For each category with monthly_amount > 0:
+//   - Calculate current balance (transfers_in - spending)
+//   - Create transfer for (monthly_amount - current_balance) if positive
+router.post('/auto-populate', (req, res) => {
+    try {
+        // Use provided date or default to today
+        const transferDate = req.body?.date || new Date().toISOString().split('T')[0];
+
+        // Get "Available to Budget" category ID
+        const atbCategory = db.prepare(`
+            SELECT id FROM categories WHERE name = 'Available to Budget' AND is_system = 1
+        `).get();
+
+        if (!atbCategory) {
+            return res.status(500).json({ error: 'Available to Budget category not found' });
+        }
+
+        // Get all user categories with monthly_amount > 0
+        const budgetedCategories = db.prepare(`
+            SELECT id, name, monthly_amount
+            FROM categories
+            WHERE is_system = 0 AND is_hidden = 0 AND monthly_amount > 0
+        `).all();
+
+        const createdTransfers = [];
+        const skippedCategories = [];
+
+        for (const category of budgetedCategories) {
+            // Calculate current category balance
+            // Transfers IN from ATB
+            const transfersIn = db.prepare(`
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM category_transfers
+                WHERE to_category_id = ?
+            `).get(category.id).total;
+
+            // Transfers OUT (returned to ATB or to other categories)
+            const transfersOut = db.prepare(`
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM category_transfers
+                WHERE from_category_id = ?
+            `).get(category.id).total;
+
+            // Spending in this category (negative = outflow)
+            const spending = db.prepare(`
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM transactions
+                WHERE category_id = ? AND status = 'settled'
+            `).get(category.id).total;
+
+            // Current balance = transfers_in - transfers_out + spending (spending is negative)
+            const currentBalance = transfersIn - transfersOut + spending;
+
+            // How much do we need to reach monthly_amount?
+            const neededAmount = category.monthly_amount - currentBalance;
+
+            if (neededAmount > 0) {
+                // Create transfer from ATB to this category
+                const result = db.prepare(`
+                    INSERT INTO category_transfers (date, from_category_id, to_category_id, amount, memo)
+                    VALUES (?, ?, ?, ?, ?)
+                `).run(transferDate, atbCategory.id, category.id, neededAmount, `Monthly budget for ${category.name}`);
+
+                createdTransfers.push({
+                    id: result.lastInsertRowid,
+                    category_name: category.name,
+                    amount: neededAmount,
+                    monthly_amount: category.monthly_amount,
+                    previous_balance: currentBalance
+                });
+            } else {
+                skippedCategories.push({
+                    category_name: category.name,
+                    monthly_amount: category.monthly_amount,
+                    current_balance: currentBalance,
+                    reason: currentBalance >= category.monthly_amount ? 'Already funded' : 'Overfunded'
+                });
+            }
+        }
+
+        res.status(201).json({
+            created: createdTransfers,
+            skipped: skippedCategories,
+            total_transferred: createdTransfers.reduce((sum, t) => sum + t.amount, 0)
+        });
+    } catch (error) {
+        console.error('Error auto-populating transfers:', error);
+        res.status(500).json({ error: 'Failed to auto-populate transfers' });
+    }
+});
+
 export default router;

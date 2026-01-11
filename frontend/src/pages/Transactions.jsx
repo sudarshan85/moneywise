@@ -456,7 +456,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus }) {
                 </button>
             </td>
             <td>
-                <div className="transaction-actions">
+                <div className="action-buttons">
                     <button
                         className="action-btn"
                         onClick={() => onEdit(transaction)}

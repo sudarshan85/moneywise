@@ -229,6 +229,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
+    table-layout: auto;
 }
 
 .transactions-table th {
@@ -374,34 +375,33 @@
 }
 
 /* ==================== ACTIONS COLUMN ==================== */
-.transaction-actions {
+.action-buttons {
     display: flex;
-    gap: var(--spacing-xs);
-    opacity: 0;
-    transition: opacity var(--transition-fast);
-}
-
-.transactions-table tr:hover .transaction-actions {
-    opacity: 1;
+    gap: 0.25rem;
 }
 
 .action-btn {
     background: transparent;
     border: none;
-    padding: var(--spacing-xs);
+    padding: 0.25rem 0.5rem;
     cursor: pointer;
-    border-radius: var(--radius-sm);
-    color: var(--color-text-secondary);
-    transition: all var(--transition-fast);
+    border-radius: var(--radius-sm, 4px);
+    font-size: 1rem;
+    line-height: 1;
+    transition: all 0.15s ease;
+    opacity: 0;
+}
+
+.transactions-table tr:hover .action-btn {
+    opacity: 1;
 }
 
 .action-btn:hover {
     background: var(--color-bg-tertiary);
-    color: var(--color-primary);
 }
 
 .action-btn.delete:hover {
-    color: var(--color-danger);
+    color: var(--color-danger, #ef4444);
 }
 
 /* ==================== TRANSFER INDICATOR ==================== */

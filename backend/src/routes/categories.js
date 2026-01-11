@@ -58,6 +58,52 @@ router.put('/settings', (req, res) => {
 
 // ==================== CATEGORIES ====================
 
+// GET /api/categories/balances - Get all category balances with budget info
+// Balance = monthly_amount + transfers_in - transfers_out - spending
+router.get('/balances', (req, res) => {
+    try {
+        // Get all non-system categories with their balances
+        const categories = db.prepare(`
+            SELECT 
+                c.id,
+                c.name,
+                c.icon,
+                c.monthly_amount,
+                c.is_hidden,
+                COALESCE(SUM(CASE WHEN t.status = 'settled' THEN t.amount ELSE 0 END), 0) as spending,
+                COALESCE((
+                    SELECT SUM(amount) FROM category_transfers WHERE to_category_id = c.id
+                ), 0) as transfers_in,
+                COALESCE((
+                    SELECT SUM(amount) FROM category_transfers WHERE from_category_id = c.id
+                ), 0) as transfers_out
+            FROM categories c
+            LEFT JOIN transactions t ON t.category_id = c.id
+            WHERE c.is_system = 0
+            GROUP BY c.id
+            ORDER BY c.sort_order, c.name
+        `).all();
+
+        // Calculate balance for each category
+        const balances = categories.map(cat => ({
+            id: cat.id,
+            name: cat.name,
+            icon: cat.icon,
+            monthly_amount: cat.monthly_amount,
+            is_hidden: cat.is_hidden,
+            spending: Math.abs(cat.spending), // Make spending positive for display
+            transfers_in: cat.transfers_in,
+            transfers_out: cat.transfers_out,
+            balance: cat.monthly_amount + cat.transfers_in - cat.transfers_out + cat.spending // spending is negative
+        }));
+
+        res.json(balances);
+    } catch (error) {
+        console.error('Error fetching category balances:', error);
+        res.status(500).json({ error: 'Failed to fetch category balances' });
+    }
+});
+
 // GET /api/categories - Get all categories
 router.get('/', (req, res) => {
     try {
