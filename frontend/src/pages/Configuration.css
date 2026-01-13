@@ -537,6 +537,82 @@
     cursor: pointer;
 }
 
+/* Setting groups */
+.setting-group {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+}
+
+.setting-group h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.setting-group .setting-item {
+    background: transparent;
+    border: none;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.setting-group .setting-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.setting-group .setting-item:first-of-type {
+    padding-top: 0;
+}
+
+.setting-group .setting-item label {
+    color: #374151;
+}
+
+.setting-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.setting-number-input {
+    width: 80px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: #1e293b;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.setting-number-input:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+/* Hide spinners */
+.setting-number-input::-webkit-outer-spin-button,
+.setting-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.setting-number-input {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.setting-unit {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
 /* Checkbox group in forms */
 .checkbox-group {
     background: rgba(124, 58, 237, 0.1);

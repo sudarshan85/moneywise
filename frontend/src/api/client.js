@@ -249,3 +249,16 @@ export async function autoPopulateTransfers(date) {
     });
     return handleResponse(response);
 }
+
+// ==================== DASHBOARD ====================
+
+export async function getDashboardData() {
+    const response = await fetch(`${API_BASE}/dashboard`);
+    return handleResponse(response);
+}
+
+export async function getCategoryDetails(id) {
+    const response = await fetch(`${API_BASE}/dashboard/category/${id}`);
+    return handleResponse(response);
+}
+

@@ -363,16 +363,67 @@ export default function Configuration() {
                         </div>
 
                         <div className="settings-grid">
-                            <div className="setting-item">
-                                <label>Database Path</label>
-                                <div className="setting-value">
-                                    <code>{settings.database_path || 'Loading...'}</code>
+                            {/* Display Settings */}
+                            <div className="setting-group">
+                                <h3>📊 Display Settings</h3>
+
+                                <div className="setting-item">
+                                    <label>Default Page Size (Transactions)</label>
+                                    <div className="setting-input-row">
+                                        <input
+                                            type="number"
+                                            min="10"
+                                            max="500"
+                                            value={settings.default_transactions_page_size || 50}
+                                            onChange={async (e) => {
+                                                const value = Math.max(10, Math.min(500, parseInt(e.target.value) || 50));
+                                                await api.updateSettings({ default_transactions_page_size: value.toString() });
+                                                fetchAll();
+                                            }}
+                                            className="setting-number-input"
+                                        />
+                                        <span className="setting-unit">records</span>
+                                    </div>
+                                    <p className="setting-hint">Number of transactions to load initially (10-500)</p>
                                 </div>
-                                <p className="setting-hint">Database location (read-only)</p>
+
+                                <div className="setting-item">
+                                    <label>Default Page Size (Transfers)</label>
+                                    <div className="setting-input-row">
+                                        <input
+                                            type="number"
+                                            min="10"
+                                            max="500"
+                                            value={settings.default_transfers_page_size || 50}
+                                            onChange={async (e) => {
+                                                const value = Math.max(10, Math.min(500, parseInt(e.target.value) || 50));
+                                                await api.updateSettings({ default_transfers_page_size: value.toString() });
+                                                fetchAll();
+                                            }}
+                                            className="setting-number-input"
+                                        />
+                                        <span className="setting-unit">records</span>
+                                    </div>
+                                    <p className="setting-hint">Number of transfers to load initially (10-500)</p>
+                                </div>
                             </div>
 
-                            <div className="setting-item">
-                                <label>📦 Data Backup</label>
+                            {/* System Information */}
+                            <div className="setting-group">
+                                <h3>💾 System Information</h3>
+
+                                <div className="setting-item">
+                                    <label>Database Path</label>
+                                    <div className="setting-value">
+                                        <code>{settings.database_path || 'Loading...'}</code>
+                                    </div>
+                                    <p className="setting-hint">Database location (read-only)</p>
+                                </div>
+                            </div>
+
+                            {/* Data Backup */}
+                            <div className="setting-group">
+                                <h3>📦 Data Backup</h3>
                                 <p className="setting-hint">Export your accounts and categories to a JSON file for backup, or import from a previous backup.</p>
                                 <div className="backup-actions">
                                     <button

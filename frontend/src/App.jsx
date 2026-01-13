@@ -3,6 +3,7 @@ import './index.css';
 import Configuration from './pages/Configuration.jsx';
 import Transactions from './pages/Transactions.jsx';
 import Transfers from './pages/Transfers.jsx';
+import Dashboard from './pages/Dashboard.jsx';
 
 // Tab configuration - icon can be emoji string or PNG path
 const TABS = [
@@ -15,19 +16,6 @@ const TABS = [
 ];
 
 // Placeholder page components (to be implemented in later phases)
-function DashboardPage() {
-  return (
-    <div className="card">
-      <div className="empty-state">
-        <div className="emoji">📊</div>
-        <p>Dashboard coming in Phase 4</p>
-      </div>
-    </div>
-  );
-}
-
-// TransfersPage placeholder removed - using real Transfers component
-
 function BalancesPage() {
   return (
     <div className="card">
@@ -52,7 +40,7 @@ function ReportsPage() {
 
 // Tab content mapping
 const TAB_CONTENT = {
-  dashboard: DashboardPage,
+  dashboard: Dashboard,
   transactions: Transactions,
   transfers: Transfers,
   balances: BalancesPage,

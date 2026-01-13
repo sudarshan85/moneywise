@@ -1,0 +1,477 @@
+/* Dashboard Page Styles */
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+/* Loading and Error States */
+.dashboard-loading,
+.dashboard-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2xl);
+    gap: var(--space-md);
+    color: var(--text-secondary);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-light);
+    border-top-color: var(--honey-gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.dashboard-error span {
+    font-size: 2rem;
+}
+
+/* Budget Overview Cards */
+.budget-overview {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+}
+
+.overview-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    position: relative;
+    overflow: hidden;
+}
+
+.overview-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.overview-card.income::before {
+    background: linear-gradient(90deg, #22C55E, #4ADE80);
+}
+
+.overview-card.spent::before {
+    background: linear-gradient(90deg, #EF4444, #F87171);
+}
+
+.overview-card.reconciled::before {
+    background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+}
+
+.overview-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: var(--space-xs);
+}
+
+.overview-value {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.overview-value.date {
+    font-size: var(--font-size-xl);
+    color: #8B5CF6;
+}
+
+.overview-value.negative {
+    color: var(--color-expense);
+}
+
+/* Main Dashboard Grid - 3 columns */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    gap: var(--space-lg);
+    align-items: start;
+}
+
+/* ===== Left Panel - Accounts Section ===== */
+.accounts-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.account-panel {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Assets Panel - Green Gradient */
+.assets-panel {
+    background: linear-gradient(135deg,
+            rgba(34, 197, 94, 0.08) 0%,
+            rgba(74, 222, 128, 0.15) 50%,
+            rgba(34, 197, 94, 0.05) 100%);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.assets-panel .account-panel-header {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.2), rgba(74, 222, 128, 0.1));
+    color: #16A34A;
+    border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.assets-panel .account-balance {
+    color: #16A34A;
+    font-weight: 600;
+}
+
+/* Debt Panel - Red Gradient */
+.debt-panel {
+    background: linear-gradient(135deg,
+            rgba(239, 68, 68, 0.08) 0%,
+            rgba(248, 113, 113, 0.15) 50%,
+            rgba(239, 68, 68, 0.05) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.debt-panel .account-panel-header {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.1));
+    color: #DC2626;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.debt-panel .account-balance {
+    color: #DC2626;
+    font-weight: 600;
+}
+
+.account-panel-header {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.account-list {
+    padding: var(--space-sm);
+}
+
+.account-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.account-row:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.account-name {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.account-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.account-icon.emoji-icon {
+    font-size: 1rem;
+}
+
+.account-balance {
+    font-size: var(--font-size-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.no-accounts {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    font-style: italic;
+    padding: var(--space-sm);
+    text-align: center;
+}
+
+/* ===== Center - Category Table ===== */
+.category-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.category-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.category-table thead tr {
+    background: linear-gradient(135deg, #1E293B 0%, #334155 100%);
+}
+
+.category-table th {
+    padding: var(--space-md);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #F8FAFC;
+    text-align: right;
+}
+
+.category-table th.col-category {
+    text-align: left;
+}
+
+.category-table td {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border-light);
+    font-size: var(--font-size-sm);
+    text-align: right;
+}
+
+.category-row {
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.category-row:hover {
+    background: var(--bg-secondary);
+}
+
+.category-row.selected {
+    background: rgba(245, 166, 35, 0.1);
+}
+
+.category-name {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: 500;
+    text-align: left;
+}
+
+.category-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.category-icon.emoji-icon {
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Available Cell - Colored based on balance */
+.available-cell {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    padding: var(--space-xs) var(--space-md) !important;
+}
+
+.available-cell.on-budget {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.03));
+    color: #16A34A;
+}
+
+.available-cell.over-budget {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.03));
+    color: #DC2626;
+}
+
+/* Activity Cell */
+.activity-cell {
+    font-variant-numeric: tabular-nums;
+}
+
+.activity-cell.expense {
+    color: var(--color-expense);
+}
+
+.activity-cell.income {
+    color: var(--color-income);
+}
+
+/* Monthly Amount Cell */
+.monthly-cell {
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Right Panel - Category Details ===== */
+.details-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.details-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--border-light);
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.panel-title {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.category-select {
+    flex: 1;
+    max-width: 180px;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.category-select:focus {
+    outline: none;
+    border-color: var(--honey-gold);
+    box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.2);
+}
+
+.category-details-content {
+    padding: var(--space-md);
+}
+
+/* Spending Progress */
+.spending-progress {
+    margin-bottom: var(--space-md);
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--space-xs);
+}
+
+.percent-remaining {
+    font-weight: 600;
+    color: var(--color-income);
+}
+
+.progress-bar {
+    height: 20px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3B82F6, #60A5FA);
+    border-radius: var(--radius-full);
+    transition: width var(--transition-slow);
+}
+
+.progress-fill.warning {
+    background: linear-gradient(90deg, #F59E0B, #FBBF24);
+}
+
+.progress-fill.over {
+    background: linear-gradient(90deg, #EF4444, #F87171);
+}
+
+/* Details Grid */
+.details-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+}
+
+.detail-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.detail-value {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.detail-value.highlight {
+    color: var(--color-income);
+    font-weight: 600;
+}
+
+.detail-value.muted {
+    color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .accounts-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-md);
+    }
+}
+
+@media (max-width: 768px) {
+    .budget-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .accounts-section {
+        grid-template-columns: 1fr;
+    }
+}

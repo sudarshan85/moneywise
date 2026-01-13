@@ -76,8 +76,20 @@ CREATE TABLE IF NOT EXISTS category_transfers (
     FOREIGN KEY (to_category_id) REFERENCES categories(id)
 );
 
+-- Category Monthly Balances (for dashboard carried forward tracking)
+CREATE TABLE IF NOT EXISTS category_monthly_balances (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_id INTEGER NOT NULL,
+    year_month TEXT NOT NULL,
+    carried_forward REAL DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(category_id, year_month),
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
 CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
 CREATE INDEX IF NOT EXISTS idx_category_transfers_date ON category_transfers(date);
+CREATE INDEX IF NOT EXISTS idx_category_monthly_balances ON category_monthly_balances(category_id, year_month);

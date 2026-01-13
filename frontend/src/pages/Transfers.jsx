@@ -40,9 +40,9 @@ export default function Transfers() {
     const [autoPopulateDate, setAutoPopulateDate] = useState(getTodayDate());
 
     // Pagination state
-    const [pageSize, setPageSize] = useState(20);
+    const [pageSize, setPageSize] = useState(50);
     const [offset, setOffset] = useState(0);
-    const [pageSizeInput, setPageSizeInput] = useState('20');
+    const [pageSizeInput, setPageSizeInput] = useState('50');
 
     // Computed
     const hasMore = transfers.length < total;
@@ -90,7 +90,7 @@ export default function Transfers() {
     };
 
     const handlePageSizeChange = (value) => {
-        const validSize = Math.max(10, Math.min(500, parseInt(value) || 20));
+        const validSize = Math.max(10, Math.min(500, parseInt(value) || 50));
         setPageSize(validSize);
         setPageSizeInput(validSize.toString());
     };

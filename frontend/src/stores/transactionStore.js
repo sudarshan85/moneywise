@@ -16,7 +16,7 @@ export const useTransactionStore = create((set, get) => ({
         status: null, // 'settled', 'pending', or null for all
         startDate: null,
         endDate: null,
-        limit: 20,
+        limit: 50,
         offset: 0,
     },
 
@@ -45,7 +45,7 @@ export const useTransactionStore = create((set, get) => ({
 
     // Set page size (updates limit and resets offset)
     setPageSize: (size) => {
-        const validSize = Math.max(10, Math.min(500, parseInt(size) || 20));
+        const validSize = Math.max(10, Math.min(500, parseInt(size) || 50));
         set((state) => ({
             filters: { ...state.filters, limit: validSize, offset: 0 }
         }));
@@ -60,7 +60,7 @@ export const useTransactionStore = create((set, get) => ({
                 status: null,
                 startDate: null,
                 endDate: null,
-                limit: 20,
+                limit: 50,
                 offset: 0,
             }
         });
