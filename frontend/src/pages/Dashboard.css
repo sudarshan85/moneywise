@@ -40,7 +40,7 @@
 /* Budget Overview Cards */
 .budget-overview {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: var(--space-md);
 }
 
@@ -73,6 +73,14 @@
 
 .overview-card.reconciled::before {
     background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+}
+
+.overview-card.pending::before {
+    background: linear-gradient(90deg, #F59E0B, #FBBF24);
+}
+
+.pending-count {
+    color: #D97706;
 }
 
 .overview-label {
@@ -323,6 +331,17 @@
 .monthly-cell {
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
+}
+
+/* Pending Cell */
+.pending-cell {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.pending-cell.has-pending {
+    color: #D97706;
+    font-weight: 500;
 }
 
 /* ===== Right Panel - Category Details ===== */

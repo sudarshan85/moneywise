@@ -6,6 +6,39 @@
     gap: 1rem;
 }
 
+/* Available to Budget Banner - Prominent Display */
+.available-to-budget-banner {
+    background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #F59E0B 100%);
+    border-radius: var(--radius-lg, 12px);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3),
+        0 2px 6px rgba(245, 158, 11, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.atb-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #78350F;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.atb-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1E293B;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.atb-value.negative {
+    color: #DC2626;
+}
+
 .transfers-header {
     display: flex;
     justify-content: space-between;

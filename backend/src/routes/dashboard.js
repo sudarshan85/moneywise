@@ -140,15 +140,22 @@ router.get('/', (req, res) => {
                 WHERE from_category_id = ? AND date >= ? AND date <= ?
             `).get(cat.id, startDate, endDate);
 
-            // Get spending this month (activity - negative means spending)
-            const spending = db.prepare(`
+            // Get settled spending this month (activity - negative means spending)
+            const settledSpending = db.prepare(`
                 SELECT COALESCE(SUM(amount), 0) as total
                 FROM transactions
                 WHERE category_id = ? AND date >= ? AND date <= ? AND status = 'settled'
             `).get(cat.id, startDate, endDate);
 
-            // Activity = net spending this month
-            const activity = spending.total;
+            // Get pending spending (all pending transactions regardless of date)
+            const pendingSpending = db.prepare(`
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM transactions
+                WHERE category_id = ? AND status = 'pending'
+            `).get(cat.id);
+
+            // Activity = settled spending + pending spending
+            const activity = settledSpending.total + pendingSpending.total;
 
             // Available = carried forward + budgeted (transfers in) - transfers out + activity
             const budgeted = transfersIn.total;
@@ -160,6 +167,7 @@ router.get('/', (req, res) => {
                 icon: cat.icon,
                 available: Math.round(available * 100) / 100,
                 activity: Math.round(activity * 100) / 100,
+                pendingActivity: Math.round(pendingSpending.total * 100) / 100,
                 monthlyAmount: cat.monthly_amount,
                 carriedForward: Math.round(cat.carried_forward * 100) / 100,
                 isOverBudget: available < 0
@@ -208,10 +216,19 @@ router.get('/', (req, res) => {
         `).get();
         const lastReconciled = lastReconciledRow?.last_date || null;
 
+        // 6. Get total pending transaction count
+        const pendingCountRow = db.prepare(`
+            SELECT COUNT(*) as count
+            FROM transactions
+            WHERE status = 'pending'
+        `).get();
+        const pendingCount = pendingCountRow?.count || 0;
+
         res.json({
             currentMonth,
             monthlyIncome,
             monthlySpent: Math.round(totalSpent * 100) / 100,
+            pendingCount,
             categories: categoryData,
             assets,
             liabilities,
@@ -255,13 +272,23 @@ router.get('/category/:id', (req, res) => {
             return res.status(404).json({ error: 'Category not found' });
         }
 
-        // Get actual spending this month
-        const actualSpending = db.prepare(`
+        // Get actual spending this month (settled only)
+        const settledSpending = db.prepare(`
             SELECT COALESCE(SUM(ABS(amount)), 0) as total
             FROM transactions
             WHERE category_id = ? AND date >= ? AND date <= ? 
             AND status = 'settled' AND amount < 0
         `).get(categoryId, startDate, endDate);
+
+        // Get pending spending (all pending, no date filter)
+        const pendingSpending = db.prepare(`
+            SELECT COALESCE(SUM(ABS(amount)), 0) as total
+            FROM transactions
+            WHERE category_id = ? AND status = 'pending' AND amount < 0
+        `).get(categoryId);
+
+        // Total spending includes pending
+        const actualSpendingTotal = settledSpending.total + pendingSpending.total;
 
         // Get transfers in this month (budgeted)
         const budgeted = db.prepare(`
@@ -270,11 +297,11 @@ router.get('/category/:id', (req, res) => {
             WHERE to_category_id = ? AND date >= ? AND date <= ?
         `).get(categoryId, startDate, endDate);
 
-        // Calculate available and percentage remaining
-        const available = category.carried_forward + budgeted.total - actualSpending.total;
+        // Calculate available and percentage remaining (including pending)
+        const available = category.carried_forward + budgeted.total - actualSpendingTotal;
         const totalBudget = category.carried_forward + budgeted.total;
         const percentRemaining = totalBudget > 0
-            ? Math.round((available / totalBudget) * 100)
+            ? Math.round((available / totalBudget) * 1000) / 10
             : (available >= 0 ? 100 : 0);
 
         // Get spent last month
@@ -301,7 +328,7 @@ router.get('/category/:id', (req, res) => {
             name: category.name,
             icon: category.icon,
             monthlyAmount: category.monthly_amount,
-            actualSpending: Math.round(actualSpending.total * 100) / 100,
+            actualSpending: Math.round(actualSpendingTotal * 100) / 100,
             percentRemaining,
             carriedForward: Math.round(category.carried_forward * 100) / 100,
             spentLastMonth: Math.round(spentLastMonth.total * 100) / 100,

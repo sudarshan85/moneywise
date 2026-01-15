@@ -170,6 +170,15 @@ export async function toggleReconciliation(id) {
     return handleResponse(response);
 }
 
+export async function createReconciliation(data) {
+    const response = await fetch(`${API_BASE}/transactions/reconciliation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+}
+
 // ==================== BACKUP ====================
 
 export async function exportBackup() {

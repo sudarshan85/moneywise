@@ -217,6 +217,24 @@ export const useTransactionStore = create((set, get) => ({
         }
     },
 
+    // ==================== CREATE RECONCILIATION ====================
+
+    createReconciliation: async (data) => {
+        set({ isLoading: true, error: null });
+        try {
+            const transaction = await api.createReconciliation(data);
+            set((state) => ({
+                transactions: [transaction, ...state.transactions],
+                total: state.total + 1,
+                isLoading: false
+            }));
+            return transaction;
+        } catch (error) {
+            set({ error: error.message, isLoading: false });
+            throw error;
+        }
+    },
+
     // ==================== TOGGLE RECONCILIATION ====================
 
     toggleReconciliation: async (id) => {

@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT,
     amount REAL NOT NULL,
-    account_id INTEGER NOT NULL,
+    account_id INTEGER,
     category_id INTEGER,
     memo TEXT,
     status TEXT NOT NULL CHECK(status IN ('settled', 'pending')) DEFAULT 'settled',

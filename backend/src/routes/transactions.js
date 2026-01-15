@@ -57,7 +57,8 @@ router.get('/', (req, res) => {
             params.push(endDate);
         }
 
-        query += ' ORDER BY t.date DESC, t.created_at DESC';
+        // Order: pending transactions first (NULL dates), then by date descending
+        query += ' ORDER BY CASE WHEN t.date IS NULL THEN 0 ELSE 1 END, t.date DESC, t.created_at DESC';
         query += ' LIMIT ? OFFSET ?';
         params.push(parseInt(limit), parseInt(offset));
 
@@ -207,6 +208,45 @@ router.post('/', (req, res) => {
     } catch (error) {
         console.error('Error creating transaction:', error);
         res.status(500).json({ error: 'Failed to create transaction' });
+    }
+});
+
+// ==================== POST /api/transactions/reconciliation ====================
+// Create a global reconciliation marker (no account, amount = 0)
+router.post('/reconciliation', (req, res) => {
+    try {
+        const { date } = req.body;
+
+        // Only date is required
+        if (!date) {
+            return res.status(400).json({
+                error: 'Date is required for reconciliation'
+            });
+        }
+
+        const result = db.prepare(`
+            INSERT INTO transactions (date, amount, account_id, category_id, memo, status, type, is_reconciliation_point)
+            VALUES (?, 0, NULL, NULL, NULL, 'settled', 'regular', 1)
+        `).run(date);
+
+        const transaction = db.prepare(`
+            SELECT 
+                t.*,
+                a.name as account_name,
+                a.icon as account_icon,
+                a.type as account_type,
+                c.name as category_name,
+                c.icon as category_icon
+            FROM transactions t
+            LEFT JOIN accounts a ON t.account_id = a.id
+            LEFT JOIN categories c ON t.category_id = c.id
+            WHERE t.id = ?
+        `).get(result.lastInsertRowid);
+
+        res.status(201).json(transaction);
+    } catch (error) {
+        console.error('Error creating reconciliation:', error);
+        res.status(500).json({ error: 'Failed to create reconciliation' });
     }
 });
 

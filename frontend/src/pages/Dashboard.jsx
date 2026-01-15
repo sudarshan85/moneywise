@@ -102,7 +102,7 @@ export default function Dashboard() {
 
     if (!dashboardData) return null;
 
-    const { monthlyIncome, monthlySpent, categories, assets, liabilities, lastReconciled } = dashboardData;
+    const { monthlyIncome, monthlySpent, pendingCount, categories, assets, liabilities, lastReconciled } = dashboardData;
 
     // Get selected category for dropdown display
     const selectedCategory = categories.find(c => c.id === selectedCategoryId);
@@ -119,6 +119,12 @@ export default function Dashboard() {
                     <div className="overview-label">Spent This Month</div>
                     <div className="overview-value">{formatCurrency(monthlySpent)}</div>
                 </div>
+                {pendingCount > 0 && (
+                    <div className="overview-card pending">
+                        <div className="overview-label">Pending Transactions</div>
+                        <div className="overview-value pending-count">{pendingCount}</div>
+                    </div>
+                )}
                 <div className="overview-card reconciled">
                     <div className="overview-label">Accounts last reconciled on</div>
                     <div className="overview-value date">
@@ -183,6 +189,7 @@ export default function Dashboard() {
                             <tr>
                                 <th className="col-category">Category</th>
                                 <th className="col-available">Available</th>
+                                <th className="col-pending">Pending</th>
                                 <th className="col-activity">Activity</th>
                                 <th className="col-monthly">Monthly Amt</th>
                             </tr>
@@ -200,6 +207,9 @@ export default function Dashboard() {
                                     </td>
                                     <td className={`available-cell ${cat.available < 0 ? 'over-budget' : 'on-budget'}`}>
                                         {formatCurrency(cat.available)}
+                                    </td>
+                                    <td className={`pending-cell ${cat.pendingActivity !== 0 ? 'has-pending' : ''}`}>
+                                        {cat.pendingActivity !== 0 ? formatCurrency(cat.pendingActivity) : '—'}
                                     </td>
                                     <td className={`activity-cell ${cat.activity < 0 ? 'expense' : cat.activity > 0 ? 'income' : ''}`}>
                                         {formatCurrency(cat.activity)}

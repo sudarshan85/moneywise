@@ -52,6 +52,7 @@ export default function Transactions() {
         updateTransaction,
         deleteTransaction,
         createAccountTransfer,
+        createReconciliation,
         toggleStatus,
         clearError,
     } = useTransactionStore();
@@ -88,7 +89,10 @@ export default function Transactions() {
     // Handle add/edit transaction
     const handleSaveTransaction = async (data) => {
         try {
-            if (editingTransaction) {
+            // Check if this is a reconciliation entry
+            if (data.isReconciliation) {
+                await createReconciliation({ date: data.date });
+            } else if (editingTransaction) {
                 await updateTransaction(editingTransaction.id, data);
             } else {
                 await createTransaction(data);
@@ -466,9 +470,41 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus }) {
     const isPositive = transaction.amount >= 0;
     const isTransfer = transaction.type === 'account_transfer';
     const isPending = transaction.status === 'pending';
+    const isReconciliation = transaction.is_reconciliation_point === 1;
 
     let rowClass = '';
     if (isPending) rowClass += ' is-pending';
+    if (isReconciliation) rowClass += ' is-reconciliation';
+
+    // For reconciliation rows, display differently
+    if (isReconciliation) {
+        return (
+            <tr className={rowClass}>
+                <td>{formatDate(transaction.date)}</td>
+                <td colSpan="5" className="reconciliation-label">
+                    <span className="reconciliation-badge">⚖️ Reconciliation Point</span>
+                </td>
+                <td>
+                    <div className="action-buttons">
+                        <button
+                            className="action-btn"
+                            onClick={() => onEdit(transaction)}
+                            title="Edit Date"
+                        >
+                            ✏️
+                        </button>
+                        <button
+                            className="action-btn delete"
+                            onClick={() => onDelete(transaction)}
+                            title="Delete"
+                        >
+                            🗑️
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        );
+    }
 
     return (
         <tr className={rowClass}>
@@ -530,7 +566,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus }) {
                     </button>
                 </div>
             </td>
-        </tr >
+        </tr>
     );
 }
 
@@ -552,9 +588,20 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
     });
 
     const isPending = formData.status === 'pending';
+    const isReconciliation = formData.status === 'reconciliation';
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // For reconciliation, only send date and flag
+        if (isReconciliation) {
+            onSave({
+                date: formData.date,
+                isReconciliation: true,
+            });
+            return;
+        }
+
         const amount = parseFloat(formData.amount);
         onSave({
             date: isPending ? null : formData.date,
@@ -575,7 +622,7 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
                 <div className="status-toggle-group">
                     <button
                         type="button"
-                        className={`status-btn ${!isPending ? 'active settled' : ''}`}
+                        className={`status-btn ${formData.status === 'settled' ? 'active settled' : ''}`}
                         onClick={() => setFormData({ ...formData, status: 'settled' })}
                     >
                         ✅ Settled
@@ -587,122 +634,151 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
                     >
                         🅿️ Pending
                     </button>
+                    <button
+                        type="button"
+                        className={`status-btn ${isReconciliation ? 'active reconciliation' : ''}`}
+                        onClick={() => setFormData({ ...formData, status: 'reconciliation' })}
+                    >
+                        ⚖️ Reconciliation
+                    </button>
                 </div>
                 {isPending && (
                     <p className="form-hint">Pending transactions have no date until settled.</p>
                 )}
+                {isReconciliation && (
+                    <p className="form-hint">Mark that you've verified all account balances are correct as of this date.</p>
+                )}
             </div>
 
-            {/* Date - Only show if not pending */}
-            {!isPending && (
-                <div className="form-row">
-                    <div className="form-group">
-                        <label>Date</label>
-                        <input
-                            type="date"
-                            value={formData.date}
-                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Account</label>
-                        <select
-                            value={formData.account_id}
-                            onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
-                            required
-                        >
-                            <option value="">Select Account</option>
-                            {accounts.map(acc => (
-                                <option key={acc.id} value={acc.id}>{acc.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            )}
-
-            {/* Account - Show alone if pending */}
-            {isPending && (
+            {/* Reconciliation: Only show date */}
+            {isReconciliation && (
                 <div className="form-group">
-                    <label>Account</label>
-                    <select
-                        value={formData.account_id}
-                        onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
-                        required
-                    >
-                        <option value="">Select Account</option>
-                        {accounts.map(acc => (
-                            <option key={acc.id} value={acc.id}>{acc.name}</option>
-                        ))}
-                    </select>
-                </div>
-            )}
-
-            <div className="form-group">
-                <label>Flow Direction</label>
-                <div className="flow-toggle">
-                    <button
-                        type="button"
-                        className={`flow-btn outflow ${!formData.isInflow ? 'active' : ''}`}
-                        onClick={() => setFormData({ ...formData, isInflow: false })}
-                    >
-                        ⬇️ Outflow
-                    </button>
-                    <button
-                        type="button"
-                        className={`flow-btn inflow ${formData.isInflow ? 'active' : ''}`}
-                        onClick={() => setFormData({ ...formData, isInflow: true })}
-                    >
-                        ⬆️ Inflow
-                    </button>
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Amount</label>
+                    <label>Reconciliation Date</label>
                     <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        value={formData.amount}
-                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                         required
-                        placeholder="$0.00"
-                        className={formData.isInflow ? 'amount-inflow' : 'amount-outflow'}
                     />
                 </div>
-                <div className="form-group">
-                    <label>Category</label>
-                    <select
-                        value={formData.category_id}
-                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                    >
-                        <option value="">No Category</option>
-                        {categories.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+            )}
 
-            <div className="form-group">
-                <label>Memo (optional)</label>
-                <input
-                    type="text"
-                    value={formData.memo}
-                    onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-                    placeholder="Add a note..."
-                    className="memo-input"
-                />
-            </div>
+            {/* Regular transaction fields - hide if reconciliation */}
+            {!isReconciliation && (
+                <>
+                    {/* Date - Only show if not pending */}
+                    {!isPending && (
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Account</label>
+                                <select
+                                    value={formData.account_id}
+                                    onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
+                                    required
+                                >
+                                    <option value="">Select Account</option>
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Account - Show alone if pending */}
+                    {isPending && (
+                        <div className="form-group">
+                            <label>Account</label>
+                            <select
+                                value={formData.account_id}
+                                onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
+                                required
+                            >
+                                <option value="">Select Account</option>
+                                {accounts.map(acc => (
+                                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="form-group">
+                        <label>Flow Direction</label>
+                        <div className="flow-toggle">
+                            <button
+                                type="button"
+                                className={`flow-btn outflow ${!formData.isInflow ? 'active' : ''}`}
+                                onClick={() => setFormData({ ...formData, isInflow: false })}
+                            >
+                                ⬇️ Outflow
+                            </button>
+                            <button
+                                type="button"
+                                className={`flow-btn inflow ${formData.isInflow ? 'active' : ''}`}
+                                onClick={() => setFormData({ ...formData, isInflow: true })}
+                            >
+                                ⬆️ Inflow
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label>Amount</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={formData.amount}
+                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                required
+                                placeholder="$0.00"
+                                className={formData.isInflow ? 'amount-inflow' : 'amount-outflow'}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Category</label>
+                            <select
+                                value={formData.category_id}
+                                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                            >
+                                <option value="">No Category</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Memo (optional)</label>
+                        <input
+                            type="text"
+                            value={formData.memo}
+                            onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
+                            placeholder="Add a note..."
+                            className="memo-input"
+                        />
+                    </div>
+
+                </>
+            )}
 
             <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={onCancel}>
                     Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                    {transaction ? 'Save Changes' : 'Add Transaction'}
+                    {isReconciliation ? 'Create Reconciliation' : (transaction ? 'Save Changes' : 'Add Transaction')}
                 </button>
             </div>
         </form>

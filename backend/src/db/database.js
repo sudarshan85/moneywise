@@ -161,6 +161,56 @@ function migrateAccountsMoneyPot() {
     }
 }
 
+// Make account_id nullable for reconciliation transactions
+function migrateAccountIdNullable() {
+    try {
+        const columns = db.prepare("PRAGMA table_info(transactions)").all();
+        const accountIdCol = columns.find(c => c.name === 'account_id');
+
+        // If account_id column has notnull = 1, we need to recreate the table
+        if (accountIdCol && accountIdCol.notnull === 1) {
+            console.log('📦 Migrating transactions table to allow null account_id...');
+
+            db.exec(`
+                -- Create new table with nullable account_id
+                CREATE TABLE transactions_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT,
+                    amount REAL NOT NULL,
+                    account_id INTEGER,
+                    category_id INTEGER,
+                    memo TEXT,
+                    status TEXT NOT NULL CHECK(status IN ('settled', 'pending')) DEFAULT 'settled',
+                    type TEXT NOT NULL CHECK(type IN ('regular', 'account_transfer', 'balance_adjustment', 'starting_balance')) DEFAULT 'regular',
+                    transfer_pair_id INTEGER,
+                    is_reconciliation_point INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (account_id) REFERENCES accounts(id),
+                    FOREIGN KEY (category_id) REFERENCES categories(id),
+                    FOREIGN KEY (transfer_pair_id) REFERENCES transactions(id)
+                );
+                
+                -- Copy all data
+                INSERT INTO transactions_new SELECT * FROM transactions;
+                
+                -- Drop old table and rename new
+                DROP TABLE transactions;
+                ALTER TABLE transactions_new RENAME TO transactions;
+                
+                -- Recreate indexes
+                CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
+                CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
+                CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
+            `);
+
+            console.log('✅ Transactions table migrated for nullable account_id');
+        }
+    } catch (error) {
+        console.error('Account ID nullable migration error:', error.message);
+    }
+}
+
 // Initialize schema and seed data
 export function initializeDatabase() {
     const schemaPath = path.join(__dirname, 'schema.sql');
@@ -174,6 +224,9 @@ export function initializeDatabase() {
 
     // Add in_moneypot column to accounts if it doesn't exist
     migrateAccountsMoneyPot();
+
+    // Make account_id nullable for reconciliation transactions
+    migrateAccountIdNullable();
 
     // Always ensure Balance Change has the correct icon
     db.prepare(`UPDATE categories SET icon = '/icons/balance_change.png' WHERE name = 'Balance Change' AND is_system = 1`).run();

@@ -66,8 +66,6 @@ function App() {
 
   const [activeTab, setActiveTab] = useState(getTabFromHash);
   const [apiStatus, setApiStatus] = useState(null);
-  const [moneyPotBalance, setMoneyPotBalance] = useState(null);
-  const [balanceRefreshKey, setBalanceRefreshKey] = useState(0);
 
   // Update URL hash when tab changes
   const handleTabChange = (tabId) => {
@@ -92,28 +90,7 @@ function App() {
       .catch(err => setApiStatus({ status: 'error', message: err.message }));
   }, []);
 
-  // Fetch Available to Budget on mount, tab change, or when data changes
-  useEffect(() => {
-    fetch('http://localhost:3001/api/accounts/moneypot')
-      .then(res => res.json())
-      .then(data => setMoneyPotBalance(data.balance))
-      .catch(err => console.error('Failed to fetch Available to Budget:', err));
-  }, [activeTab, balanceRefreshKey]);
-
-  // Listen for custom events to refresh the balance
-  useEffect(() => {
-    const handleRefresh = () => setBalanceRefreshKey(k => k + 1);
-    window.addEventListener('moneywise:refresh-balance', handleRefresh);
-    return () => window.removeEventListener('moneywise:refresh-balance', handleRefresh);
-  }, []);
-
   const ActivePage = TAB_CONTENT[activeTab];
-
-  // Format currency for display
-  const formatCurrency = (amount) => {
-    if (amount === null || amount === undefined) return '—';
-    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  };
 
   return (
     <div className="app">
@@ -123,12 +100,6 @@ function App() {
           <img src="/icons/moneywise_icon.png" alt="MoneyWise" className="app-logo" />
           MoneyWise
         </h1>
-        <div className="moneypot-display">
-          <span className="moneypot-label">Available to Budget</span>
-          <span className={`moneypot-balance ${moneyPotBalance < 0 ? 'negative' : ''}`}>
-            {formatCurrency(moneyPotBalance)}
-          </span>
-        </div>
       </header>
 
       {/* Tab Navigation */}

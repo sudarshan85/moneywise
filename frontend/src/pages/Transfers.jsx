@@ -38,6 +38,7 @@ export default function Transfers() {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [isAutoPopulating, setIsAutoPopulating] = useState(false);
     const [autoPopulateDate, setAutoPopulateDate] = useState(getTodayDate());
+    const [availableToBudget, setAvailableToBudget] = useState(null);
 
     // Pagination state
     const [pageSize, setPageSize] = useState(50);
@@ -51,7 +52,19 @@ export default function Transfers() {
     useEffect(() => {
         fetchCategories();
         loadTransfers();
+        loadAvailableToBudget();
     }, []);
+
+    // Load Available to Budget
+    const loadAvailableToBudget = async () => {
+        try {
+            const response = await fetch('http://localhost:3001/api/accounts/moneypot');
+            const data = await response.json();
+            setAvailableToBudget(data.balance);
+        } catch (err) {
+            console.error('Failed to fetch Available to Budget:', err);
+        }
+    };
 
     // Reload when page size changes
     useEffect(() => {
@@ -100,6 +113,7 @@ export default function Transfers() {
             await api.createTransfer(data);
             setShowAddModal(false);
             loadTransfers();
+            loadAvailableToBudget();
         } catch (err) {
             setError(err.message);
         }
@@ -110,6 +124,7 @@ export default function Transfers() {
             await api.updateTransfer(editingTransfer.id, data);
             setEditingTransfer(null);
             loadTransfers();
+            loadAvailableToBudget();
         } catch (err) {
             setError(err.message);
         }
@@ -120,6 +135,7 @@ export default function Transfers() {
             await api.deleteTransfer(id);
             setDeleteConfirm(null);
             loadTransfers();
+            loadAvailableToBudget();
         } catch (err) {
             setError(err.message);
         }
@@ -147,6 +163,14 @@ export default function Transfers() {
 
     return (
         <div className="transfers-page">
+            {/* Available to Budget Display */}
+            <div className="available-to-budget-banner">
+                <div className="atb-label">Available to Budget</div>
+                <div className={`atb-value ${availableToBudget !== null && availableToBudget < 0 ? 'negative' : ''}`}>
+                    {availableToBudget !== null ? formatCurrency(availableToBudget) : '—'}
+                </div>
+            </div>
+
             {/* Header */}
             <div className="transfers-header">
                 <div className="header-left">
