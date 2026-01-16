@@ -297,11 +297,20 @@ router.get('/category/:id', (req, res) => {
             WHERE to_category_id = ? AND date >= ? AND date <= ?
         `).get(categoryId, startDate, endDate);
 
+        // Get transfers out this month
+        const transfersOut = db.prepare(`
+            SELECT COALESCE(SUM(amount), 0) as total
+            FROM category_transfers
+            WHERE from_category_id = ? AND date >= ? AND date <= ?
+        `).get(categoryId, startDate, endDate);
+
         // Calculate available and percentage remaining (including pending)
-        const available = category.carried_forward + budgeted.total - actualSpendingTotal;
-        const totalBudget = category.carried_forward + budgeted.total;
-        const percentRemaining = totalBudget > 0
-            ? Math.round((available / totalBudget) * 1000) / 10
+        // Net budget = carried forward + transfers in - transfers out
+        const netBudget = category.carried_forward + budgeted.total - transfersOut.total;
+        const available = netBudget - actualSpendingTotal;
+
+        const percentRemaining = netBudget > 0
+            ? Math.round((available / netBudget) * 1000) / 10
             : (available >= 0 ? 100 : 0);
 
         // Get spent last month

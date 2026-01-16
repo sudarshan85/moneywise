@@ -1,0 +1,309 @@
+/* Reports Page Styles */
+
+.reports {
+    padding: 0;
+}
+
+.reports-loading,
+.reports-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: 1rem;
+    color: var(--text-secondary);
+}
+
+.reports-error {
+    color: var(--danger);
+}
+
+/* Header */
+.reports-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.reports-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.period-select {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.period-select:hover {
+    border-color: var(--primary);
+}
+
+.period-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Summary Cards */
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.summary-card .card-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-card .card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.summary-card.income .card-value {
+    color: #22c55e;
+}
+
+.summary-card.expenses .card-value {
+    color: #ef4444;
+}
+
+.summary-card.net.positive .card-value {
+    color: #22c55e;
+}
+
+.summary-card.net.negative .card-value {
+    color: #ef4444;
+}
+
+.summary-card.average .card-value {
+    color: var(--text-primary);
+}
+
+/* Charts Layout */
+.charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.charts-row.full-width {
+    grid-template-columns: 1fr;
+}
+
+.chart-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.chart-card h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.no-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Chart Tooltip */
+.chart-tooltip {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.chart-tooltip .tooltip-label {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+}
+
+.chart-tooltip .tooltip-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.chart-tooltip .tooltip-percent {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Recharts overrides */
+.recharts-legend-item-text {
+    color: var(--text-primary) !important;
+}
+
+.recharts-cartesian-axis-tick-value {
+    fill: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .charts-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .reports-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .period-select {
+        width: 100%;
+    }
+}
+
+/* Header Alignment */
+.reports-header.right-aligned {
+    justify-content: flex-end;
+}
+
+/* Top Expenses List */
+.top-expenses-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: 100%;
+    overflow-y: auto;
+    max-height: 350px;
+    padding-right: 0.5rem;
+}
+
+.expense-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.expense-item:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.expense-icon {
+    font-size: 1.5rem;
+    background: var(--bg-primary);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.expense-details {
+    flex: 1;
+    min-width: 0;
+    /* Text truncation */
+}
+
+.expense-description {
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.expense-category {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.expense-amount {
+    font-weight: 600;
+    color: #ef4444;
+    /* Always red for expenses */
+    font-family: monospace;
+    font-size: 1rem;
+}
+
+/* Coming Soon Card */
+.coming-soon-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 200px;
+    background: linear-gradient(to bottom right, var(--bg-secondary), rgba(99, 102, 241, 0.05));
+}
+
+.coming-soon-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: var(--text-secondary);
+    max-width: 80%;
+}
+
+.coming-soon-content p {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.coming-soon-icon {
+    font-size: 2.5rem;
+    opacity: 0.7;
+    margin-top: 0.5rem;
+}

@@ -34,6 +34,19 @@ function formatDate(dateStr) {
     });
 }
 
+// Alert component for over-budget categories
+function OverBudgetAlert({ count }) {
+    if (count <= 0) return null;
+    return (
+        <div className="over-budget-alert">
+            <span className="alert-icon">⚠️</span>
+            <span className="alert-text">
+                Heads up! You have <strong>{count} {count === 1 ? 'category' : 'categories'}</strong> over budget.
+            </span>
+        </div>
+    );
+}
+
 export default function Dashboard() {
     const [dashboardData, setDashboardData] = useState(null);
     const [categoryDetails, setCategoryDetails] = useState(null);
@@ -107,6 +120,9 @@ export default function Dashboard() {
     // Get selected category for dropdown display
     const selectedCategory = categories.find(c => c.id === selectedCategoryId);
 
+    // Count over-budget categories
+    const overBudgetCount = categories.filter(c => c.available < 0).length;
+
     return (
         <div className="dashboard">
             {/* Budget Overview Cards */}
@@ -132,6 +148,9 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Over Budget Alert */}
+            <OverBudgetAlert count={overBudgetCount} />
 
             {/* Main Dashboard Grid - 3 columns */}
             <div className="dashboard-grid">
@@ -206,6 +225,7 @@ export default function Dashboard() {
                                         <span>{cat.name}</span>
                                     </td>
                                     <td className={`available-cell ${cat.available < 0 ? 'over-budget' : 'on-budget'}`}>
+                                        {cat.available < 0 && <span className="warning-icon">⚠️ </span>}
                                         {formatCurrency(cat.available)}
                                     </td>
                                     <td className={`pending-cell ${cat.pendingActivity !== 0 ? 'has-pending' : ''}`}>
@@ -246,7 +266,7 @@ export default function Dashboard() {
                                 {/* Progress Bar */}
                                 <div className="spending-progress">
                                     <div className="progress-label">
-                                        <span>Actual Spending</span>
+                                        <span>Budget Usage</span>
                                         <span className="percent-remaining">
                                             {categoryDetails.percentRemaining}% remaining
                                         </span>

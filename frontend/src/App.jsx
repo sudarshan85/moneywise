@@ -4,48 +4,27 @@ import Configuration from './pages/Configuration.jsx';
 import Transactions from './pages/Transactions.jsx';
 import Transfers from './pages/Transfers.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import Reports from './pages/Reports.jsx';
 
 // Tab configuration - icon can be emoji string or PNG path
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'transactions', label: 'Transactions', icon: '💸' },
   { id: 'transfers', label: 'Transfers', icon: '🔄' },
-  { id: 'balances', label: 'Balances', icon: '📋' },
   { id: 'reports', label: 'Reports', icon: '📉' },
   { id: 'config', label: 'Configuration', icon: '⚙️' },
 ];
 
-// Placeholder page components (to be implemented in later phases)
-function BalancesPage() {
-  return (
-    <div className="card">
-      <div className="empty-state">
-        <div className="emoji">📋</div>
-        <p>Balances coming in Phase 5</p>
-      </div>
-    </div>
-  );
-}
 
-function ReportsPage() {
-  return (
-    <div className="card">
-      <div className="empty-state">
-        <div className="emoji">📉</div>
-        <p>Reports coming in Phase 6</p>
-      </div>
-    </div>
-  );
-}
+
 
 // Tab content mapping
 const TAB_CONTENT = {
   dashboard: Dashboard,
   transactions: Transactions,
   transfers: Transfers,
-  balances: BalancesPage,
   config: Configuration,
-  reports: ReportsPage,
+  reports: Reports,
 };
 
 // Helper to render tab icon (emoji or PNG)

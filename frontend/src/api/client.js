@@ -271,3 +271,40 @@ export async function getCategoryDetails(id) {
     return handleResponse(response);
 }
 
+// ==================== REPORTS ====================
+
+export async function getReportsSummary(start, end) {
+    const params = new URLSearchParams({ start, end });
+    const response = await fetch(`${API_BASE}/reports/summary?${params}`);
+    return handleResponse(response);
+}
+
+export async function getSpendingByCategory(start, end) {
+    const params = new URLSearchParams({ start, end });
+    const response = await fetch(`${API_BASE}/reports/spending-by-category?${params}`);
+    return handleResponse(response);
+}
+
+export async function getIncomeVsExpenses(start, end, groupBy = 'month') {
+    const params = new URLSearchParams({ start, end, groupBy });
+    const response = await fetch(`${API_BASE}/reports/income-vs-expenses?${params}`);
+    return handleResponse(response);
+}
+
+export async function getCategoryTrend(start, end, limit = 5) {
+    const params = new URLSearchParams({ start, end, limit: String(limit) });
+    const response = await fetch(`${API_BASE}/reports/category-trend?${params}`);
+    return handleResponse(response);
+}
+
+export async function getBalanceHistory(start, end) {
+    const params = new URLSearchParams({ start, end });
+    const response = await fetch(`${API_BASE}/reports/balance-history?${params}`);
+    return handleResponse(response);
+}
+
+export async function getTopExpenses(start, end, limit = 10) {
+    const params = new URLSearchParams({ start, end, limit: String(limit) });
+    const response = await fetch(`${API_BASE}/reports/top-expenses?${params}`);
+    return handleResponse(response);
+}

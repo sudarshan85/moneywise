@@ -310,8 +310,45 @@
 }
 
 .available-cell.over-budget {
-    background: linear-gradient(90deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.03));
+    background-color: #FEF2F2;
     color: #DC2626;
+    font-weight: 700;
+    border: 1px solid #FCA5A5;
+    border-radius: var(--radius-sm);
+}
+
+.warning-icon {
+    margin-right: 0.25rem;
+}
+
+/* Over Budget Alert */
+.over-budget-alert {
+    background-color: #FFFBEB;
+    border: 1px solid #FCD34D;
+    color: #92400E;
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.alert-icon {
+    font-size: 1.5rem;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Activity Cell */
