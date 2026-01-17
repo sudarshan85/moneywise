@@ -13,6 +13,7 @@ router.get('/', (req, res) => {
             status,
             startDate,
             endDate,
+            memo_search,
             limit = 100,
             offset = 0
         } = req.query;
@@ -57,6 +58,11 @@ router.get('/', (req, res) => {
             params.push(endDate);
         }
 
+        if (memo_search) {
+            query += ' AND LOWER(t.memo) LIKE ?';
+            params.push(`%${memo_search.toLowerCase()}%`);
+        }
+
         // Order: pending transactions first (NULL dates), then by date descending
         query += ' ORDER BY CASE WHEN t.date IS NULL THEN 0 ELSE 1 END, t.date DESC, t.created_at DESC';
         query += ' LIMIT ? OFFSET ?';
@@ -87,6 +93,10 @@ router.get('/', (req, res) => {
         if (endDate) {
             countQuery += ' AND t.date <= ?';
             countParams.push(endDate);
+        }
+        if (memo_search) {
+            countQuery += ' AND LOWER(t.memo) LIKE ?';
+            countParams.push(`%${memo_search.toLowerCase()}%`);
         }
 
         const { total } = db.prepare(countQuery).get(...countParams);

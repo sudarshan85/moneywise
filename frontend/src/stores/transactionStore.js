@@ -16,6 +16,7 @@ export const useTransactionStore = create((set, get) => ({
         status: null, // 'settled', 'pending', or null for all
         startDate: null,
         endDate: null,
+        memo_search: null, // lowercase partial match search on memo
         limit: 50,
         offset: 0,
     },
@@ -60,6 +61,7 @@ export const useTransactionStore = create((set, get) => ({
                 status: null,
                 startDate: null,
                 endDate: null,
+                memo_search: null,
                 limit: 50,
                 offset: 0,
             }

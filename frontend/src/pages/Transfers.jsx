@@ -469,6 +469,7 @@ function TransferForm({ categories, onSave, onCancel, transfer }) {
                     value={formData.memo}
                     onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
                     placeholder="Why are you moving this money?"
+                    maxLength={30}
                 />
             </div>
 

@@ -286,7 +286,6 @@ export default function Reports() {
         <div className="reports">
             {/* Header */}
             <div className="reports-header">
-                <h1>📊 Reports</h1>
                 <div className="month-badge">{dateRange.label}</div>
             </div>
 

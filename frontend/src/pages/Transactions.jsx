@@ -80,7 +80,7 @@ export default function Transactions() {
         if (filters.offset === 0) {
             fetchTransactions();
         }
-    }, [filters.account_id, filters.category_id, filters.status, filters.startDate, filters.endDate, filters.limit]);
+    }, [filters.account_id, filters.category_id, filters.status, filters.startDate, filters.endDate, filters.memo_search, filters.limit]);
 
     // Separate pending and settled transactions
     const pendingTransactions = transactions.filter(t => t.status === 'pending');
@@ -303,7 +303,7 @@ export default function Transactions() {
 // ==================== FILTER SIDEBAR ====================
 
 function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
-    const hasActiveFilters = filters.startDate || filters.endDate || filters.account_id || filters.category_id || filters.status;
+    const hasActiveFilters = filters.startDate || filters.endDate || filters.account_id || filters.category_id || filters.status || filters.memo_search;
 
     const clearAllFilters = () => {
         onFilterChange({
@@ -311,12 +311,24 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
             endDate: null,
             account_id: null,
             category_id: null,
-            status: null
+            status: null,
+            memo_search: null
         });
     };
 
     return (
         <div className="filter-sidebar-content">
+            <div className="filter-section">
+                <label className="filter-label">Memo Search</label>
+                <input
+                    type="text"
+                    className="filter-input"
+                    placeholder="Search memos..."
+                    value={filters.memo_search || ''}
+                    onChange={(e) => onFilterChange({ memo_search: e.target.value || null })}
+                />
+            </div>
+
             <div className="filter-section">
                 <label className="filter-label">Date Range</label>
                 <div className="filter-field">
@@ -879,6 +891,7 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
                             onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
                             placeholder="Add a note..."
                             className="memo-input"
+                            maxLength={30}
                         />
                     </div>
 
@@ -988,6 +1001,7 @@ function TransferForm({ accounts, onSave, onCancel }) {
                         placeholder="Optional description"
                         value={formData.memo}
                         onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
+                        maxLength={30}
                     />
                 </div>
             </div>

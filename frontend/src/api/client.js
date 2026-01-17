@@ -117,6 +117,7 @@ export async function getTransactions(filters = {}) {
     if (filters.status) params.append('status', filters.status);
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.memo_search) params.append('memo_search', filters.memo_search);
     if (filters.limit) params.append('limit', filters.limit);
     if (filters.offset) params.append('offset', filters.offset);
 
