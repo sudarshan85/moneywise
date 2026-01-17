@@ -467,23 +467,6 @@ export default function Configuration() {
                                             }}
                                         />
                                     </label>
-                                    <button
-                                        className="btn btn-secondary"
-                                        onClick={async () => {
-                                            try {
-                                                const result = await api.manualBackup();
-                                                if (result.success) {
-                                                    alert(`✅ Backup saved!\n\nPath: ${result.path}\n\nStats: ${result.stats.accounts} accounts, ${result.stats.categories} categories, ${result.stats.transactions} transactions`);
-                                                } else {
-                                                    alert('Backup failed: ' + result.error);
-                                                }
-                                            } catch (err) {
-                                                alert('Backup failed: ' + err.message);
-                                            }
-                                        }}
-                                    >
-                                        💾 Backup to Disk
-                                    </button>
                                 </div>
                             </div>
                         </div>
