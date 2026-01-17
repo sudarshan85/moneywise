@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { initializeDatabase } from './db/database.js';
 import { requireAuth } from './middleware/authMiddleware.js';
 import { startBackupScheduler, stopBackupScheduler } from './services/backupScheduler.js';
@@ -14,6 +16,9 @@ import dashboardRouter from './routes/dashboard.js';
 import reportsRouter from './routes/reports.js';
 import authRouter from './routes/auth.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -24,6 +29,11 @@ app.use(cors({
 }));
 app.use(cookieParser());
 app.use(express.json());
+
+// Serve static files in production (built frontend)
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '..', 'public')));
+}
 
 // Health check endpoint (no auth required)
 app.get('/api/health', (req, res) => {
@@ -49,6 +59,13 @@ app.use('/api/transfers', transfersRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/reports', reportsRouter);
+
+// SPA fallback - serve index.html for all non-API routes in production
+if (process.env.NODE_ENV === 'production') {
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+    });
+}
 
 // Initialize database and start server
 initializeDatabase();
