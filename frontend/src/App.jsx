@@ -5,6 +5,8 @@ import Transactions from './pages/Transactions.jsx';
 import Transfers from './pages/Transfers.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Reports from './pages/Reports.jsx';
+import Login from './pages/Login.jsx';
+import { checkAuthStatus } from './api/client';
 
 // Tab configuration - icon can be emoji string or PNG path
 const TABS = [
@@ -36,6 +38,10 @@ function TabIcon({ icon }) {
 }
 
 function App() {
+  // Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = loading
+  const [passwordRequired, setPasswordRequired] = useState(true);
+
   // Get initial tab from URL hash or default to 'dashboard'
   const getTabFromHash = () => {
     const hash = window.location.hash.replace('#', '');
@@ -45,6 +51,25 @@ function App() {
 
   const [activeTab, setActiveTab] = useState(getTabFromHash);
   const [apiStatus, setApiStatus] = useState(null);
+
+  // Check authentication status on mount
+  useEffect(() => {
+    checkAuthStatus()
+      .then(data => {
+        setIsAuthenticated(data.authenticated);
+        setPasswordRequired(data.passwordRequired);
+      })
+      .catch(() => {
+        // If can't reach server, show login (will fail gracefully)
+        setIsAuthenticated(false);
+        setPasswordRequired(true);
+      });
+  }, []);
+
+  // Handle successful login
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
 
   // Update URL hash when tab changes
   const handleTabChange = (tabId) => {
@@ -61,15 +86,30 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Check API health on mount
-  useEffect(() => {
-    fetch('http://localhost:3001/api/health')
-      .then(res => res.json())
-      .then(data => setApiStatus(data))
-      .catch(err => setApiStatus({ status: 'error', message: err.message }));
-  }, []);
-
   const ActivePage = TAB_CONTENT[activeTab];
+
+  // Show loading state while checking auth
+  if (isAuthenticated === null) {
+    return (
+      <div className="login-container" style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)'
+      }}>
+        <div style={{ textAlign: 'center', color: '#fff' }}>
+          <img src="/icons/moneywise_icon.png" alt="MoneyWise" style={{ width: 80, height: 80, marginBottom: 16 }} />
+          <div>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page if not authenticated and password is required
+  if (!isAuthenticated && passwordRequired) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
 
   return (
     <div className="app">
@@ -97,16 +137,6 @@ function App() {
 
       {/* Main Content */}
       <main className="main-content">
-        {/* Show error only if API fails */}
-        {apiStatus && apiStatus.status !== 'ok' && (
-          <div className="card mb-md text-danger">
-            <div className="flex items-center gap-sm">
-              <span>❌</span>
-              <span>API Error: {apiStatus.message}</span>
-            </div>
-          </div>
-        )}
-
         {/* Active Tab Content */}
         <ActivePage />
       </main>
@@ -115,3 +145,4 @@ function App() {
 }
 
 export default App;
+

@@ -119,13 +119,28 @@ router.get('/export', (req, res) => {
     }
 });
 
-// POST /api/backup/manual - Trigger manual backup to disk
+// POST /api/backup/manual - Trigger manual JSON backup to disk
 router.post('/manual', (req, res) => {
     const result = performBackup(true);
     if (result.success) {
         res.json(result);
     } else {
         res.status(500).json(result);
+    }
+});
+
+// POST /api/backup/database - Trigger manual SQLite database backup
+router.post('/database', async (req, res) => {
+    try {
+        const { performDatabaseBackup } = await import('../services/backupScheduler.js');
+        const result = performDatabaseBackup();
+        if (result.success) {
+            res.json(result);
+        } else {
+            res.status(500).json(result);
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

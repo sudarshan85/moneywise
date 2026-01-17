@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { initializeDatabase } from './db/database.js';
+import { requireAuth } from './middleware/authMiddleware.js';
+import { startBackupScheduler, stopBackupScheduler } from './services/backupScheduler.js';
 import accountsRouter from './routes/accounts.js';
 import categoriesRouter from './routes/categories.js';
 import iconsRouter from './routes/icons.js';
@@ -9,15 +12,20 @@ import transfersRouter from './routes/transfers.js';
 import backupRouter from './routes/backup.js';
 import dashboardRouter from './routes/dashboard.js';
 import reportsRouter from './routes/reports.js';
+import authRouter from './routes/auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: true, // Allow all origins in dev, configure for production
+    credentials: true  // Required for cookies
+}));
+app.use(cookieParser());
 app.use(express.json());
 
-// Health check endpoint
+// Health check endpoint (no auth required)
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
@@ -26,7 +34,13 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Routes
+// Auth routes (no auth required for these)
+app.use('/api/auth', authRouter);
+
+// Apply auth middleware to all protected routes
+app.use(requireAuth);
+
+// Protected Routes
 app.use('/api/accounts', accountsRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/icons', iconsRouter);
@@ -37,8 +51,10 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/reports', reportsRouter);
 
 // Initialize database and start server
-// Initialize database and start server
 initializeDatabase();
+
+// Start backup scheduler
+startBackupScheduler();
 
 const server = app.listen(PORT, () => {
     console.log(`💰 MoneyWise API running at http://localhost:${PORT}`);
@@ -49,9 +65,8 @@ async function handleShutdown(signal) {
     console.log(`\n🛑 Received ${signal}. Shutting down...`);
 
     try {
-        // Perform backup before exit
-        const { performBackup } = await import('./routes/backup.js');
-        performBackup();
+        // Stop backup scheduler
+        stopBackupScheduler();
 
         server.close(() => {
             console.log('✅ Server closed');

@@ -68,21 +68,10 @@ echo ""
 # Backup directory
 BACKUP_DIR="/mnt/s/Finance Data"
 
-# Handle Ctrl+C to backup and kill both processes
+# Handle Ctrl+C to kill both processes
 cleanup() {
     echo ""
     echo "🛑 Shutting down MoneyWise..."
-    
-    # Trigger backup via API (if backend is still running)
-    echo "💾 Creating backup..."
-    BACKUP_RESULT=$(curl -s -X POST http://localhost:3001/api/backup/manual 2>/dev/null)
-    
-    if echo "$BACKUP_RESULT" | grep -q '"success":true'; then
-        BACKUP_PATH=$(echo "$BACKUP_RESULT" | grep -o '"path":"[^"]*"' | cut -d'"' -f4)
-        echo "✅ Backup saved: $BACKUP_PATH"
-    else
-        echo "⚠️  Backup may have failed (server might already be stopped)"
-    fi
     
     kill $BACKEND_PID 2>/dev/null
     kill $FRONTEND_PID 2>/dev/null
