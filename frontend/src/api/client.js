@@ -308,3 +308,9 @@ export async function getTopExpenses(start, end, limit = 10) {
     const response = await fetch(`${API_BASE}/reports/top-expenses?${params}`);
     return handleResponse(response);
 }
+
+export async function getDailySpending(start, end) {
+    const params = new URLSearchParams({ start, end });
+    const response = await fetch(`${API_BASE}/reports/daily-spending?${params}`);
+    return handleResponse(response);
+}

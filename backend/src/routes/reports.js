@@ -313,6 +313,47 @@ router.get('/balance-history', (req, res) => {
     }
 });
 
+// GET /api/reports/daily-spending - Spending per day in period
+router.get('/daily-spending', (req, res) => {
+    try {
+        const { start, end } = getDateRange(req);
+
+        // Get daily spending totals (negative transactions only, exclude system categories)
+        const dailyData = db.prepare(`
+            SELECT 
+                t.date,
+                COALESCE(SUM(ABS(t.amount)), 0) as spending
+            FROM transactions t
+            JOIN categories c ON t.category_id = c.id
+            WHERE t.date >= ? AND t.date <= ?
+            AND t.status = 'settled'
+            AND t.amount < 0
+            AND c.is_system = 0
+            GROUP BY t.date
+            ORDER BY t.date
+        `).all(start, end);
+
+        // Fill in missing days with zero spending
+        const result = [];
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const dateStr = d.toISOString().split('T')[0];
+            const match = dailyData.find(row => row.date === dateStr);
+            result.push({
+                date: dateStr,
+                spending: match ? Math.round(match.spending * 100) / 100 : 0
+            });
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching daily spending:', error);
+        res.status(500).json({ error: 'Failed to fetch daily spending' });
+    }
+});
+
 // GET /api/reports/top-expenses - Largest single expenses in period
 router.get('/top-expenses', (req, res) => {
     try {
