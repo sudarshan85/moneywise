@@ -391,7 +391,69 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
 
 // ==================== TRANSACTIONS TABLE ====================
 
-function TransactionsTable({ transactions, accounts, categories, onEdit, onDelete, onToggleStatus, compact }) {
+function TransactionsTable({ transactions, accounts, categories, onEdit, onDelete, onToggleStatus, compact, onSelectionChange }) {
+    // Selection state
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [lastSelectedId, setLastSelectedId] = useState(null);
+
+    // Separate pending and settled (in display order)
+    const pendingTransactions = transactions
+        .filter(t => t.status === 'pending')
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    const settledTransactions = transactions
+        .filter(t => t.status === 'settled')
+        .sort((a, b) => {
+            const dateCompare = new Date(b.date) - new Date(a.date);
+            if (dateCompare !== 0) return dateCompare;
+            return new Date(b.created_at) - new Date(a.created_at);
+        });
+
+    // Build ordered list of selectable IDs in DISPLAY order (for correct range selection)
+    const orderedSelectableIds = [
+        ...pendingTransactions.filter(t => t.is_reconciliation_point !== 1).map(t => t.id),
+        ...settledTransactions.filter(t => t.is_reconciliation_point !== 1).map(t => t.id)
+    ];
+
+    // Toggle single selection (called on row click)
+    const handleToggleSelect = (id, event) => {
+        const newSelected = new Set(selectedIds);
+
+        // Shift+Click for range selection
+        if (event?.shiftKey && lastSelectedId !== null) {
+            const startIdx = orderedSelectableIds.indexOf(lastSelectedId);
+            const endIdx = orderedSelectableIds.indexOf(id);
+            if (startIdx !== -1 && endIdx !== -1) {
+                const [from, to] = startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+                for (let i = from; i <= to; i++) {
+                    newSelected.add(orderedSelectableIds[i]);
+                }
+            }
+        } else {
+            // Regular toggle
+            if (newSelected.has(id)) {
+                newSelected.delete(id);
+            } else {
+                newSelected.add(id);
+            }
+        }
+
+        setSelectedIds(newSelected);
+        setLastSelectedId(id);
+    };
+
+    // Clear selection
+    const handleClearSelection = () => {
+        setSelectedIds(new Set());
+        setLastSelectedId(null);
+    };
+
+    // Calculate aggregation values
+    const selectedTransactions = transactions.filter(t => selectedIds.has(t.id));
+    const sum = selectedTransactions.reduce((acc, t) => acc + t.amount, 0);
+    const count = selectedTransactions.length;
+    const avg = count > 0 ? sum / count : 0;
+
     if (transactions.length === 0) {
         return compact ? null : (
             <div className="transactions-empty">
@@ -400,73 +462,74 @@ function TransactionsTable({ transactions, accounts, categories, onEdit, onDelet
         );
     }
 
-    // Separate pending and settled
-    const pendingTransactions = transactions
-        .filter(t => t.status === 'pending')
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); // Newest first
-
-    const settledTransactions = transactions
-        .filter(t => t.status === 'settled')
-        .sort((a, b) => {
-            // Sort by date descending (newest first)
-            const dateCompare = new Date(b.date) - new Date(a.date);
-            if (dateCompare !== 0) return dateCompare;
-            // If same date, sort by created_at descending
-            return new Date(b.created_at) - new Date(a.created_at);
-        });
-
     return (
-        <table className="transactions-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Account</th>
-                    <th>Category</th>
-                    <th>Memo</th>
-                    <th>Status</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {/* Pending transactions first */}
-                {pendingTransactions.map(transaction => (
-                    <TransactionRow
-                        key={transaction.id}
-                        transaction={transaction}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
-                        onToggleStatus={onToggleStatus}
-                    />
-                ))}
-                {/* Divider between pending and settled */}
-                {pendingTransactions.length > 0 && settledTransactions.length > 0 && (
-                    <tr className="section-divider">
-                        <td colSpan="7">
-                            <div className="divider-line">
-                                <span className="divider-label">Settled Transactions</span>
-                            </div>
-                        </td>
+        <>
+            <table className="transactions-table selectable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Account</th>
+                        <th>Category</th>
+                        <th>Memo</th>
+                        <th>Status</th>
+                        <th></th>
                     </tr>
-                )}
-                {/* Settled transactions */}
-                {settledTransactions.map(transaction => (
-                    <TransactionRow
-                        key={transaction.id}
-                        transaction={transaction}
-                        onEdit={onEdit}
-                        onDelete={onDelete}
-                        onToggleStatus={onToggleStatus}
-                    />
-                ))}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {/* Pending transactions first */}
+                    {pendingTransactions.map(transaction => (
+                        <TransactionRow
+                            key={transaction.id}
+                            transaction={transaction}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            onToggleStatus={onToggleStatus}
+                            isSelected={selectedIds.has(transaction.id)}
+                            onToggleSelect={handleToggleSelect}
+                        />
+                    ))}
+                    {/* Divider between pending and settled */}
+                    {pendingTransactions.length > 0 && settledTransactions.length > 0 && (
+                        <tr className="section-divider">
+                            <td colSpan="7">
+                                <div className="divider-line">
+                                    <span className="divider-label">Settled Transactions</span>
+                                </div>
+                            </td>
+                        </tr>
+                    )}
+                    {/* Settled transactions */}
+                    {settledTransactions.map(transaction => (
+                        <TransactionRow
+                            key={transaction.id}
+                            transaction={transaction}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            onToggleStatus={onToggleStatus}
+                            isSelected={selectedIds.has(transaction.id)}
+                            onToggleSelect={handleToggleSelect}
+                        />
+                    ))}
+                </tbody>
+            </table>
+
+            {/* Selection Summary Bar */}
+            {count > 0 && (
+                <SelectionSummaryBar
+                    count={count}
+                    sum={sum}
+                    avg={avg}
+                    onClear={handleClearSelection}
+                />
+            )}
+        </>
     );
 }
 
 // ==================== TRANSACTION ROW ====================
 
-function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus }) {
+function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus, isSelected, onToggleSelect }) {
     const isPositive = transaction.amount >= 0;
     const isTransfer = transaction.type === 'account_transfer';
     const isPending = transaction.status === 'pending';
@@ -475,8 +538,16 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus }) {
     let rowClass = '';
     if (isPending) rowClass += ' is-pending';
     if (isReconciliation) rowClass += ' is-reconciliation';
+    if (isSelected) rowClass += ' selected';
 
-    // For reconciliation rows, display differently
+    // Handle row click for selection
+    const handleRowClick = (e) => {
+        // Don't select if clicking on buttons
+        if (e.target.closest('button')) return;
+        onToggleSelect(transaction.id, e);
+    };
+
+    // For reconciliation rows, display differently (not selectable)
     if (isReconciliation) {
         return (
             <tr className={rowClass}>
@@ -507,7 +578,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus }) {
     }
 
     return (
-        <tr className={rowClass}>
+        <tr className={rowClass} onClick={handleRowClick}>
             <td>
                 {formatDate(transaction.date)}
             </td>
@@ -542,7 +613,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus }) {
             <td>
                 <button
                     className={`status-toggle ${transaction.status}`}
-                    onClick={() => onToggleStatus(transaction)}
+                    onClick={(e) => { e.stopPropagation(); onToggleStatus(transaction); }}
                     title={isPending ? 'Click to settle' : 'Click to mark pending'}
                 >
                     {isPending ? '🅿️' : '✅'}
@@ -552,14 +623,14 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus }) {
                 <div className="action-buttons">
                     <button
                         className="action-btn"
-                        onClick={() => onEdit(transaction)}
+                        onClick={(e) => { e.stopPropagation(); onEdit(transaction); }}
                         title="Edit"
                     >
                         ✏️
                     </button>
                     <button
                         className="action-btn delete"
-                        onClick={() => onDelete(transaction)}
+                        onClick={(e) => { e.stopPropagation(); onDelete(transaction); }}
                         title="Delete"
                     >
                         🗑️
@@ -567,6 +638,47 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus }) {
                 </div>
             </td>
         </tr>
+    );
+}
+
+// ==================== SELECTION SUMMARY BAR ====================
+
+function SelectionSummaryBar({ count, sum, avg, onClear }) {
+    const formatAmount = (amount) => {
+        const formatted = Math.abs(amount).toLocaleString('en-US', {
+            style: 'currency',
+            currency: 'USD',
+        });
+        return amount >= 0 ? `+${formatted}` : `-${formatted}`;
+    };
+
+    const sumIsPositive = sum >= 0;
+    const avgIsPositive = avg >= 0;
+
+    return (
+        <div className="selection-summary-bar">
+            <div className="summary-stats">
+                <div className="summary-stat">
+                    <span className="stat-label">Selected</span>
+                    <span className="stat-value">{count}</span>
+                </div>
+                <div className="summary-stat">
+                    <span className="stat-label">Sum</span>
+                    <span className={`stat-value ${sumIsPositive ? 'positive' : 'negative'}`}>
+                        {formatAmount(sum)}
+                    </span>
+                </div>
+                <div className="summary-stat">
+                    <span className="stat-label">Avg</span>
+                    <span className={`stat-value ${avgIsPositive ? 'positive' : 'negative'}`}>
+                        {formatAmount(avg)}
+                    </span>
+                </div>
+            </div>
+            <button className="summary-close" onClick={onClear} title="Clear selection">
+                ✕
+            </button>
+        </div>
     );
 }
 

@@ -327,6 +327,12 @@
     vertical-align: middle;
 }
 
+/* Add extra left padding to first column for selection indicator space */
+.transactions-table th:first-child,
+.transactions-table td:first-child {
+    padding-left: 1.25rem;
+}
+
 .transactions-table tr:hover {
     background: rgba(99, 102, 241, 0.05);
 }
@@ -335,10 +341,150 @@
     border-bottom: none;
 }
 
+/* ==================== SELECTABLE ROWS ==================== */
+.transactions-table.selectable tbody tr {
+    cursor: pointer;
+    transition: background 0.15s ease;
+    user-select: none;
+    /* Prevent text selection on Shift+Click */
+}
+
+.transactions-table.selectable tbody tr.section-divider {
+    cursor: default;
+}
+
+.transactions-table.selectable tbody tr.is-reconciliation {
+    cursor: default;
+}
+
+/* ==================== SELECTED ROW ==================== */
+.transactions-table tr.selected {
+    background: rgba(20, 184, 166, 0.08) !important;
+    position: relative;
+}
+
+.transactions-table tr.selected td:first-child {
+    position: relative;
+}
+
+.transactions-table tr.selected td:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 4px;
+    background: #14b8a6;
+    border-radius: 0 4px 4px 0;
+}
+
+.transactions-table tr.selected:hover {
+    background: rgba(20, 184, 166, 0.12) !important;
+}
+
+/* ==================== SELECTION SUMMARY BAR ==================== */
+.selection-summary-bar {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1000;
+    animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.summary-stats {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.summary-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.stat-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.stat-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-value.positive {
+    color: #4ade80;
+}
+
+.stat-value.negative {
+    color: #f87171;
+}
+
+.summary-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.15s ease;
+}
+
+.summary-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
 /* Reconciliation row indicator */
 .transactions-table tr.is-reconciliation {
     background: linear-gradient(90deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.03));
-    border-left: 3px solid #8B5CF6;
+    position: relative;
+}
+
+.transactions-table tr.is-reconciliation td:first-child {
+    position: relative;
+}
+
+.transactions-table tr.is-reconciliation td:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 4px;
+    background: #8B5CF6;
+    border-radius: 0 4px 4px 0;
 }
 
 .transactions-table tr.is-reconciliation:hover {
@@ -359,8 +505,9 @@
     border-radius: 999px;
     color: #7C3AED;
     font-weight: 600;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
 }
 
 /* Pending row styling */
