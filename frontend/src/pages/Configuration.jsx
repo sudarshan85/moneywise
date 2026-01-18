@@ -229,7 +229,7 @@ export default function Configuration() {
                             checked={showHidden}
                             onChange={toggleShowHidden}
                         />
-                        <span>Show hidden items</span>
+                        <span>Show archived items</span>
                     </label>
                 </div>
             </div>
@@ -630,7 +630,7 @@ function AccountCard({ account, onEdit, onToggleHidden, onDelete }) {
 
     return (
         <div
-            className={`item-card clickable ${account.is_hidden ? 'hidden-item' : ''}`}
+            className={`item-card clickable ${account.is_hidden ? 'archived-item' : ''}`}
             onClick={onEdit}
         >
             <div className="item-icon">
@@ -641,11 +641,21 @@ function AccountCard({ account, onEdit, onToggleHidden, onDelete }) {
                 />
             </div>
             <div className="item-info">
-                <h3>{account.name}</h3>
+                <h3>
+                    {account.name}
+                    {account.is_hidden && <span className="archived-badge">Archived</span>}
+                </h3>
                 <span className="item-type">
                     {ACCOUNT_TYPES[account.type]?.label || account.type}
                 </span>
             </div>
+            <button
+                className={`archive-toggle ${account.is_hidden ? 'is-archived' : ''}`}
+                onClick={(e) => { e.stopPropagation(); onToggleHidden(); }}
+                title={account.is_hidden ? 'Unarchive account' : 'Archive account'}
+            >
+                📦
+            </button>
             <div className="item-menu" ref={menuRef}>
                 <button
                     className="menu-trigger"
@@ -657,8 +667,7 @@ function AccountCard({ account, onEdit, onToggleHidden, onDelete }) {
                 {menuOpen && (
                     <div className="menu-dropdown">
                         <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleHidden(); }}>
-                            <img src="/icons/hide.png" alt="" />
-                            {account.is_hidden ? 'Show' : 'Hide'}
+                            📦 {account.is_hidden ? 'Unarchive' : 'Archive'}
                         </button>
                         <button className="danger" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}>
                             🗑️ Delete
@@ -688,20 +697,30 @@ function CategoryCard({ category, onEdit, onToggleHidden, onDelete, onShowHistor
 
     return (
         <div
-            className={`item-card clickable ${category.is_hidden ? 'hidden-item' : ''}`}
+            className={`item-card clickable ${category.is_hidden ? 'archived-item' : ''}`}
             onClick={onEdit}
         >
             <div className="item-icon">
                 <IconDisplay icon={category.icon} fallback="/icons/cat.png" />
             </div>
             <div className="item-info">
-                <h3>{category.name}</h3>
+                <h3>
+                    {category.name}
+                    {category.is_hidden && <span className="archived-badge">Archived</span>}
+                </h3>
                 {category.monthly_amount > 0 && (
                     <span className="monthly-amount">
                         ${category.monthly_amount.toFixed(2)}/mo
                     </span>
                 )}
             </div>
+            <button
+                className={`archive-toggle ${category.is_hidden ? 'is-archived' : ''}`}
+                onClick={(e) => { e.stopPropagation(); onToggleHidden(); }}
+                title={category.is_hidden ? 'Unarchive category' : 'Archive category'}
+            >
+                📦
+            </button>
             <div className="item-menu" ref={menuRef}>
                 <button
                     className="menu-trigger"
@@ -713,8 +732,7 @@ function CategoryCard({ category, onEdit, onToggleHidden, onDelete, onShowHistor
                 {menuOpen && (
                     <div className="menu-dropdown">
                         <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleHidden(); }}>
-                            <img src="/icons/hide.png" alt="" />
-                            {category.is_hidden ? 'Show' : 'Hide'}
+                            📦 {category.is_hidden ? 'Unarchive' : 'Archive'}
                         </button>
                         <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onShowHistory(); }}>
                             📜 Rename History
