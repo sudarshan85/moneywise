@@ -876,7 +876,7 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
                                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                             >
                                 <option value="">No Category</option>
-                                {categories.filter(cat => !cat.is_hidden && !cat.is_system).map(cat => (
+                                {categories.filter(cat => !cat.is_hidden).map(cat => (
                                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                                 ))}
                             </select>

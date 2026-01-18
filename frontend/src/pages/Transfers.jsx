@@ -398,13 +398,11 @@ function TransferForm({ categories, onSave, onCancel, transfer }) {
         });
     };
 
-    // From Category: include "Available to Budget" system category
-    const fromCategoryOptions = categories.filter(c =>
-        (!c.is_system && !c.is_hidden) || c.name === 'Available to Budget'
-    );
+    // From Category: all non-archived categories (including system)
+    const fromCategoryOptions = categories.filter(c => !c.is_hidden);
 
-    // To Category: only user categories (not system)
-    const toCategoryOptions = categories.filter(c => !c.is_system && !c.is_hidden);
+    // To Category: all non-archived categories (including system)
+    const toCategoryOptions = categories.filter(c => !c.is_hidden);
 
     return (
         <form className="transfer-form" onSubmit={handleSubmit}>
