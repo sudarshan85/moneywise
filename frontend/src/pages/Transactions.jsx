@@ -31,6 +31,32 @@ function getTodayDate() {
     return new Date().toISOString().split('T')[0];
 }
 
+// Determine which date preset is currently active
+function getDatePreset(filters) {
+    if (!filters.startDate && !filters.endDate) return 'none';
+
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const last3MonthsStart = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().split('T')[0];
+    const ytdStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+    const today = now.toISOString().split('T')[0];
+
+    if (filters.startDate === thisMonthStart && filters.endDate === thisMonthEnd) {
+        return 'this-month';
+    }
+    if (filters.startDate === last3MonthsStart && filters.endDate === thisMonthEnd) {
+        return 'last-3-months';
+    }
+    if (filters.startDate === ytdStart && filters.endDate === today) {
+        return 'ytd';
+    }
+    if (filters.startDate || filters.endDate) {
+        return 'custom';
+    }
+    return 'none';
+}
+
 // ==================== MAIN COMPONENT ====================
 
 export default function Transactions() {
@@ -356,24 +382,77 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
 
             <div className="filter-section">
                 <label className="filter-label">Date Range</label>
-                <div className="filter-field">
-                    <span className="filter-sublabel">From</span>
-                    <input
-                        type="date"
-                        className="filter-input"
-                        value={filters.startDate || ''}
-                        onChange={(e) => onFilterChange({ startDate: e.target.value || null })}
-                    />
+                <div className="date-preset-buttons">
+                    <button
+                        type="button"
+                        className={`date-preset-btn ${getDatePreset(filters) === 'this-month' ? 'active' : ''}`}
+                        onClick={() => {
+                            const now = new Date();
+                            const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                            const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+                            onFilterChange({ startDate, endDate });
+                        }}
+                    >
+                        This Month
+                    </button>
+                    <button
+                        type="button"
+                        className={`date-preset-btn ${getDatePreset(filters) === 'last-3-months' ? 'active' : ''}`}
+                        onClick={() => {
+                            const now = new Date();
+                            const startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().split('T')[0];
+                            const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+                            onFilterChange({ startDate, endDate });
+                        }}
+                    >
+                        Last 3 Months
+                    </button>
+                    <button
+                        type="button"
+                        className={`date-preset-btn ${getDatePreset(filters) === 'ytd' ? 'active' : ''}`}
+                        onClick={() => {
+                            const now = new Date();
+                            const startDate = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+                            const endDate = now.toISOString().split('T')[0];
+                            onFilterChange({ startDate, endDate });
+                        }}
+                    >
+                        Year to Date
+                    </button>
+                    <button
+                        type="button"
+                        className={`date-preset-btn ${getDatePreset(filters) === 'custom' ? 'active' : ''}`}
+                        onClick={() => {
+                            // Clear dates to enable custom mode
+                            onFilterChange({ startDate: null, endDate: null });
+                        }}
+                    >
+                        Custom
+                    </button>
                 </div>
-                <div className="filter-field">
-                    <span className="filter-sublabel">To</span>
-                    <input
-                        type="date"
-                        className="filter-input"
-                        value={filters.endDate || ''}
-                        onChange={(e) => onFilterChange({ endDate: e.target.value || null })}
-                    />
-                </div>
+                {/* Show custom date pickers when in custom mode or any date is set that doesn't match presets */}
+                {(getDatePreset(filters) === 'custom' || getDatePreset(filters) === 'none') && (
+                    <div className="custom-date-pickers">
+                        <div className="filter-field">
+                            <span className="filter-sublabel">From</span>
+                            <input
+                                type="date"
+                                className="filter-input"
+                                value={filters.startDate || ''}
+                                onChange={(e) => onFilterChange({ startDate: e.target.value || null })}
+                            />
+                        </div>
+                        <div className="filter-field">
+                            <span className="filter-sublabel">To</span>
+                            <input
+                                type="date"
+                                className="filter-input"
+                                value={filters.endDate || ''}
+                                onChange={(e) => onFilterChange({ endDate: e.target.value || null })}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="filter-section">

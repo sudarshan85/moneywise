@@ -321,6 +321,44 @@
     justify-content: center;
 }
 
+/* ==================== DATE PRESET BUTTONS ==================== */
+.date-preset-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.date-preset-btn {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 6px;
+    background: var(--color-bg-primary, #fff);
+    color: var(--color-text-secondary, #64748b);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.date-preset-btn:hover {
+    border-color: var(--color-primary, #6366f1);
+    color: var(--color-primary, #6366f1);
+}
+
+.date-preset-btn.active {
+    background: var(--color-primary, #6366f1);
+    border-color: var(--color-primary, #6366f1);
+    color: #fff;
+}
+
+.custom-date-pickers {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 /* ==================== RECONCILIATION TOGGLE ==================== */
 .reconciliation-toggle-section {
     background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(168, 139, 250, 0.05));
