@@ -1,13 +1,10 @@
 import express from 'express';
 import crypto from 'crypto';
+import db from '../db/database.js';
 
 const router = express.Router();
 
-// Session storage (in-memory for simplicity)
-// In production with multiple instances, use Redis or similar
-const sessions = new Map();
-
-// Session duration: 30 days
+// Session duration: 30 days (in milliseconds)
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
@@ -38,6 +35,53 @@ function verifyPassword(password) {
 }
 
 /**
+ * Create a session in the database
+ */
+function createSession(token) {
+    const now = Date.now();
+    const expiresAt = now + SESSION_DURATION_MS;
+
+    db.prepare(`
+        INSERT INTO sessions (token, created_at, expires_at)
+        VALUES (?, ?, ?)
+    `).run(token, now, expiresAt);
+}
+
+/**
+ * Get session from database
+ */
+function getSession(token) {
+    return db.prepare(`
+        SELECT * FROM sessions WHERE token = ?
+    `).get(token);
+}
+
+/**
+ * Delete session from database
+ */
+function deleteSession(token) {
+    db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
+}
+
+/**
+ * Clean up expired sessions
+ */
+function cleanupExpiredSessions() {
+    try {
+        const now = Date.now();
+        db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(now);
+    } catch (error) {
+        // Table may not exist yet during first startup
+        if (!error.message.includes('no such table')) {
+            console.error('Session cleanup error:', error.message);
+        }
+    }
+}
+
+// Clean up expired sessions periodically (not on startup - table may not exist yet)
+setInterval(cleanupExpiredSessions, 60 * 60 * 1000); // Every hour
+
+/**
  * POST /api/auth/login
  * Authenticate with password
  */
@@ -51,7 +95,7 @@ router.post('/login', (req, res) => {
     if (!isPasswordConfigured()) {
         // No password set - allow access (for local dev without password)
         const token = generateSessionToken();
-        sessions.set(token, { createdAt: Date.now() });
+        createSession(token);
 
         res.cookie('moneywise_session', token, {
             httpOnly: true,
@@ -69,7 +113,7 @@ router.post('/login', (req, res) => {
 
     // Password correct - create session
     const token = generateSessionToken();
-    sessions.set(token, { createdAt: Date.now() });
+    createSession(token);
 
     res.cookie('moneywise_session', token, {
         httpOnly: true,
@@ -89,7 +133,7 @@ router.post('/logout', (req, res) => {
     const token = req.cookies?.moneywise_session;
 
     if (token) {
-        sessions.delete(token);
+        deleteSession(token);
     }
 
     res.clearCookie('moneywise_session');
@@ -112,21 +156,21 @@ router.get('/status', (req, res) => {
         return res.json({ authenticated: false, passwordRequired: true });
     }
 
-    const session = sessions.get(token);
+    const session = getSession(token);
 
     if (!session) {
         return res.json({ authenticated: false, passwordRequired: true });
     }
 
     // Check if session has expired
-    if (Date.now() - session.createdAt > SESSION_DURATION_MS) {
-        sessions.delete(token);
+    if (Date.now() > session.expires_at) {
+        deleteSession(token);
         return res.json({ authenticated: false, passwordRequired: true });
     }
 
     res.json({ authenticated: true, passwordRequired: true });
 });
 
-// Export sessions map for middleware use
-export { sessions, SESSION_DURATION_MS };
+// Export for middleware use
+export { getSession, SESSION_DURATION_MS };
 export default router;

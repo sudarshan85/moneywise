@@ -93,3 +93,12 @@ CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
 CREATE INDEX IF NOT EXISTS idx_category_transfers_date ON category_transfers(date);
 CREATE INDEX IF NOT EXISTS idx_category_monthly_balances ON category_monthly_balances(category_id, year_month);
+
+-- Sessions (for persistent authentication)
+CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);

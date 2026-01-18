@@ -1,4 +1,4 @@
-import { sessions, SESSION_DURATION_MS } from '../routes/auth.js';
+import { getSession, SESSION_DURATION_MS } from '../routes/auth.js';
 
 /**
  * Middleware to protect API routes requiring authentication.
@@ -22,15 +22,14 @@ export function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const session = sessions.get(token);
+    const session = getSession(token);
 
     if (!session) {
         return res.status(401).json({ error: 'Invalid session' });
     }
 
     // Check if session has expired
-    if (Date.now() - session.createdAt > SESSION_DURATION_MS) {
-        sessions.delete(token);
+    if (Date.now() > session.expires_at) {
         return res.status(401).json({ error: 'Session expired' });
     }
 
