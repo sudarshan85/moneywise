@@ -14,6 +14,7 @@ router.get('/', (req, res) => {
             startDate,
             endDate,
             memo_search,
+            since_reconciliation,
             limit = 100,
             offset = 0
         } = req.query;
@@ -63,6 +64,22 @@ router.get('/', (req, res) => {
             params.push(`%${memo_search.toLowerCase()}%`);
         }
 
+        // Filter to only show transactions since the last reconciliation point
+        if (since_reconciliation === 'true') {
+            // Find the most recent reconciliation point date
+            const lastReconciliation = db.prepare(`
+                SELECT date FROM transactions 
+                WHERE is_reconciliation_point = 1 AND date IS NOT NULL
+                ORDER BY date DESC LIMIT 1
+            `).get();
+
+            if (lastReconciliation) {
+                // Show transactions after reconciliation date, OR pending (no date)
+                query += ' AND (t.date > ? OR t.date IS NULL)';
+                params.push(lastReconciliation.date);
+            }
+        }
+
         // Order: pending transactions first (NULL dates), then by date descending
         query += ' ORDER BY CASE WHEN t.date IS NULL THEN 0 ELSE 1 END, t.date DESC, t.created_at DESC';
         query += ' LIMIT ? OFFSET ?';
@@ -97,6 +114,20 @@ router.get('/', (req, res) => {
         if (memo_search) {
             countQuery += ' AND LOWER(t.memo) LIKE ?';
             countParams.push(`%${memo_search.toLowerCase()}%`);
+        }
+
+        // Apply same since_reconciliation filter to count
+        if (since_reconciliation === 'true') {
+            const lastReconciliation = db.prepare(`
+                SELECT date FROM transactions 
+                WHERE is_reconciliation_point = 1 AND date IS NOT NULL
+                ORDER BY date DESC LIMIT 1
+            `).get();
+
+            if (lastReconciliation) {
+                countQuery += ' AND (t.date > ? OR t.date IS NULL)';
+                countParams.push(lastReconciliation.date);
+            }
         }
 
         const { total } = db.prepare(countQuery).get(...countParams);

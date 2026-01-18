@@ -17,6 +17,7 @@ export const useTransactionStore = create((set, get) => ({
         startDate: null,
         endDate: null,
         memo_search: null, // lowercase partial match search on memo
+        since_reconciliation: true, // default to showing only since last reconciliation
         limit: 50,
         offset: 0,
     },
@@ -62,6 +63,7 @@ export const useTransactionStore = create((set, get) => ({
                 startDate: null,
                 endDate: null,
                 memo_search: null,
+                since_reconciliation: true,
                 limit: 50,
                 offset: 0,
             }

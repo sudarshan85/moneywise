@@ -80,7 +80,7 @@ export default function Transactions() {
         if (filters.offset === 0) {
             fetchTransactions();
         }
-    }, [filters.account_id, filters.category_id, filters.status, filters.startDate, filters.endDate, filters.memo_search, filters.limit]);
+    }, [filters.account_id, filters.category_id, filters.status, filters.startDate, filters.endDate, filters.memo_search, filters.since_reconciliation, filters.limit]);
 
     // Separate pending and settled transactions
     const pendingTransactions = transactions.filter(t => t.status === 'pending');
@@ -181,6 +181,14 @@ export default function Transactions() {
                             >
                                 🔍 Filter
                             </button>
+                            <label className="reconciliation-header-toggle">
+                                <input
+                                    type="checkbox"
+                                    checked={filters.since_reconciliation || false}
+                                    onChange={(e) => setFilters({ since_reconciliation: e.target.checked })}
+                                />
+                                <span>⚖️ Since Last Reconciliation</span>
+                            </label>
                             <div className="page-size-control">
                                 <label>Show:</label>
                                 <input
@@ -218,9 +226,26 @@ export default function Transactions() {
                             </div>
                         ) : settledTransactions.length === 0 && pendingTransactions.length === 0 ? (
                             <div className="transactions-empty">
-                                <div className="emoji">💸</div>
-                                <p>No transactions yet</p>
-                                <p>Add your first transaction to get started!</p>
+                                {filters.since_reconciliation ? (
+                                    <>
+                                        <div className="emoji">✨</div>
+                                        <p>All caught up!</p>
+                                        <p className="hint">No transactions since your last reconciliation point.</p>
+                                        <button
+                                            className="btn btn-secondary btn-sm"
+                                            style={{ marginTop: '1rem' }}
+                                            onClick={() => setFilters({ since_reconciliation: false })}
+                                        >
+                                            Show All Transactions
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="emoji">💸</div>
+                                        <p>No transactions yet</p>
+                                        <p>Add your first transaction to get started!</p>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <TransactionsTable

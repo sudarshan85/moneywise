@@ -134,6 +134,34 @@
     gap: 1rem;
 }
 
+/* Reconciliation toggle in header */
+.reconciliation-header-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(168, 139, 250, 0.08));
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #7c3aed;
+    transition: all 0.2s ease;
+}
+
+.reconciliation-header-toggle:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 139, 250, 0.12));
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.reconciliation-header-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #8b5cf6;
+    cursor: pointer;
+}
+
 .page-size-control {
     display: flex;
     align-items: center;
@@ -291,6 +319,49 @@
     margin-top: 1rem;
     width: 100%;
     justify-content: center;
+}
+
+/* ==================== RECONCILIATION TOGGLE ==================== */
+.reconciliation-toggle-section {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(168, 139, 250, 0.05));
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.reconciliation-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--color-text-primary, #1e293b);
+}
+
+.reconciliation-toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #8b5cf6;
+    cursor: pointer;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.toggle-icon {
+    font-size: 1.1rem;
+}
+
+.reconciliation-toggle-section .filter-hint {
+    margin-top: 0.5rem;
+    padding-left: 2rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted, #64748b);
+    font-style: italic;
 }
 
 /* ==================== TRANSACTIONS TABLE ==================== */
