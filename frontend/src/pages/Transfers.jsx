@@ -58,8 +58,7 @@ export default function Transfers() {
     // Load Available to Budget
     const loadAvailableToBudget = async () => {
         try {
-            const response = await fetch('http://localhost:3001/api/accounts/moneypot');
-            const data = await response.json();
+            const data = await api.getMoneyPotBalance();
             setAvailableToBudget(data.balance);
         } catch (err) {
             console.error('Failed to fetch Available to Budget:', err);
