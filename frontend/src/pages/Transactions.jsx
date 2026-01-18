@@ -810,7 +810,7 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
                                     required
                                 >
                                     <option value="">Select Account</option>
-                                    {accounts.map(acc => (
+                                    {accounts.filter(acc => !acc.is_hidden).map(acc => (
                                         <option key={acc.id} value={acc.id}>{acc.name}</option>
                                     ))}
                                 </select>
@@ -828,7 +828,7 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
                                 required
                             >
                                 <option value="">Select Account</option>
-                                {accounts.map(acc => (
+                                {accounts.filter(acc => !acc.is_hidden).map(acc => (
                                     <option key={acc.id} value={acc.id}>{acc.name}</option>
                                 ))}
                             </select>
@@ -876,7 +876,7 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
                                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                             >
                                 <option value="">No Category</option>
-                                {categories.map(cat => (
+                                {categories.filter(cat => !cat.is_hidden && !cat.is_system).map(cat => (
                                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                                 ))}
                             </select>
