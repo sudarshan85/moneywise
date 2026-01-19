@@ -107,22 +107,26 @@ router.get('/', (req, res) => {
         const monthlyIncome = parseFloat(incomeSetting?.value) || 0;
 
         // 2. Get all user categories with transaction count for ordering
-        // Order: budgeted categories first (by transaction count desc), then non-budgeted
+        // Order: budgeted categories first (by spent amount desc), then non-budgeted
         const categories = db.prepare(`
             SELECT c.id, c.name, c.icon, c.monthly_amount,
                    COALESCE(cmb.carried_forward, 0) as carried_forward,
                    (SELECT COUNT(*) FROM transactions t 
                     WHERE t.category_id = c.id 
-                    AND t.date >= ? AND t.date <= ?) as tx_count
+                    AND t.date >= ? AND t.date <= ?) as tx_count,
+                   (SELECT COALESCE(SUM(ABS(amount)), 0) FROM transactions t 
+                    WHERE t.category_id = c.id 
+                    AND t.date >= ? AND t.date <= ?
+                    AND t.amount < 0) as spent_amount
             FROM categories c
             LEFT JOIN category_monthly_balances cmb 
                 ON c.id = cmb.category_id AND cmb.year_month = ?
             WHERE c.is_system = 0 AND c.is_hidden = 0
             ORDER BY 
                 CASE WHEN c.monthly_amount > 0 THEN 0 ELSE 1 END,
-                tx_count DESC,
+                spent_amount DESC,
                 c.name
-        `).all(startDate, endDate, currentMonth);
+        `).all(startDate, endDate, startDate, endDate, currentMonth);
 
         // Calculate activity and available for each category
         const categoryData = categories.map(cat => {
@@ -332,6 +336,18 @@ router.get('/category/:id', (req, res) => {
         // Get last reconciliation date for any account (placeholder - we'll update when reconciliation is implemented)
         const lastReconciled = null; // TODO: Implement when reconciliation is added
 
+        // Get recent transactions for this category (for expanded card view)
+        const recentTransactions = db.prepare(`
+            SELECT id, date, amount, memo, status, account_id
+            FROM transactions
+            WHERE category_id = ?
+            ORDER BY 
+                CASE WHEN status = 'pending' THEN 0 ELSE 1 END,
+                date DESC, 
+                created_at DESC
+            LIMIT 5
+        `).all(categoryId);
+
         res.json({
             id: category.id,
             name: category.name,
@@ -343,7 +359,8 @@ router.get('/category/:id', (req, res) => {
             spentLastMonth: Math.round(spentLastMonth.total * 100) / 100,
             transactionCount: txStats.count,
             avgPerTransaction: Math.round(txStats.avg * 100) / 100,
-            lastReconciled
+            lastReconciled,
+            recentTransactions
         });
     } catch (error) {
         console.error('Error fetching category details:', error);
