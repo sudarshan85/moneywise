@@ -1,7 +1,0 @@
-The Trend Reports tab will allow you to see activity trends in your Categories.
-
-Option Selectors [1]: These selectors will let you drill down into a specific time period and categories for review.
-
-Granular Selectors [2]: These additional selectors will help you narrow your focus by isolating one category and month for review.
-
-Trend Reports Table [3]: This table will show the transaction and activity data for the selected category and month.

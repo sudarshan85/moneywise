@@ -257,6 +257,18 @@
     flex-shrink: 0;
 }
 
+.account-balance.positive {
+    color: #16A34A;
+}
+
+.account-balance.negative {
+    color: #DC2626;
+}
+
+.account-balance.zero {
+    color: var(--text-primary);
+}
+
 .no-accounts {
     font-size: var(--font-size-sm);
     color: var(--text-muted);

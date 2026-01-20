@@ -1,7 +1,0 @@
-The Category Reports tab will break down all of your categories into various facets for your review. The graph near the top of the page will show the selected Category’s Budgeted and Activity amounts over the selected time period.
-
-Option Selectors [1]: These selectors will let you drill down into a specific time period and category for review.
-
-Category Reports Table [2]: This table will contain your transactions and activity for the selected category and month.
-
-Facet Selector [3]: This selector will let you explore this history of your Categories by seeing the Ending Balance, Budgeted amounts, and other data.

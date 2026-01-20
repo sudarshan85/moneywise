@@ -107,7 +107,7 @@ router.get('/', (req, res) => {
         const monthlyIncome = parseFloat(incomeSetting?.value) || 0;
 
         // 2. Get all user categories with transaction count for ordering
-        // Order: budgeted categories first (by spent amount desc), then non-budgeted
+        // Order: tiered by transaction count (>=3, 1-2, 0) then by spent amount desc
         const categories = db.prepare(`
             SELECT c.id, c.name, c.icon, c.monthly_amount,
                    COALESCE(cmb.carried_forward, 0) as carried_forward,
@@ -124,9 +124,14 @@ router.get('/', (req, res) => {
             WHERE c.is_system = 0 AND c.is_hidden = 0
             ORDER BY 
                 CASE WHEN c.monthly_amount > 0 THEN 0 ELSE 1 END,
+                CASE 
+                    WHEN (SELECT COUNT(*) FROM transactions t WHERE t.category_id = c.id AND t.date >= ? AND t.date <= ?) >= 3 THEN 0
+                    WHEN (SELECT COUNT(*) FROM transactions t WHERE t.category_id = c.id AND t.date >= ? AND t.date <= ?) >= 1 THEN 1
+                    ELSE 2
+                END,
                 spent_amount DESC,
                 c.name
-        `).all(startDate, endDate, startDate, endDate, currentMonth);
+        `).all(startDate, endDate, startDate, endDate, currentMonth, startDate, endDate, startDate, endDate);
 
         // Calculate activity and available for each category
         const categoryData = categories.map(cat => {

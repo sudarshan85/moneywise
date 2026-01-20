@@ -284,7 +284,7 @@ export default function Dashboard() {
                                             <IconDisplay icon={acc.icon} fallback="/icons/briefcase.png" className="account-icon" />
                                             <span>{acc.name}</span>
                                         </div>
-                                        <div className="account-balance">
+                                        <div className={`account-balance ${acc.balance > 0 ? 'positive' : acc.balance < 0 ? 'negative' : 'zero'}`}>
                                             {formatCurrency(acc.balance)}
                                         </div>
                                     </div>
@@ -306,7 +306,7 @@ export default function Dashboard() {
                                             <IconDisplay icon={acc.icon} fallback="/icons/briefcase.png" className="account-icon" />
                                             <span>{acc.name}</span>
                                         </div>
-                                        <div className="account-balance">
+                                        <div className={`account-balance ${acc.balance > 0 ? 'positive' : acc.balance < 0 ? 'negative' : 'zero'}`}>
                                             {formatCurrency(acc.balance)}
                                         </div>
                                     </div>

@@ -1,9 +1,0 @@
-Aspire Budgeting is capable of importing and showing pending transactions. Pending transactions aren’t fully settled and their amounts, dates, and memos may change before they fully settle. It’s also possible they will disappear entirely and reappear as a settled transaction. Also, not all financial institutions support pending transactions so don’t be alarmed if you don’t see them.
-
-Pending transactions are great for seeing what transactions are about to settle and appear in your budget for categorization. You’re welcome to categorize pending transactions and in most cases, the selected category will re-apply itself to the transaction when it fully settles.
-
-Pending transactions will factor into the amounts shown for your accounts and categories. You can see a breakdown of settled and pending transactions on the Balances tab which can help when reconciling your budget.
-
-If you’re not interested in showing pending transactions, they can be hidden using the controls in the add-on’s menu bar.
-
-Pending transactions, if you have any, will always appear at the top of your budget on the Transactions tab in what we call the “pending transactions tray.”
