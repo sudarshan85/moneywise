@@ -77,7 +77,7 @@ function CategoryCard({ category, isExpanded, onToggle, categoryDetails }) {
 
                 <div className="card-amount">
                     {isOverBudget && <span className="warning-icon">⚠️</span>}
-                    <span className={`remaining-value ${isOverBudget ? 'negative' : ''}`}>
+                    <span className={`remaining-value ${isOverBudget ? 'negative' : available === 0 ? 'zero' : ''}`}>
                         {formatCurrency(available)}
                     </span>
                     <span className="remaining-label">remaining</span>
@@ -113,6 +113,12 @@ function CategoryCard({ category, isExpanded, onToggle, categoryDetails }) {
                             <span className="stat-label">Pending</span>
                             <span className={`stat-value ${pendingActivity !== 0 ? 'pending' : 'muted'}`}>
                                 {pendingActivity !== 0 ? formatCurrency(pendingActivity) : '—'}
+                            </span>
+                        </div>
+                        <div className="stat-row">
+                            <span className="stat-label">Total Txns</span>
+                            <span className={`stat-value ${!categoryDetails?.transactionCount ? 'muted' : ''}`}>
+                                {categoryDetails?.transactionCount || '—'}
                             </span>
                         </div>
                         <div className="stat-row">

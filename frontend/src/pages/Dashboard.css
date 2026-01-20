@@ -386,6 +386,10 @@
     color: #DC2626;
 }
 
+.remaining-value.zero {
+    color: var(--text-primary);
+}
+
 .remaining-label {
     font-size: var(--font-size-xs);
     color: var(--text-muted);
