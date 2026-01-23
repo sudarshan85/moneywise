@@ -386,6 +386,10 @@
     color: #DC2626;
 }
 
+.remaining-value.low-budget {
+    color: #D97706 !important;
+}
+
 .remaining-value.zero {
     color: var(--text-primary);
 }

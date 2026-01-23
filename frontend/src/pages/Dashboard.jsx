@@ -77,7 +77,7 @@ function CategoryCard({ category, isExpanded, onToggle, categoryDetails }) {
 
                 <div className="card-amount">
                     {isOverBudget && <span className="warning-icon">⚠️</span>}
-                    <span className={`remaining-value ${isOverBudget ? 'negative' : available === 0 ? 'zero' : ''}`}>
+                    <span className={`remaining-value ${isOverBudget ? 'negative' : isLowBudget ? 'low-budget' : available === 0 ? 'zero' : ''}`}>
                         {formatCurrency(available)}
                     </span>
                     <span className="remaining-label">remaining</span>
