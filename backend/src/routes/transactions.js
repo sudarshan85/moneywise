@@ -81,7 +81,8 @@ router.get('/', (req, res) => {
         }
 
         // Order: pending transactions first (NULL dates), then by date descending
-        query += ' ORDER BY CASE WHEN t.date IS NULL THEN 0 ELSE 1 END, t.date DESC, t.created_at DESC';
+        // Within the same date, reconciliation points come first, then by created_at descending
+        query += ' ORDER BY CASE WHEN t.date IS NULL THEN 0 ELSE 1 END, t.date DESC, t.is_reconciliation_point DESC, t.created_at DESC';
         query += ' LIMIT ? OFFSET ?';
         params.push(parseInt(limit), parseInt(offset));
 

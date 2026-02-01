@@ -522,6 +522,10 @@ function TransactionsTable({ transactions, accounts, categories, onEdit, onDelet
         .sort((a, b) => {
             const dateCompare = new Date(b.date) - new Date(a.date);
             if (dateCompare !== 0) return dateCompare;
+            // Within same date, reconciliation points come first
+            if (a.is_reconciliation_point !== b.is_reconciliation_point) {
+                return (b.is_reconciliation_point || 0) - (a.is_reconciliation_point || 0);
+            }
             return new Date(b.created_at) - new Date(a.created_at);
         });
 

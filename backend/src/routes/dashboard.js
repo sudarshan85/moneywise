@@ -188,12 +188,13 @@ router.get('/', (req, res) => {
             return sum + (cat.activity < 0 ? cat.activity : 0);
         }, 0));
 
-        // 4. Get all accounts with balances
+        // 4. Get all accounts with settled and pending balances
         const accounts = db.prepare(`
             SELECT a.id, a.name, a.icon, a.type,
-                   COALESCE(SUM(t.amount), 0) as balance
+                   COALESCE(SUM(CASE WHEN t.status = 'settled' THEN t.amount ELSE 0 END), 0) as balance,
+                   COALESCE(SUM(CASE WHEN t.status = 'pending' THEN t.amount ELSE 0 END), 0) as pending_balance
             FROM accounts a
-            LEFT JOIN transactions t ON t.account_id = a.id AND t.status = 'settled'
+            LEFT JOIN transactions t ON t.account_id = a.id
             WHERE a.is_hidden = 0
             GROUP BY a.id
             ORDER BY 
@@ -211,11 +212,19 @@ router.get('/', (req, res) => {
         // Split accounts into assets and liabilities
         const assets = accounts
             .filter(a => ['bank', 'cash', 'investment', 'retirement'].includes(a.type))
-            .map(a => ({ ...a, balance: Math.round(a.balance * 100) / 100 }));
+            .map(a => ({
+                ...a,
+                balance: Math.round(a.balance * 100) / 100,
+                pendingBalance: Math.round(a.pending_balance * 100) / 100
+            }));
 
         const liabilities = accounts
             .filter(a => ['credit_card', 'loan'].includes(a.type))
-            .map(a => ({ ...a, balance: Math.round(a.balance * 100) / 100 }));
+            .map(a => ({
+                ...a,
+                balance: Math.round(a.balance * 100) / 100,
+                pendingBalance: Math.round(a.pending_balance * 100) / 100
+            }));
 
         // 5. Get last reconciliation date (most recent reconciliation point)
         const lastReconciledRow = db.prepare(`

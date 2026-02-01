@@ -23,6 +23,16 @@ function formatCurrency(amount) {
     return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
+// Format pending amount with explicit +/- sign before dollar sign
+function formatPendingAmount(amount) {
+    if (amount === null || amount === undefined) return '—';
+    const absFormatted = Math.abs(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    if (amount >= 0) {
+        return `+${absFormatted}`;
+    }
+    return `-${absFormatted}`;
+}
+
 // Format date for display
 function formatDate(dateStr) {
     if (!dateStr) return null;
@@ -284,17 +294,27 @@ export default function Dashboard() {
                             {sortedAssets.length === 0 ? (
                                 <div className="no-accounts">No asset accounts</div>
                             ) : (
-                                sortedAssets.map(acc => (
-                                    <div key={acc.id} className="account-row">
-                                        <div className="account-name">
-                                            <IconDisplay icon={acc.icon} fallback="/icons/briefcase.png" className="account-icon" />
-                                            <span>{acc.name}</span>
+                                sortedAssets.map(acc => {
+                                    const hasPending = acc.pendingBalance !== 0;
+                                    return (
+                                        <div key={acc.id} className="account-row">
+                                            <div className="account-name">
+                                                <IconDisplay icon={acc.icon} fallback="/icons/briefcase.png" className="account-icon" />
+                                                <span>{acc.name}</span>
+                                            </div>
+                                            <div className="account-balances-inline">
+                                                <span className="account-balance-main">
+                                                    {formatCurrency(acc.balance)}
+                                                </span>
+                                                {hasPending && (
+                                                    <span className={`pending-inline ${acc.pendingBalance >= 0 ? 'inflow' : 'outflow'}`}>
+                                                        ({formatPendingAmount(acc.pendingBalance)})
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className={`account-balance ${acc.balance > 0 ? 'positive' : acc.balance < 0 ? 'negative' : 'zero'}`}>
-                                            {formatCurrency(acc.balance)}
-                                        </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
@@ -306,17 +326,27 @@ export default function Dashboard() {
                             {liabilities.length === 0 ? (
                                 <div className="no-accounts">No debt accounts</div>
                             ) : (
-                                liabilities.map(acc => (
-                                    <div key={acc.id} className="account-row">
-                                        <div className="account-name">
-                                            <IconDisplay icon={acc.icon} fallback="/icons/briefcase.png" className="account-icon" />
-                                            <span>{acc.name}</span>
+                                liabilities.map(acc => {
+                                    const hasPending = acc.pendingBalance !== 0;
+                                    return (
+                                        <div key={acc.id} className="account-row">
+                                            <div className="account-name">
+                                                <IconDisplay icon={acc.icon} fallback="/icons/briefcase.png" className="account-icon" />
+                                                <span>{acc.name}</span>
+                                            </div>
+                                            <div className="account-balances-inline">
+                                                <span className="account-balance-main">
+                                                    {formatCurrency(acc.balance)}
+                                                </span>
+                                                {hasPending && (
+                                                    <span className={`pending-inline ${acc.pendingBalance >= 0 ? 'inflow' : 'outflow'}`}>
+                                                        ({formatPendingAmount(acc.pendingBalance)})
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className={`account-balance ${acc.balance > 0 ? 'positive' : acc.balance < 0 ? 'negative' : 'zero'}`}>
-                                            {formatCurrency(acc.balance)}
-                                        </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
