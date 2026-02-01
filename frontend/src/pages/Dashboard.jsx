@@ -91,7 +91,7 @@ function CategoryCard({ category, isExpanded, onToggle, categoryDetails }) {
                         />
                     </div>
                     <div className="progress-text-large">
-                        <span className="spent-amount">{formatCurrency(spent)}</span>
+                        <span className={`spent-amount ${cardState}`}>{formatCurrency(spent)}</span>
                         {monthlyAmount > 0 && (
                             <>
                                 <span className="separator"> / </span>

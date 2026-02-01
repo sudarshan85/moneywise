@@ -295,6 +295,11 @@ export async function autoPopulateTransfers(date) {
     return handleResponse(response);
 }
 
+export async function getLastFundDate() {
+    const response = await apiFetch(`${API_BASE}/transfers/last-fund-date`);
+    return handleResponse(response);
+}
+
 // ==================== DASHBOARD ====================
 
 export async function getDashboardData() {

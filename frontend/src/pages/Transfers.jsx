@@ -19,9 +19,13 @@ function formatDate(dateString) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-// Get today's date in YYYY-MM-DD format
+// Get today's date in YYYY-MM-DD format (using local timezone)
 function getTodayDate() {
-    return new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 export default function Transfers() {
@@ -36,8 +40,8 @@ export default function Transfers() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingTransfer, setEditingTransfer] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
-    const [isAutoPopulating, setIsAutoPopulating] = useState(false);
-    const [autoPopulateDate, setAutoPopulateDate] = useState(getTodayDate());
+    const [isFunding, setIsFunding] = useState(false);
+    const [lastFundDate, setLastFundDate] = useState(null);
     const [availableToBudget, setAvailableToBudget] = useState(null);
 
     // Pagination state
@@ -53,6 +57,7 @@ export default function Transfers() {
         fetchCategories();
         loadTransfers();
         loadAvailableToBudget();
+        loadLastFundDate();
     }, []);
 
     // Load Available to Budget
@@ -140,23 +145,61 @@ export default function Transfers() {
         }
     };
 
-    const handleAutoPopulate = async () => {
-        setIsAutoPopulating(true);
+    // Load last fund date (checks settings first, then falls back to transfer history)
+    const loadLastFundDate = async () => {
         try {
-            const result = await api.autoPopulateTransfers(autoPopulateDate);
+            const result = await api.getLastFundDate();
+            if (result.last_fund_date) {
+                setLastFundDate(result.last_fund_date);
+            }
+        } catch (err) {
+            console.error('Failed to fetch last fund date:', err);
+        }
+    };
+
+    // Check if current month is already funded
+    const isCurrentMonthFunded = () => {
+        if (!lastFundDate) return false;
+        const today = getTodayDate();
+        return lastFundDate.slice(0, 7) === today.slice(0, 7);
+    };
+
+    // Format month for display (e.g., "Jan 2026")
+    const formatMonthShort = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString + 'T00:00:00');
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    };
+
+    // Get current month label
+    const getCurrentMonthLabel = () => {
+        return formatMonthShort(getTodayDate());
+    };
+
+    // Fund categories for current month
+    const handleFundCategories = async () => {
+        setIsFunding(true);
+        try {
+            const today = getTodayDate();
+            const result = await api.autoPopulateTransfers(today);
             if (result.created.length > 0) {
                 loadTransfers();
+                loadAvailableToBudget();
+                // Update last fund date locally
+                if (result.last_fund_date) {
+                    setLastFundDate(result.last_fund_date);
+                }
                 // Refresh Available to Budget in header
                 window.dispatchEvent(new CustomEvent('moneywise:refresh-balance'));
             }
-            // Show summary
+            // Show summary if nothing was created
             if (result.created.length === 0) {
-                setError('All budgeted categories are already funded for this month.');
+                setError('All budgeted categories are already at their target amounts.');
             }
         } catch (err) {
             setError(err.message);
         } finally {
-            setIsAutoPopulating(false);
+            setIsFunding(false);
         }
     };
 
@@ -197,22 +240,20 @@ export default function Transfers() {
                     </div>
                 </div>
                 <div className="header-actions">
-                    <div className="auto-populate-section">
-                        <span className="auto-populate-label">Auto-Populate for:</span>
-                        <input
-                            type="date"
-                            value={autoPopulateDate}
-                            onChange={(e) => setAutoPopulateDate(e.target.value)}
-                            className="auto-populate-date"
-                        />
+                    {isCurrentMonthFunded() ? (
+                        <div className="fund-categories-status">
+                            <span className="fund-status-check">✓</span>
+                            <span>Monthly Categories Auto Funded for {getCurrentMonthLabel()}</span>
+                        </div>
+                    ) : (
                         <button
-                            className="btn btn-secondary"
-                            onClick={handleAutoPopulate}
-                            disabled={isAutoPopulating}
+                            className="btn btn-secondary fund-categories-btn"
+                            onClick={handleFundCategories}
+                            disabled={isFunding}
                         >
-                            {isAutoPopulating ? '⏳...' : '📥 Go'}
+                            {isFunding ? '⏳ Funding...' : `📥 Auto Fund Monthly Categories for ${getCurrentMonthLabel()}`}
                         </button>
-                    </div>
+                    )}
                     <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
                         + New Transfer
                     </button>

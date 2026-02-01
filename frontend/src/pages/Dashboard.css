@@ -448,8 +448,19 @@
 
 .progress-text-large .spent-amount {
     font-weight: 700;
-    color: #DC2626;
     font-size: 1.1rem;
+}
+
+.progress-text-large .spent-amount.healthy {
+    color: #16A34A;
+}
+
+.progress-text-large .spent-amount.low-budget {
+    color: #D97706;
+}
+
+.progress-text-large .spent-amount.over-budget {
+    color: #DC2626;
 }
 
 .progress-text-large .separator {

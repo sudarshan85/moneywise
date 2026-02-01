@@ -134,6 +134,21 @@ router.post('/', (req, res) => {
     }
 });
 
+// GET /api/transfers/last-fund-date - Get the date when categories were last funded
+// Must be BEFORE /:id route to avoid being caught by that pattern
+router.get('/last-fund-date', (req, res) => {
+    try {
+        const lastFundSetting = db.prepare(
+            "SELECT value FROM app_settings WHERE key = 'last_fund_date'"
+        ).get();
+
+        res.json({ last_fund_date: lastFundSetting?.value || null });
+    } catch (error) {
+        console.error('Error fetching last fund date:', error);
+        res.status(500).json({ error: 'Failed to fetch last fund date' });
+    }
+});
+
 // GET /api/transfers/:id - Get single transfer
 router.get('/:id', (req, res) => {
     try {
@@ -243,7 +258,7 @@ router.patch('/:id', (req, res) => {
     }
 });
 
-// POST /api/transfers/auto-populate - Create transfers for all budgeted categories
+// POST /api/transfers/auto-populate - Create transfers for all budgeted categories (Fund Categories)
 // For each category with monthly_amount > 0:
 //   - Calculate current balance (transfers_in - spending)
 //   - Create transfer for (monthly_amount - current_balance) if positive
@@ -252,7 +267,7 @@ router.post('/auto-populate', (req, res) => {
         // Use provided date or default to today
         const transferDate = req.body?.date || new Date().toISOString().split('T')[0];
 
-        // Get "Available to Budget" category ID
+        // Get "Available to Budget" category ID first (needed for fallback check)
         const atbCategory = db.prepare(`
             SELECT id FROM categories WHERE name = 'Available to Budget' AND is_system = 1
         `).get();
@@ -260,6 +275,13 @@ router.post('/auto-populate', (req, res) => {
         if (!atbCategory) {
             return res.status(500).json({ error: 'Available to Budget category not found' });
         }
+
+
+        // Get last fund date from settings
+        const lastFundSetting = db.prepare(
+            "SELECT value FROM app_settings WHERE key = 'last_fund_date'"
+        ).get();
+        const lastFundDate = lastFundSetting?.value || null;
 
         // Get all user categories with monthly_amount > 0
         const budgetedCategories = db.prepare(`
@@ -305,7 +327,7 @@ router.post('/auto-populate', (req, res) => {
                 const result = db.prepare(`
                     INSERT INTO category_transfers (date, from_category_id, to_category_id, amount, memo)
                     VALUES (?, ?, ?, ?, ?)
-                `).run(transferDate, atbCategory.id, category.id, neededAmount, `Monthly budget for ${category.name}`);
+                `).run(transferDate, atbCategory.id, category.id, neededAmount, 'Auto Funded');
 
                 createdTransfers.push({
                     id: result.lastInsertRowid,
@@ -324,14 +346,24 @@ router.post('/auto-populate', (req, res) => {
             }
         }
 
+        // If any transfers were created, update last_fund_date in settings
+        if (createdTransfers.length > 0) {
+            db.prepare(`
+                INSERT INTO app_settings (key, value, updated_at)
+                VALUES ('last_fund_date', ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
+            `).run(transferDate, transferDate);
+        }
+
         res.status(201).json({
             created: createdTransfers,
             skipped: skippedCategories,
-            total_transferred: createdTransfers.reduce((sum, t) => sum + t.amount, 0)
+            total_transferred: createdTransfers.reduce((sum, t) => sum + t.amount, 0),
+            last_fund_date: createdTransfers.length > 0 ? transferDate : lastFundDate
         });
     } catch (error) {
         console.error('Error auto-populating transfers:', error);
-        res.status(500).json({ error: 'Failed to auto-populate transfers' });
+        res.status(500).json({ error: 'Failed to fund categories' });
     }
 });
 
