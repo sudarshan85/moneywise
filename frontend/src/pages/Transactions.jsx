@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useTransactionStore } from '../stores/transactionStore.js';
 import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
@@ -38,10 +38,15 @@ function getDatePreset(filters) {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
     const last3MonthsStart = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().split('T')[0];
     const ytdStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
     const today = now.toISOString().split('T')[0];
 
+    if (filters.startDate === lastMonthStart && filters.endDate === lastMonthEnd) {
+        return 'last-month';
+    }
     if (filters.startDate === thisMonthStart && filters.endDate === thisMonthEnd) {
         return 'this-month';
     }
@@ -91,14 +96,42 @@ export default function Transactions() {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [pendingTrayOpen, setPendingTrayOpen] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [pageSizeInput, setPageSizeInput] = useState(filters.limit.toString());
+
+    // Ref for sidebar click-outside detection
+    const sidebarRef = useRef(null);
 
     // Load data on mount
     useEffect(() => {
+        // Set a very high limit to load all transactions matching the filter
+        setPageSize(10000);
         fetchTransactions();
         fetchAccounts();
         fetchCategories();
     }, []);
+
+    // Click-outside handler to close sidebar
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+                // Also check if the click target is the filter button itself
+                const filterButton = event.target.closest('.btn-secondary');
+                if (!filterButton || !filterButton.textContent.includes('Filter')) {
+                    setSidebarOpen(false);
+                }
+            }
+        };
+
+        if (sidebarOpen) {
+            // Use setTimeout to avoid immediate close on the same click that opens
+            setTimeout(() => {
+                document.addEventListener('click', handleClickOutside);
+            }, 0);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [sidebarOpen]);
 
     // Reload when filter criteria change (but NOT offset - that's handled by loadMore)
     useEffect(() => {
@@ -182,8 +215,16 @@ export default function Transactions() {
 
             {/* Main layout with sidebar */}
             <div className="transactions-layout">
+                {/* Sidebar Backdrop Overlay */}
+                {sidebarOpen && (
+                    <div
+                        className="sidebar-backdrop"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
+
                 {/* Sidebar Filters */}
-                <div className={`filter-sidebar ${sidebarOpen ? 'open' : ''}`}>
+                <div ref={sidebarRef} className={`filter-sidebar ${sidebarOpen ? 'open' : ''}`}>
                     <div className="sidebar-header">
                         <h3>🔍 Filters</h3>
                         <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>✕</button>
@@ -203,7 +244,13 @@ export default function Transactions() {
                         <div className="header-left">
                             <button
                                 className="btn btn-secondary btn-sm"
-                                onClick={() => setSidebarOpen(!sidebarOpen)}
+                                onClick={() => {
+                                    if (!sidebarOpen) {
+                                        // Uncheck "Since Last Reconciliation" when opening the filter sidebar
+                                        setFilters({ since_reconciliation: false });
+                                    }
+                                    setSidebarOpen(!sidebarOpen);
+                                }}
                             >
                                 🔍 Filter
                             </button>
@@ -215,28 +262,6 @@ export default function Transactions() {
                                 />
                                 <span>⚖️ Since Last Reconciliation</span>
                             </label>
-                            <div className="page-size-control">
-                                <label>Show:</label>
-                                <input
-                                    type="number"
-                                    min="10"
-                                    max="500"
-                                    value={pageSizeInput}
-                                    onChange={(e) => setPageSizeInput(e.target.value)}
-                                    onBlur={(e) => {
-                                        setPageSize(e.target.value);
-                                        setPageSizeInput(filters.limit.toString());
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            setPageSize(e.target.value);
-                                            setPageSizeInput(filters.limit.toString());
-                                            e.target.blur();
-                                        }
-                                    }}
-                                    className="page-size-input"
-                                />
-                            </div>
                         </div>
                         <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
                             + Add Transaction
@@ -285,34 +310,12 @@ export default function Transactions() {
                         )}
                     </div>
 
-                    {/* Pagination Footer */}
+                    {/* Transaction Count Footer */}
                     {total > 0 && (
                         <div className="pagination-footer">
                             <span className="pagination-count">
-                                Showing {transactions.length} of {total} transactions
+                                Showing {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
                             </span>
-                            <div className="pagination-actions">
-                                {filters.offset > 0 && (
-                                    <button
-                                        className="btn btn-secondary btn-sm"
-                                        onClick={() => {
-                                            resetPagination();
-                                            fetchTransactions();
-                                        }}
-                                    >
-                                        ↩ Reset
-                                    </button>
-                                )}
-                                {hasMore() && (
-                                    <button
-                                        className="btn btn-primary btn-sm load-more-btn"
-                                        onClick={loadMore}
-                                        disabled={isLoadingMore}
-                                    >
-                                        {isLoadingMore ? '⏳ Loading...' : '↓ Load More'}
-                                    </button>
-                                )}
-                            </div>
                         </div>
                     )}
                 </div>
@@ -356,6 +359,11 @@ export default function Transactions() {
 function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
     const hasActiveFilters = filters.startDate || filters.endDate || filters.account_id || filters.category_id || filters.status || filters.memo_search;
 
+    // Wrapper that automatically unchecks "Since Last Reconciliation" when any filter is applied
+    const applyFilter = (filterUpdate) => {
+        onFilterChange({ ...filterUpdate, since_reconciliation: false });
+    };
+
     const clearAllFilters = () => {
         onFilterChange({
             startDate: null,
@@ -376,7 +384,7 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
                     className="filter-input"
                     placeholder="Search memos..."
                     value={filters.memo_search || ''}
-                    onChange={(e) => onFilterChange({ memo_search: e.target.value || null })}
+                    onChange={(e) => applyFilter({ memo_search: e.target.value || null })}
                 />
             </div>
 
@@ -385,12 +393,24 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
                 <div className="date-preset-buttons">
                     <button
                         type="button"
+                        className={`date-preset-btn ${getDatePreset(filters) === 'last-month' ? 'active' : ''}`}
+                        onClick={() => {
+                            const now = new Date();
+                            const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+                            const endDate = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+                            applyFilter({ startDate, endDate });
+                        }}
+                    >
+                        Last Month
+                    </button>
+                    <button
+                        type="button"
                         className={`date-preset-btn ${getDatePreset(filters) === 'this-month' ? 'active' : ''}`}
                         onClick={() => {
                             const now = new Date();
                             const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
                             const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-                            onFilterChange({ startDate, endDate });
+                            applyFilter({ startDate, endDate });
                         }}
                     >
                         This Month
@@ -402,7 +422,7 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
                             const now = new Date();
                             const startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().split('T')[0];
                             const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-                            onFilterChange({ startDate, endDate });
+                            applyFilter({ startDate, endDate });
                         }}
                     >
                         Last 3 Months
@@ -414,20 +434,10 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
                             const now = new Date();
                             const startDate = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
                             const endDate = now.toISOString().split('T')[0];
-                            onFilterChange({ startDate, endDate });
+                            applyFilter({ startDate, endDate });
                         }}
                     >
                         Year to Date
-                    </button>
-                    <button
-                        type="button"
-                        className={`date-preset-btn ${getDatePreset(filters) === 'custom' ? 'active' : ''}`}
-                        onClick={() => {
-                            // Clear dates to enable custom mode
-                            onFilterChange({ startDate: null, endDate: null });
-                        }}
-                    >
-                        Custom
                     </button>
                 </div>
                 {/* Show custom date pickers when in custom mode or any date is set that doesn't match presets */}
@@ -439,7 +449,7 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
                                 type="date"
                                 className="filter-input"
                                 value={filters.startDate || ''}
-                                onChange={(e) => onFilterChange({ startDate: e.target.value || null })}
+                                onChange={(e) => applyFilter({ startDate: e.target.value || null })}
                             />
                         </div>
                         <div className="filter-field">
@@ -448,7 +458,7 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
                                 type="date"
                                 className="filter-input"
                                 value={filters.endDate || ''}
-                                onChange={(e) => onFilterChange({ endDate: e.target.value || null })}
+                                onChange={(e) => applyFilter({ endDate: e.target.value || null })}
                             />
                         </div>
                     </div>
@@ -460,7 +470,7 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
                 <select
                     className="filter-select"
                     value={filters.account_id || ''}
-                    onChange={(e) => onFilterChange({ account_id: e.target.value || null })}
+                    onChange={(e) => applyFilter({ account_id: e.target.value || null })}
                 >
                     <option value="">All Accounts</option>
                     {accounts.map(acc => (
@@ -474,7 +484,7 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
                 <select
                     className="filter-select"
                     value={filters.category_id || ''}
-                    onChange={(e) => onFilterChange({ category_id: e.target.value || null })}
+                    onChange={(e) => applyFilter({ category_id: e.target.value || null })}
                 >
                     <option value="">All Categories</option>
                     {categories.map(cat => (
@@ -488,7 +498,7 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
                 <select
                     className="filter-select"
                     value={filters.status || ''}
-                    onChange={(e) => onFilterChange({ status: e.target.value || null })}
+                    onChange={(e) => applyFilter({ status: e.target.value || null })}
                 >
                     <option value="">All</option>
                     <option value="settled">Settled</option>

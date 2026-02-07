@@ -233,6 +233,28 @@
 }
 
 /* ==================== SIDEBAR FILTERS ==================== */
+/* Backdrop overlay */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
 .filter-sidebar {
     position: fixed;
     left: -300px;
@@ -245,6 +267,9 @@
     z-index: 1000;
     transition: left 0.3s ease;
     box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .filter-sidebar.open {
@@ -255,9 +280,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--color-border, #e2e8f0);
+    flex-shrink: 0;
 }
 
 .sidebar-header h3 {
@@ -282,6 +308,29 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.5rem;
+    padding-bottom: 1rem;
+}
+
+/* Custom scrollbar for sidebar */
+.filter-sidebar-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.filter-sidebar-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.filter-sidebar-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+}
+
+.filter-sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
 }
 
 .filter-section {
