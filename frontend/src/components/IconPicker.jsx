@@ -9,7 +9,8 @@ export default function IconPicker({ value, onChange, label = 'Icon (optional)' 
 
     // Fetch available icons
     useEffect(() => {
-        fetch('http://localhost:3001/api/icons')
+        const apiBase = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
+        fetch(`${apiBase}/icons`)
             .then(res => res.json())
             .then(data => {
                 setIcons(data);

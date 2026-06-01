@@ -59,6 +59,12 @@ moneywise/
 3. **Icons**: Add new PNGs to `frontend/public/icons/`.
 4. **Database**: Schema changes require manual migration or fresh start (`--fresh`).
 
+## Deployment (Fly.io)
+- Deploy with: `fly deploy` (run from the repo root — does NOT auto-deploy from GitHub push)
+- Fly.io builds the Docker image locally and pushes it to the cluster
+- The app runs on port 8080 in production (`ENV PORT=8080` in Dockerfile)
+- API URL pattern: relative `/api` in production, `http://localhost:3001/api` in dev (see `frontend/src/api/client.js` line 2)
+
 ## Code Style
 - **JS**: ES Modules (`import/export`).
 - **CSS**: Plain CSS with variables (defined in `index.css`).
