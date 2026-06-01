@@ -70,3 +70,6 @@ moneywise/
 - **Add New Tab**: Update `TABS` and `TAB_CONTENT` in `frontend/src/App.jsx`.
 - **Add System Category**: Update `SYSTEM_CATEGORIES` in `backend/src/db/database.js`.
 - **Backup**: Use `POST /api/backup/import` or `GET /api/backup/export`.
+
+## Disabled Features
+- **Reports Tab**: Commented out in `frontend/src/App.jsx` (import, TABS entry, and TAB_CONTENT entry). The page code (`Reports.jsx`, `Reports.css`) and backend routes (`routes/reports.js`) are fully intact. Disabled pending a redesign that adds month navigation and historical trends. See `FUTURE_WORK.md` for planned future features.

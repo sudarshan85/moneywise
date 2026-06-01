@@ -9,7 +9,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // GET /api/icons - List all available icons
 router.get('/', (req, res) => {
     try {
-        const iconsDir = path.join(__dirname, '../../../frontend/public/icons');
+        // In production (Docker), frontend/public/icons is not present — only the built dist
+        // is copied to /app/public. In dev, read from the source tree.
+        const iconsDir = process.env.NODE_ENV === 'production'
+            ? path.join(__dirname, '../../public/icons')
+            : path.join(__dirname, '../../../frontend/public/icons');
 
         if (!fs.existsSync(iconsDir)) {
             return res.json([]);

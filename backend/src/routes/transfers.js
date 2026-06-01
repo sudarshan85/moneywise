@@ -283,6 +283,14 @@ router.post('/auto-populate', (req, res) => {
         ).get();
         const lastFundDate = lastFundSetting?.value || null;
 
+        // Prevent double-funding the same month
+        const currentYearMonth = transferDate.substring(0, 7);
+        if (lastFundDate && lastFundDate.startsWith(currentYearMonth)) {
+            return res.status(400).json({
+                error: `Categories already funded for ${currentYearMonth}. Last fund date: ${lastFundDate}`
+            });
+        }
+
         // Get all user categories with monthly_amount > 0
         const budgetedCategories = db.prepare(`
             SELECT id, name, monthly_amount
@@ -309,15 +317,22 @@ router.post('/auto-populate', (req, res) => {
                 WHERE from_category_id = ?
             `).get(category.id).total;
 
-            // Spending in this category (negative = outflow)
+            // Settled spending in this category (negative = outflow)
             const spending = db.prepare(`
                 SELECT COALESCE(SUM(amount), 0) as total
                 FROM transactions
                 WHERE category_id = ? AND status = 'settled'
             `).get(category.id).total;
 
-            // Current balance = transfers_in - transfers_out + spending (spending is negative)
-            const currentBalance = transfersIn - transfersOut + spending;
+            // Pending transactions (signed: negative = pending expense, positive = pending income/refund)
+            const pending = db.prepare(`
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM transactions
+                WHERE category_id = ? AND status = 'pending'
+            `).get(category.id).total;
+
+            // Current balance matches what the dashboard shows: settled + pending
+            const currentBalance = transfersIn - transfersOut + spending + pending;
 
             // How much do we need to reach monthly_amount?
             const neededAmount = category.monthly_amount - currentBalance;

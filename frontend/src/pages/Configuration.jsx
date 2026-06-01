@@ -643,7 +643,7 @@ function AccountCard({ account, onEdit, onToggleHidden, onDelete }) {
             <div className="item-info">
                 <h3>
                     {account.name}
-                    {account.is_hidden && <span className="archived-badge">Archived</span>}
+                    {account.is_hidden ? <span className="archived-badge">Archived</span> : null}
                 </h3>
                 <span className="item-type">
                     {ACCOUNT_TYPES[account.type]?.label || account.type}
@@ -706,7 +706,7 @@ function CategoryCard({ category, onEdit, onToggleHidden, onDelete, onShowHistor
             <div className="item-info">
                 <h3>
                     {category.name}
-                    {category.is_hidden && <span className="archived-badge">Archived</span>}
+                    {category.is_hidden ? <span className="archived-badge">Archived</span> : null}
                 </h3>
                 {category.monthly_amount > 0 && (
                     <span className="monthly-amount">
