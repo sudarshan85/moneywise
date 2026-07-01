@@ -18,74 +18,58 @@ function getPreviousMonth(yearMonth) {
     return `${year}-${String(month - 1).padStart(2, '0')}`;
 }
 
-// Helper: Ensure carried forward is calculated for a given month
-function ensureCarriedForward(yearMonth) {
-    const prevMonth = getPreviousMonth(yearMonth);
+// Helper: Compute a category's TRUE carried-forward balance for a given month.
+// This is the running envelope balance at the end of the PREVIOUS month, i.e. the
+// sum of every transfer in/out and every settled transaction dated strictly before
+// this month starts. It is always derived from source data (never a frozen
+// snapshot), so it self-corrects when past transactions are added or edited.
+//
+// Pending transactions are intentionally excluded here: the dashboard always treats
+// pending as current-month "activity" (no date filter), so counting them in carried
+// forward too would double-count them.
+function computeCarriedForward(categoryId, yearMonth) {
+    const startDate = `${yearMonth}-01`;
 
-    // Get all user categories
+    const transfersIn = db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) as total
+        FROM category_transfers
+        WHERE to_category_id = ? AND date < ?
+    `).get(categoryId, startDate).total;
+
+    const transfersOut = db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) as total
+        FROM category_transfers
+        WHERE from_category_id = ? AND date < ?
+    `).get(categoryId, startDate).total;
+
+    const settledSpending = db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) as total
+        FROM transactions
+        WHERE category_id = ? AND status = 'settled' AND date < ?
+    `).get(categoryId, startDate).total;
+
+    // Spending is stored negative, so a deficit rolls forward as a negative balance.
+    return transfersIn - transfersOut + settledSpending;
+}
+
+// Helper: Recompute and persist the correct carried-forward for a given month.
+// Overwrites any existing (possibly stale) snapshot with the derived truth so the
+// materialized table stays consistent with source data.
+function ensureCarriedForward(yearMonth) {
     const categories = db.prepare(`
         SELECT id FROM categories WHERE is_system = 0 AND is_hidden = 0
     `).all();
 
-    // For each category, check if carried forward exists for this month
-    const checkStmt = db.prepare(`
-        SELECT id FROM category_monthly_balances 
-        WHERE category_id = ? AND year_month = ?
-    `);
-
-    const insertStmt = db.prepare(`
-        INSERT OR IGNORE INTO category_monthly_balances (category_id, year_month, carried_forward)
+    const upsertStmt = db.prepare(`
+        INSERT INTO category_monthly_balances (category_id, year_month, carried_forward)
         VALUES (?, ?, ?)
+        ON CONFLICT(category_id, year_month)
+        DO UPDATE SET carried_forward = excluded.carried_forward
     `);
 
     for (const cat of categories) {
-        const exists = checkStmt.get(cat.id, yearMonth);
-        if (!exists) {
-            // Calculate previous month's ending balance
-            const prevBalance = calculateCategoryBalance(cat.id, prevMonth);
-            insertStmt.run(cat.id, yearMonth, prevBalance);
-        }
+        upsertStmt.run(cat.id, yearMonth, computeCarriedForward(cat.id, yearMonth));
     }
-}
-
-// Helper: Calculate category balance for a specific month
-function calculateCategoryBalance(categoryId, yearMonth) {
-    const startDate = `${yearMonth}-01`;
-    const [year, month] = yearMonth.split('-').map(Number);
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
-
-    // Get carried forward from previous month (if exists)
-    const prevMonth = getPreviousMonth(yearMonth);
-    const carriedForward = db.prepare(`
-        SELECT carried_forward FROM category_monthly_balances
-        WHERE category_id = ? AND year_month = ?
-    `).get(categoryId, yearMonth);
-
-    // Get transfers INTO this category this month
-    const transfersIn = db.prepare(`
-        SELECT COALESCE(SUM(amount), 0) as total
-        FROM category_transfers
-        WHERE to_category_id = ? AND date >= ? AND date <= ?
-    `).get(categoryId, startDate, endDate);
-
-    // Get transfers OUT of this category this month
-    const transfersOut = db.prepare(`
-        SELECT COALESCE(SUM(amount), 0) as total
-        FROM category_transfers
-        WHERE from_category_id = ? AND date >= ? AND date <= ?
-    `).get(categoryId, startDate, endDate);
-
-    // Get spending (negative transactions) this month
-    const spending = db.prepare(`
-        SELECT COALESCE(SUM(amount), 0) as total
-        FROM transactions
-        WHERE category_id = ? AND date >= ? AND date <= ? AND status = 'settled'
-    `).get(categoryId, startDate, endDate);
-
-    // Balance = carried forward + transfers in - transfers out + spending (spending is negative)
-    const cf = carriedForward?.carried_forward || 0;
-    return cf + transfersIn.total - transfersOut.total + spending.total;
 }
 
 // GET /api/dashboard - Main dashboard data
@@ -278,17 +262,18 @@ router.get('/category/:id', (req, res) => {
 
         // Get category info
         const category = db.prepare(`
-            SELECT c.id, c.name, c.icon, c.monthly_amount,
-                   COALESCE(cmb.carried_forward, 0) as carried_forward
+            SELECT c.id, c.name, c.icon, c.monthly_amount
             FROM categories c
-            LEFT JOIN category_monthly_balances cmb 
-                ON c.id = cmb.category_id AND cmb.year_month = ?
             WHERE c.id = ?
-        `).get(currentMonth, categoryId);
+        `).get(categoryId);
 
         if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }
+
+        // Derive carried-forward directly so it is correct regardless of whether the
+        // main dashboard (which materializes it) has been loaded yet.
+        category.carried_forward = computeCarriedForward(categoryId, currentMonth);
 
         // Get actual spending this month (settled only)
         const settledSpending = db.prepare(`
