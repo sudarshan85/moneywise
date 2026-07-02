@@ -7,16 +7,22 @@ const router = express.Router();
 const VALID_ACCOUNT_TYPES = ['bank', 'credit_card', 'cash', 'investment', 'retirement', 'loan'];
 
 // GET /api/accounts/moneypot - Get Available to Budget
-// Simplified Formula: Bank Account balances - Sum of all category balances
+// Formula: on-budget account balances - Sum of all category (envelope) balances
 // Category balance = Transfers IN - Spending
+//
+// "On-budget" = accounts holding spendable money you actually budget from, i.e.
+// type 'bank' and 'cash'. Investment/retirement accounts are off-budget (you can't
+// spend a 401k or a brokerage on groceries), and credit cards/loans are liabilities.
+// This keeps Available to Budget correct: when budgeted money is invested it leaves
+// an on-budget account (recorded as spending), so it no longer counts here.
 router.get('/moneypot', (req, res) => {
     try {
-        // Get sum of all BANK account balances (type = 'bank')
+        // Get sum of all on-budget account balances (spendable: bank + cash)
         const bankResult = db.prepare(`
             SELECT COALESCE(SUM(t.amount), 0) as total_balance
             FROM accounts a
             LEFT JOIN transactions t ON t.account_id = a.id AND t.status = 'settled'
-            WHERE a.type = 'bank' AND a.is_hidden = 0
+            WHERE a.type IN ('bank', 'cash') AND a.is_hidden = 0
         `).get();
 
         // Get "Available to Budget" system category ID
