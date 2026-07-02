@@ -41,6 +41,10 @@ moneywise/
 - **View DB**: `sqlite3 data/moneywise.db`
 
 ## Architecture & Concepts
+- **Budgeting math**: See `docs/BUDGETING_MODEL.md` for the envelope identity
+  (`on-budget accounts = envelopes + Available to Budget`), why ATB goes negative,
+  how carried-forward is derived, and a debugging checklist. Read it before changing
+  ATB or carried-forward logic.
 - **Data Model**:
   - **Transactions**: Core record. Can be `regular`, `account_transfer`, `balance_adjustment`.
   - **Categories**: Envelopes for budgeting. `is_system=1` for special categories (MoneyPot, Transfer).
