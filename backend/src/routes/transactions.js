@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../db/database.js';
+import { localToday } from '../utils/dates.js';
 
 const router = express.Router();
 
@@ -84,7 +85,10 @@ router.get('/', (req, res) => {
         // Within the same date, reconciliation points come first, then by created_at descending
         query += ' ORDER BY CASE WHEN t.date IS NULL THEN 0 ELSE 1 END, t.date DESC, t.is_reconciliation_point DESC, t.created_at DESC';
         query += ' LIMIT ? OFFSET ?';
-        params.push(parseInt(limit), parseInt(offset));
+        // Clamp so non-numeric or hostile values can't bind NaN or explode the query
+        const safeLimit = Math.min(Math.max(parseInt(limit) || 100, 1), 10000);
+        const safeOffset = Math.max(parseInt(offset) || 0, 0);
+        params.push(safeLimit, safeOffset);
 
         const transactions = db.prepare(query).all(...params);
 
@@ -449,7 +453,26 @@ router.patch('/:id', (req, res) => {
         updates.push('updated_at = CURRENT_TIMESTAMP');
         values.push(id);
 
-        db.prepare(`UPDATE transactions SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+        db.transaction(() => {
+            db.prepare(`UPDATE transactions SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+
+            // Keep both legs of an account transfer in lockstep: date/status/memo
+            // mirror verbatim, amount mirrors negated (the legs must net to zero).
+            // Account and category stay per-leg so a leg can be reassigned.
+            if (existing.transfer_pair_id) {
+                const mirror = [];
+                const mirrorValues = [];
+                if (date !== undefined) { mirror.push('date = ?'); mirrorValues.push(date); }
+                if (amount !== undefined) { mirror.push('amount = ?'); mirrorValues.push(-amount); }
+                if (memo !== undefined) { mirror.push('memo = ?'); mirrorValues.push(memo || null); }
+                if (status !== undefined) { mirror.push('status = ?'); mirrorValues.push(status); }
+                if (mirror.length > 0) {
+                    mirror.push('updated_at = CURRENT_TIMESTAMP');
+                    mirrorValues.push(existing.transfer_pair_id);
+                    db.prepare(`UPDATE transactions SET ${mirror.join(', ')} WHERE id = ?`).run(...mirrorValues);
+                }
+            }
+        })();
 
         const transaction = db.prepare(`
             SELECT 
@@ -525,25 +548,29 @@ router.patch('/:id/toggle-status', (req, res) => {
 
         const newStatus = existing.status === 'pending' ? 'settled' : 'pending';
 
-        // When settling, set date to today if not set
-        // When making pending, clear the date
-        let dateUpdate = '';
-        const values = [];
+        // Settling a dateless transaction stamps today; going pending clears the date.
+        // Applied to both legs of an account transfer so the pair stays in sync.
+        const targetIds = existing.transfer_pair_id ? [id, existing.transfer_pair_id] : [id];
 
-        if (newStatus === 'settled' && !existing.date) {
-            dateUpdate = ', date = ?';
-            values.push(new Date().toISOString().split('T')[0]);
-        } else if (newStatus === 'pending') {
-            dateUpdate = ', date = NULL';
-        }
-
-        values.push(newStatus, id);
-
-        db.prepare(`
-            UPDATE transactions 
-            SET status = ?${dateUpdate}, updated_at = CURRENT_TIMESTAMP 
-            WHERE id = ?
-        `).run(...[newStatus, ...(dateUpdate.includes('date = ?') ? [values[0]] : []), id]);
+        db.transaction(() => {
+            for (const targetId of targetIds) {
+                const row = db.prepare('SELECT date FROM transactions WHERE id = ?').get(targetId);
+                if (!row) continue;
+                if (newStatus === 'settled' && !row.date) {
+                    db.prepare(`
+                        UPDATE transactions SET status = ?, date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                    `).run(newStatus, localToday(), targetId);
+                } else if (newStatus === 'pending') {
+                    db.prepare(`
+                        UPDATE transactions SET status = ?, date = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                    `).run(newStatus, targetId);
+                } else {
+                    db.prepare(`
+                        UPDATE transactions SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                    `).run(newStatus, targetId);
+                }
+            }
+        })();
 
         const transaction = db.prepare(`
             SELECT 

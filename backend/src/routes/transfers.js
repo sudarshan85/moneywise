@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../db/database.js';
+import { localToday } from '../utils/dates.js';
 
 const router = express.Router();
 
@@ -212,14 +213,27 @@ router.patch('/:id', (req, res) => {
             values.push(date);
         }
         if (from_category_id !== undefined) {
+            if (from_category_id !== null && !db.prepare('SELECT id FROM categories WHERE id = ?').get(from_category_id)) {
+                return res.status(400).json({ error: 'From category not found' });
+            }
             updates.push('from_category_id = ?');
             values.push(from_category_id);
         }
         if (to_category_id !== undefined) {
+            if (to_category_id !== null && !db.prepare('SELECT id FROM categories WHERE id = ?').get(to_category_id)) {
+                return res.status(400).json({ error: 'To category not found' });
+            }
             updates.push('to_category_id = ?');
             values.push(to_category_id);
         }
+        if (from_category_id !== undefined && to_category_id !== undefined
+            && from_category_id !== null && from_category_id === to_category_id) {
+            return res.status(400).json({ error: 'Cannot transfer to the same category' });
+        }
         if (amount !== undefined) {
+            if (typeof amount !== 'number' || amount <= 0) {
+                return res.status(400).json({ error: 'Amount must be positive' });
+            }
             updates.push('amount = ?');
             values.push(amount);
         }
@@ -264,8 +278,8 @@ router.patch('/:id', (req, res) => {
 //   - Create transfer for (monthly_amount - current_balance) if positive
 router.post('/auto-populate', (req, res) => {
     try {
-        // Use provided date or default to today
-        const transferDate = req.body?.date || new Date().toISOString().split('T')[0];
+        // Use provided date or default to today (local time)
+        const transferDate = req.body?.date || localToday();
 
         // Get "Available to Budget" category ID first (needed for fallback check)
         const atbCategory = db.prepare(`
@@ -301,6 +315,9 @@ router.post('/auto-populate', (req, res) => {
         const createdTransfers = [];
         const skippedCategories = [];
 
+        // All funding inserts plus the last_fund_date update commit atomically:
+        // a mid-loop failure must not leave the month half-funded with no marker.
+        db.transaction(() => {
         for (const category of budgetedCategories) {
             // Calculate current category balance
             // Transfers IN from ATB
@@ -369,6 +386,7 @@ router.post('/auto-populate', (req, res) => {
                 ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
             `).run(transferDate, transferDate);
         }
+        })();
 
         res.status(201).json({
             created: createdTransfers,

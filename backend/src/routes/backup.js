@@ -165,6 +165,11 @@ router.post('/import', (req, res) => {
             errors: []
         };
 
+        // The whole import commits atomically: per-row problems are collected in
+        // results.errors and skipped, but an unexpected throw rolls back everything
+        // instead of leaving a half-imported database.
+        db.transaction(() => {
+
         // Maps to track old ID -> new ID relationships
         const accountNameToId = {};
         const categoryNameToId = {};
@@ -357,6 +362,8 @@ router.post('/import', (req, res) => {
                 }
             }
         }
+
+        })();
 
         const summary = [
             results.accountsImported > 0 ? `${results.accountsImported} accounts` : null,
