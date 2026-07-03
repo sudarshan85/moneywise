@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     icon TEXT,
     type TEXT NOT NULL CHECK(type IN ('bank', 'credit_card', 'cash', 'investment', 'retirement', 'loan')),
     is_hidden INTEGER DEFAULT 0,
+    in_moneypot INTEGER DEFAULT 1,
     sort_order INTEGER DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -92,6 +93,10 @@ CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
 CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category_id);
 CREATE INDEX IF NOT EXISTS idx_category_transfers_date ON category_transfers(date);
+CREATE INDEX IF NOT EXISTS idx_category_transfers_from ON category_transfers(from_category_id, date);
+CREATE INDEX IF NOT EXISTS idx_category_transfers_to ON category_transfers(to_category_id, date);
+CREATE INDEX IF NOT EXISTS idx_transactions_cat_status_date ON transactions(category_id, status, date);
+CREATE INDEX IF NOT EXISTS idx_transactions_acct_status ON transactions(account_id, status);
 CREATE INDEX IF NOT EXISTS idx_category_monthly_balances ON category_monthly_balances(category_id, year_month);
 
 -- Sessions (for persistent authentication)

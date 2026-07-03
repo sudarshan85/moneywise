@@ -20,6 +20,11 @@ const db = new Database(dbPath);
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
 
+// WAL allows reads during writes; busy_timeout prevents transient SQLITE_BUSY
+// errors when backups (VACUUM INTO) overlap with requests.
+db.pragma('journal_mode = WAL');
+db.pragma('busy_timeout = 5000');
+
 // System categories that are auto-created and cannot be deleted
 const SYSTEM_CATEGORIES = [
     { name: 'Available to Budget', icon: '/icons/moneypot_on_hand.png', monthly_amount: 0 },
@@ -161,6 +166,37 @@ function migrateAccountsMoneyPot() {
     }
 }
 
+// Indexes serving the hot aggregate queries (dashboard, moneypot, reports)
+function migrateIndexes() {
+    db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_category_transfers_from ON category_transfers(from_category_id, date);
+        CREATE INDEX IF NOT EXISTS idx_category_transfers_to ON category_transfers(to_category_id, date);
+        CREATE INDEX IF NOT EXISTS idx_transactions_cat_status_date ON transactions(category_id, status, date);
+        CREATE INDEX IF NOT EXISTS idx_transactions_acct_status ON transactions(account_id, status);
+    `);
+}
+
+// One-time backfill making in_moneypot the real "on-budget" flag: bank/cash plus
+// spend-vehicle credit cards count toward Ready to Assign; investments, retirement
+// and loans are off-budget. Keyed via app_settings so manual per-account changes
+// made after the backfill are never overwritten on later boots.
+function migrateOnBudgetFlag() {
+    const done = db.prepare(`SELECT value FROM app_settings WHERE key = 'onbudget_backfill_v1'`).get();
+    if (done) return;
+
+    db.transaction(() => {
+        db.prepare(`
+            UPDATE accounts SET in_moneypot = CASE
+                WHEN type IN ('bank', 'cash', 'credit_card') THEN 1
+                ELSE 0
+            END
+        `).run();
+        db.prepare(`INSERT INTO app_settings (key, value) VALUES ('onbudget_backfill_v1', '1')`).run();
+    })();
+
+    console.log('✅ Backfilled on-budget flag (bank, cash, credit_card)');
+}
+
 // Make account_id nullable for reconciliation transactions
 function migrateAccountIdNullable() {
     try {
@@ -228,15 +264,14 @@ export function initializeDatabase() {
     // Make account_id nullable for reconciliation transactions
     migrateAccountIdNullable();
 
+    // Add covering indexes for aggregate queries
+    migrateIndexes();
+
+    // Backfill the on-budget account flag (one-time)
+    migrateOnBudgetFlag();
+
     // Always ensure Balance Change has the correct icon
     db.prepare(`UPDATE categories SET icon = '/icons/balance_change.png' WHERE name = 'Balance Change' AND is_system = 1`).run();
-
-    // Seed dev data if SEED_DATA env var is set
-    if (process.env.SEED_DATA === 'true') {
-        import('./seed.js').then(({ seedDatabase }) => {
-            seedDatabase();
-        });
-    }
 
     console.log('💰 MoneyWise database initialized at:', dbPath);
 }

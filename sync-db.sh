@@ -55,6 +55,15 @@ else
     echo "ℹ️  No existing local database to backup"
 fi
 
+# The database runs in WAL mode: recent writes may live in moneywise.db-wal
+# instead of the main file. Checkpoint before copying so the raw file is complete.
+# (No spaces inside the -e script — fly's -C splits the command on whitespace.)
+echo ""
+echo "🧹 Checkpointing WAL on remote so the database file is complete..."
+fly ssh console --app "$APP_NAME" -C "node -e require('better-sqlite3')('$REMOTE_DB_PATH').pragma('wal_checkpoint(TRUNCATE)')" || {
+    echo "⚠️  Checkpoint failed — the downloaded database may miss the latest writes."
+}
+
 echo ""
 echo "⬇️  Downloading production database from Fly.io..."
 echo "   App: $APP_NAME"
@@ -66,6 +75,9 @@ mkdir -p "$BACKUP_DIR"
 
 # Download the database
 fly ssh sftp get "$REMOTE_DB_PATH" "$LOCAL_DB_PATH" --app "$APP_NAME"
+
+# Stale local WAL companions would shadow the freshly downloaded file
+rm -f "${LOCAL_DB_PATH}-wal" "${LOCAL_DB_PATH}-shm"
 
 echo ""
 echo "✅ Database synced successfully!"

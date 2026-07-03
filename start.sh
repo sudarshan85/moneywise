@@ -2,8 +2,7 @@
 
 # 💰 MoneyWise Launch Script
 # Starts both backend and frontend servers
-# Usage: ./start.sh [--seed] [--fresh]
-#   --seed  : Populate database with sample data
+# Usage: ./start.sh [--fresh]
 #   --fresh : Delete existing database and start fresh
 
 echo "💰 Starting MoneyWise..."
@@ -21,27 +20,20 @@ NODE_VERSION=$(node --version)
 echo "📌 Using Node.js $NODE_VERSION"
 
 # Parse arguments
-SEED_DATA=false
 FRESH_DB=false
 for arg in "$@"; do
     case $arg in
-        --seed)
-            SEED_DATA=true
-            ;;
         --fresh)
             FRESH_DB=true
             ;;
     esac
 done
 
-# Handle fresh database
+# Handle fresh database (remove WAL companions too)
 if [ "$FRESH_DB" = true ]; then
     echo "🗑️  Deleting existing database..."
-    rm -f "$SCRIPT_DIR/data/moneywise.db"
+    rm -f "$SCRIPT_DIR/data/moneywise.db" "$SCRIPT_DIR/data/moneywise.db-wal" "$SCRIPT_DIR/data/moneywise.db-shm"
 fi
-
-# Export seed flag for backend
-export SEED_DATA=$SEED_DATA
 
 # Start backend in background
 echo "📦 Starting backend (port 3001)..."

@@ -6,23 +6,25 @@ const router = express.Router();
 // Valid account types
 const VALID_ACCOUNT_TYPES = ['bank', 'credit_card', 'cash', 'investment', 'retirement', 'loan'];
 
-// GET /api/accounts/moneypot - Get Available to Budget
+// GET /api/accounts/moneypot - Get "Ready to Assign" (money not yet allocated)
 // Formula: on-budget account balances - Sum of all category (envelope) balances
 // Category balance = Transfers IN - Spending
 //
-// "On-budget" = accounts holding spendable money you actually budget from, i.e.
-// type 'bank' and 'cash'. Investment/retirement accounts are off-budget (you can't
-// spend a 401k or a brokerage on groceries), and credit cards/loans are liabilities.
-// This keeps Available to Budget correct: when budgeted money is invested it leaves
-// an on-budget account (recorded as spending), so it no longer counts here.
+// "On-budget" = accounts flagged in_moneypot = 1: bank and cash, plus credit cards
+// used as a spending vehicle. Including the card's (negative) balance makes a card
+// swipe reduce the pool exactly like a debit purchase (the envelope drop and the
+// balance drop cancel), and paying the card bill becomes a wash — so envelope
+// spending on credit never inflates Ready to Assign. Investment/retirement/loan
+// accounts are off-budget: money moved there was recorded as leaving the pool.
 router.get('/moneypot', (req, res) => {
     try {
-        // Get sum of all on-budget account balances (spendable: bank + cash)
+        // On-budget balances, with the credit-card share broken out for display
         const bankResult = db.prepare(`
-            SELECT COALESCE(SUM(t.amount), 0) as total_balance
+            SELECT COALESCE(SUM(t.amount), 0) as total_balance,
+                   COALESCE(SUM(CASE WHEN a.type = 'credit_card' THEN t.amount ELSE 0 END), 0) as credit_card_balance
             FROM accounts a
             LEFT JOIN transactions t ON t.account_id = a.id AND t.status = 'settled'
-            WHERE a.type IN ('bank', 'cash') AND a.is_hidden = 0
+            WHERE a.in_moneypot = 1 AND a.is_hidden = 0
         `).get();
 
         // Get "Available to Budget" system category ID
@@ -62,11 +64,16 @@ router.get('/moneypot', (req, res) => {
             totalCategoryBalance = transfersFromATB.total - transfersToATB.total + spendingResult.total;
         }
 
-        // Available to Budget = Bank Balances - Category Balances
-        const availableToBudget = bankResult.total_balance - totalCategoryBalance;
+        // Ready to Assign = on-budget balances - envelope balances
+        const readyToAssign = bankResult.total_balance - totalCategoryBalance;
 
         res.json({
-            balance: availableToBudget,
+            balance: readyToAssign,
+            // Breakdown so the UI can show the math: liquid - cardOwed - allocated
+            liquid: bankResult.total_balance - bankResult.credit_card_balance,
+            creditCardOwed: -bankResult.credit_card_balance,
+            allocated: totalCategoryBalance,
+            // Legacy field names still read by existing frontend code paths
             bankBalance: bankResult.total_balance,
             categoryBalance: totalCategoryBalance
         });
@@ -124,10 +131,10 @@ router.post('/', (req, res) => {
             });
         }
 
-        // Default in_moneypot to false if not specified
+        // Default on-budget for spendable/spend-vehicle types, off-budget otherwise
         const moneypotValue = in_moneypot !== undefined
             ? (in_moneypot ? 1 : 0)
-            : 0;
+            : (['bank', 'cash', 'credit_card'].includes(type) ? 1 : 0);
 
         const result = db.prepare(`
             INSERT INTO accounts (name, type, icon, in_moneypot, sort_order)
