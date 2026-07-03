@@ -3,6 +3,7 @@ import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
 import { showToast } from '../components/Toast.jsx';
 import { IconDisplay } from '../components/IconDisplay.jsx';
+import { displayCategoryName } from '../utils/format.js';
 import IconPicker from '../components/IconPicker.jsx';
 import * as api from '../api/client.js';
 import './Configuration.css';
@@ -301,7 +302,7 @@ export default function Configuration() {
                                         <img src={category.icon || '/icons/tag.png'} alt="" className="custom-icon" />
                                     </div>
                                     <div className="item-info">
-                                        <h3>{category.name}</h3>
+                                        <h3>{displayCategoryName(category.name)}</h3>
                                         <span className="system-badge">System</span>
                                     </div>
                                 </div>

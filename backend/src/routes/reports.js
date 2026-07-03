@@ -215,10 +215,11 @@ router.get('/category-trend', (req, res) => {
     try {
         const { start, end } = getDateRange(req);
         const limit = parseInt(req.query.limit) || 5;
+        const budgetedOnly = req.query.budgetedOnly === 'true';
 
         // Get top N categories by total spending in this range
         const topCategories = db.prepare(`
-            SELECT 
+            SELECT
                 c.id,
                 c.name,
                 c.icon,
@@ -229,6 +230,7 @@ router.get('/category-trend', (req, res) => {
             AND t.status = 'settled'
             AND t.amount < 0
             AND c.is_system = 0 AND c.is_hidden = 0
+            ${budgetedOnly ? 'AND c.monthly_amount > 0' : ''}
             GROUP BY c.id
             ORDER BY total DESC
             LIMIT ?
@@ -309,11 +311,15 @@ router.get('/balance-history', (req, res) => {
                 GROUP BY m
             `).all().map(r => [r.m, r.change]));
 
+            // Don't report months before the data starts — a flat zero line
+            // before the first transaction is noise, not history.
+            const firstMonth = Object.keys(monthlyChanges).sort()[0] || currentMonth;
+
             // Walk backward from the current month
             const history = [];
             let running = currentBalance;
             let ym = currentMonth;
-            for (let i = 0; i < months; i++) {
+            for (let i = 0; i < months && ym >= firstMonth; i++) {
                 history.push({ month: ym, balance: round2(running) });
                 running -= monthlyChanges[ym] || 0;
                 ym = shiftMonth(ym, -1);
@@ -357,13 +363,15 @@ router.get('/balance-history', (req, res) => {
 });
 
 // GET /api/reports/daily-spending - Spending per day in period
+// ?budgetedOnly=true restricts to categories with a monthly budget, so the
+// total is comparable to the budget pace line.
 router.get('/daily-spending', (req, res) => {
     try {
         const { start, end } = getDateRange(req);
+        const budgetedOnly = req.query.budgetedOnly === 'true';
 
-        // Get daily spending totals (negative transactions only, exclude system categories)
         const dailyData = db.prepare(`
-            SELECT 
+            SELECT
                 t.date,
                 COALESCE(SUM(ABS(t.amount)), 0) as spending
             FROM transactions t
@@ -372,6 +380,7 @@ router.get('/daily-spending', (req, res) => {
             AND t.status = 'settled'
             AND t.amount < 0
             AND c.is_system = 0
+            ${budgetedOnly ? 'AND c.monthly_amount > 0' : ''}
             GROUP BY t.date
             ORDER BY t.date
         `).all(start, end);
@@ -387,6 +396,40 @@ router.get('/daily-spending', (req, res) => {
     } catch (error) {
         console.error('Error fetching daily spending:', error);
         res.status(500).json({ error: 'Failed to fetch daily spending' });
+    }
+});
+
+// GET /api/reports/monthly-spending - Per-month spending, split budgeted vs
+// unbudgeted. (Income lives in system categories in this ledger, so an
+// income-vs-expenses view would always read zero income — this split is the
+// meaningful monthly comparison instead.)
+router.get('/monthly-spending', (req, res) => {
+    try {
+        const { start, end } = getDateRange(req);
+
+        const rows = db.prepare(`
+            SELECT
+                strftime('%Y-%m', t.date) as month,
+                COALESCE(SUM(CASE WHEN c.monthly_amount > 0 THEN ABS(t.amount) ELSE 0 END), 0) as budgeted,
+                COALESCE(SUM(CASE WHEN c.monthly_amount > 0 THEN 0 ELSE ABS(t.amount) END), 0) as unbudgeted
+            FROM transactions t
+            JOIN categories c ON t.category_id = c.id
+            WHERE t.date >= ? AND t.date <= ?
+            AND t.status = 'settled'
+            AND t.amount < 0
+            AND c.is_system = 0
+            GROUP BY month
+            ORDER BY month
+        `).all(start, end);
+
+        res.json(rows.map(r => ({
+            month: r.month,
+            budgeted: round2(r.budgeted),
+            unbudgeted: round2(r.unbudgeted)
+        })));
+    } catch (error) {
+        console.error('Error fetching monthly spending:', error);
+        res.status(500).json({ error: 'Failed to fetch monthly spending' });
     }
 });
 

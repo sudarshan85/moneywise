@@ -1,6 +1,13 @@
 // Shared formatting helpers. All money and dates render through here so signs,
 // null-handling and locale stay consistent across pages.
 
+// The system category is stored as 'Available to Budget' (backend looks it up
+// by that name), but the UI calls it 'Ready to Assign'.
+export function displayCategoryName(name) {
+    if (!name) return 'Ready to Assign';
+    return name === 'Available to Budget' ? 'Ready to Assign' : name;
+}
+
 export function formatCurrency(amount, { sign = false } = {}) {
     if (amount === null || amount === undefined) return '—';
     if (sign) {

@@ -19,7 +19,7 @@ function OverBudgetAlert({ count }) {
 
 // ==================== CATEGORY CARD ====================
 function CategoryCard({ category, isExpanded, onToggle, categoryDetails }) {
-    const { id, name, icon, available, monthlyAmount, activity, pendingActivity, carriedForward } = category;
+    const { name, icon, available, monthlyAmount, activity, pendingActivity, carriedForward } = category;
 
     // Calculate progress percentage (how much spent out of budget)
     const spent = Math.abs(activity); // Activity is negative for spending

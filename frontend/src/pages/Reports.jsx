@@ -1,509 +1,573 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-    PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
-    BarChart, Bar, XAxis, YAxis, CartesianGrid,
-    AreaChart, Area
+    ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+    XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 import * as api from '../api/client.js';
+import { IconDisplay } from '../components/IconDisplay.jsx';
+import { formatCurrency, formatShortDate, formatMonthLabel, formatMonthShort, formatYMD } from '../utils/format.js';
 import './Reports.css';
 
-// Color palette for charts
-const CHART_COLORS = [
-    '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
-    '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6'
-];
+// ==================== chart tokens ====================
+// Categorical slots follow the validated fixed order (dataviz palette);
+// semantic hues reuse the app's income/expense colors.
+const CHART = {
+    series: ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'],
+    spend: '#C77800',
+    pace: '#94A3B8',
+    income: '#22C55E',
+    expense: '#EF4444',
+    netWorth: '#2a78d6',
+    other: '#94A3B8',
+    grid: '#E2E8F0',
+    axis: '#94A3B8',
+};
 
-// Format currency
-function formatCurrency(amount) {
-    if (amount === null || amount === undefined) return '$0.00';
-    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+const TOOLTIP_STYLE = {
+    borderRadius: 8,
+    border: '1px solid #E2E8F0',
+    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+    fontSize: 13,
+};
+
+const compactDollars = (v) =>
+    Math.abs(v) >= 1000 ? `$${(v / 1000).toFixed(Math.abs(v) >= 10000 ? 0 : 1)}k` : `$${Math.round(v)}`;
+
+// ==================== month helpers ====================
+function currentYM() {
+    return formatYMD(new Date()).slice(0, 7);
 }
 
-// Format date for display (short format)
-function formatShortDate(dateStr) {
-    const date = new Date(dateStr + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function shiftYM(ym, delta) {
+    const [y, m] = ym.split('-').map(Number);
+    return formatYMD(new Date(y, m - 1 + delta, 1)).slice(0, 7);
 }
 
-// Format week label with date range (e.g., "2026-W01" -> "Week 1 (Jan 1-7)")
-function formatWeekLabel(period, includeRange = false) {
-    const match = period.match(/(\d{4})-W(\d+)/);
-    if (match) {
-        const year = parseInt(match[1]);
-        const weekNum = parseInt(match[2]);
-        const weekLabel = `Week ${weekNum}`;
-
-        if (includeRange) {
-            // Calculate week start/end dates
-            const jan1 = new Date(year, 0, 1);
-            const daysToAdd = (weekNum * 7) - jan1.getDay();
-            const weekStart = new Date(year, 0, 1 + daysToAdd);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
-
-            const startStr = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            const endStr = weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            return `${weekLabel} (${startStr} - ${endStr})`;
-        }
-        return weekLabel;
-    }
-    return period;
+function ymRange(ym) {
+    const [y, m] = ym.split('-').map(Number);
+    const last = new Date(y, m, 0).getDate();
+    return { start: `${ym}-01`, end: `${ym}-${String(last).padStart(2, '0')}` };
 }
 
-// Get current month's date range
-function getCurrentMonthRange() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const lastDay = new Date(year, month, 0).getDate();
-    return {
-        start: `${year}-${String(month).padStart(2, '0')}-01`,
-        end: `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
-        label: now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    };
-}
-
-// Custom tooltip for pie chart - improved styling
-function PieTooltip({ active, payload }) {
-    if (active && payload && payload.length) {
-        const data = payload[0].payload;
-        return (
-            <div className="chart-tooltip pie-tooltip">
-                <div className="tooltip-header">{data.name}</div>
-                <div className="tooltip-row">
-                    <span className="tooltip-amount">{formatCurrency(data.total)}</span>
-                </div>
-                <div className="tooltip-row secondary">
-                    <span>{data.percentage}% of total</span>
-                </div>
-            </div>
-        );
-    }
-    return null;
-}
-
-// Custom tooltip for budget vs actual - improved styling
-function BudgetTooltip({ active, payload, label }) {
-    if (active && payload && payload.length) {
-        const budget = payload.find(p => p.dataKey === 'budget')?.value || 0;
-        const actual = payload.find(p => p.dataKey === 'actual')?.value || 0;
-        const diff = budget - actual;
-        const isOver = actual > budget;
-
-        return (
-            <div className="chart-tooltip budget-tooltip">
-                <div className="tooltip-header">{label}</div>
-                <div className="tooltip-row">
-                    <span className="tooltip-label">Budget:</span>
-                    <span className="tooltip-value">{formatCurrency(budget)}</span>
-                </div>
-                <div className="tooltip-row">
-                    <span className="tooltip-label">Spent:</span>
-                    <span className="tooltip-value">{formatCurrency(actual)}</span>
-                </div>
-                <div className={`tooltip-row summary ${isOver ? 'over' : 'under'}`}>
-                    <span>{isOver ? 'Over by:' : 'Remaining:'}</span>
-                    <span>{formatCurrency(Math.abs(diff))}</span>
-                </div>
-            </div>
-        );
-    }
-    return null;
-}
-
-// Custom tooltip for daily spending - single value only
-function DailyTooltip({ active, payload, label }) {
-    if (active && payload && payload.length) {
-        return (
-            <div className="chart-tooltip daily-tooltip">
-                <div className="tooltip-header">{formatShortDate(label)}</div>
-                <div className="tooltip-row">
-                    <span className="tooltip-label">Spent:</span>
-                    <span className="tooltip-value">{formatCurrency(payload[0].value)}</span>
-                </div>
-            </div>
-        );
-    }
-    return null;
-}
-
-// Custom tooltip for weekly expenses
-function WeeklyTooltip({ active, payload, label }) {
-    if (active && payload && payload.length) {
-        return (
-            <div className="chart-tooltip weekly-tooltip">
-                <div className="tooltip-header">{formatWeekLabel(label, true)}</div>
-                <div className="tooltip-row">
-                    <span className="tooltip-label">Expenses:&nbsp;</span>
-                    <span className="tooltip-value">{formatCurrency(payload[0].value)}</span>
-                </div>
-            </div>
-        );
-    }
-    return null;
-}
-
-// Helper to check if icon is an emoji vs image path
-function isEmoji(str) {
-    if (!str) return false;
-    return !str.startsWith('/') && !str.startsWith('http');
-}
-
-// Render icon - handles both emoji and image paths
-function IconDisplay({ icon, className = 'icon' }) {
-    if (!icon) return null;
-    if (isEmoji(icon)) {
-        return <span className={`${className} emoji-icon`}>{icon}</span>;
-    }
-    return <img src={icon} alt="" className={className} />;
-}
-
-// Custom legend renderer for pie chart (sorted by value)
-function renderPieLegend({ payload }) {
-    // Sort by value descending
-    const sorted = [...payload].sort((a, b) => b.payload.total - a.payload.total);
+// ==================== small components ====================
+function StatTile({ label, value, hint, tone }) {
     return (
-        <ul className="pie-legend">
-            {sorted.map((entry, index) => (
-                <li key={`legend-${index}`} className="pie-legend-item">
-                    <span
-                        className="pie-legend-dot"
-                        style={{ backgroundColor: entry.color }}
-                    />
-                    <span className="pie-legend-label">{entry.value}</span>
-                </li>
-            ))}
-        </ul>
+        <div className={`report-tile ${tone || ''}`}>
+            <div className="tile-label">{label}</div>
+            <div className="tile-value">{value}</div>
+            {hint && <div className="tile-hint">{hint}</div>}
+        </div>
     );
 }
 
+function SectionTitle({ children, hint }) {
+    return (
+        <div className="report-section-title">
+            <h3>{children}</h3>
+            {hint && <span className="section-hint">{hint}</span>}
+        </div>
+    );
+}
+
+// Forecast meter: solid = spent, tinted = projected, notch = budget; red when over
+function ForecastRow({ cat }) {
+    const budget = cat.monthlyAmount;
+    const scale = Math.max(budget, cat.projected, 1);
+    const spentPct = Math.min(100, ((cat.spentSoFar + cat.pending) / scale) * 100);
+    const projPct = Math.min(100, (cat.projected / scale) * 100);
+    const budgetPct = Math.min(100, (budget / scale) * 100);
+    const isOver = cat.status === 'over';
+    const isDue = cat.status === 'due';
+    const hue = isOver ? CHART.expense : '#F5A623';
+
+    return (
+        <div className="forecast-row">
+            <div className="forecast-row-header">
+                <div className="forecast-name">
+                    <IconDisplay icon={cat.icon} fallback="📦" className="forecast-icon" />
+                    <span>{cat.name}</span>
+                    {cat.kind === 'fixed' && <span className="chip chip-fixed">fixed</span>}
+                    {isDue && <span className="chip chip-due">due soon</span>}
+                    {isOver && <span className="chip chip-over">over</span>}
+                </div>
+                <div className="forecast-numbers">
+                    <span className="forecast-projected">{formatCurrency(cat.projected)}</span>
+                    <span className="forecast-of"> of {formatCurrency(budget)}</span>
+                </div>
+            </div>
+            <div
+                className="forecast-meter"
+                role="img"
+                aria-label={`${cat.name}: spent ${formatCurrency(cat.spentSoFar)}, projected ${formatCurrency(cat.projected)} of ${formatCurrency(budget)} budget`}
+            >
+                <div className="meter-projected" style={{ width: `${projPct}%`, background: hue }} />
+                <div className="meter-spent" style={{ width: `${spentPct}%`, background: hue }} />
+                {budgetPct < 100 && <div className="meter-budget-tick" style={{ left: `${budgetPct}%` }} />}
+            </div>
+        </div>
+    );
+}
+
+// ==================== main page ====================
 export default function Reports() {
+    const thisMonth = currentYM();
+    const [month, setMonth] = useState(thisMonth);
+    const [data, setData] = useState(null);
+    const [netWorth, setNetWorth] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Data states
-    const [summary, setSummary] = useState(null);
-    const [spendingByCategory, setSpendingByCategory] = useState([]);
-    const [dailySpending, setDailySpending] = useState([]);
-    const [weeklyExpenses, setWeeklyExpenses] = useState([]);
-    const [topExpenses, setTopExpenses] = useState([]);
-    const [dashboardData, setDashboardData] = useState(null);
+    const isCurrentMonth = month === thisMonth;
 
-    const dateRange = useMemo(() => getCurrentMonthRange(), []);
-
-    // Fetch all report data
+    // Net worth is not month-scoped; load once
     useEffect(() => {
-        async function fetchData() {
+        api.getMonthlyNetWorth(12).then(setNetWorth).catch(() => {});
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function load() {
+            setLoading(true);
+            setError(null);
             try {
-                setLoading(true);
-                setError(null);
+                const { start, end } = ymRange(month);
+                const prevRange = ymRange(shiftYM(month, -1));
+                const trendStart = `${shiftYM(month, -5)}-01`;
 
-                const [
-                    summaryData,
-                    categoryData,
-                    dailyData,
-                    incomeExpenseData,
-                    topExpenseData,
-                    dashboard
-                ] = await Promise.all([
-                    api.getReportsSummary(dateRange.start, dateRange.end),
-                    api.getSpendingByCategory(dateRange.start, dateRange.end),
-                    api.getDailySpending(dateRange.start, dateRange.end),
-                    api.getIncomeVsExpenses(dateRange.start, dateRange.end, 'week'),
-                    api.getTopExpenses(dateRange.start, dateRange.end, 5),
-                    api.getDashboardData()
-                ]);
-
-                setSummary(summaryData);
-                // Sort spending by category by value descending
-                setSpendingByCategory([...categoryData].sort((a, b) => b.total - a.total));
-                setDailySpending(dailyData);
-                // Transform to weekly expenses only (no income)
-                setWeeklyExpenses(incomeExpenseData.map(d => ({
-                    period: d.period,
-                    expenses: d.expenses
-                })));
-                setTopExpenses(topExpenseData);
-                setDashboardData(dashboard);
+                const [forecast, spending, prevSpending, daily, topExpenses, monthlySpending, trend, summary] =
+                    await Promise.all([
+                        api.getForecast(month),
+                        api.getSpendingByCategory(start, end),
+                        api.getSpendingByCategory(prevRange.start, prevRange.end),
+                        api.getDailySpending(start, end, true),
+                        api.getTopExpenses(start, end, 5),
+                        api.getMonthlySpending(trendStart, end),
+                        api.getCategoryTrend(trendStart, end, 5, true),
+                        api.getReportsSummary(start, end),
+                    ]);
+                if (!cancelled) {
+                    setData({ forecast, spending, prevSpending, daily, topExpenses, monthlySpending, trend, summary });
+                }
             } catch (err) {
-                console.error('Error fetching report data:', err);
-                setError(err.message);
+                if (!cancelled) setError(err.message);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         }
-        fetchData();
-    }, [dateRange]);
+        load();
+        return () => { cancelled = true; };
+    }, [month]);
 
-    // Calculate budget totals from dashboard
-    const budgetMetrics = useMemo(() => {
-        if (!dashboardData) return { totalBudget: 0, totalSpent: 0, remaining: 0 };
-        const budgetedCategories = dashboardData.categories.filter(cat => cat.monthlyAmount > 0);
-        const totalBudget = budgetedCategories.reduce((sum, cat) => sum + cat.monthlyAmount, 0);
-        const totalSpent = budgetedCategories.reduce((sum, cat) => sum + Math.abs(cat.activity), 0);
+    // Cumulative spending vs even budget pace
+    const cumulativeData = useMemo(() => {
+        if (!data) return [];
+        const { forecast, daily } = data;
+        const today = formatYMD(new Date());
+        let running = 0;
+        return daily.map((d, i) => {
+            running += d.spending;
+            const point = {
+                date: d.date,
+                pace: Math.round((forecast.budgetTotal * ((i + 1) / daily.length)) * 100) / 100,
+            };
+            if (!isCurrentMonth || d.date <= today) {
+                point.spent = Math.round(running * 100) / 100;
+            }
+            return point;
+        });
+    }, [data, isCurrentMonth]);
+
+    // Donut: top 8 + Other
+    const donutData = useMemo(() => {
+        if (!data) return [];
+        const top = data.spending.slice(0, 8).map((c) => ({ name: c.name, value: c.total }));
+        const rest = data.spending.slice(8).reduce((s, c) => s + c.total, 0);
+        if (rest > 0) top.push({ name: 'Other', value: Math.round(rest * 100) / 100 });
+        return top;
+    }, [data]);
+
+    // Month-over-month comparison, biggest movers first
+    const momRows = useMemo(() => {
+        if (!data) return [];
+        const prevMap = Object.fromEntries(data.prevSpending.map((c) => [c.name, c.total]));
+        const currMap = Object.fromEntries(data.spending.map((c) => [c.name, c.total]));
+        const names = new Set([...Object.keys(prevMap), ...Object.keys(currMap)]);
+        return [...names]
+            .map((name) => {
+                const prev = prevMap[name] || 0;
+                const curr = currMap[name] || 0;
+                return { name, prev, curr, delta: curr - prev };
+            })
+            .filter((r) => Math.abs(r.delta) >= 1)
+            .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+            .slice(0, 10);
+    }, [data]);
+
+    const trendData = useMemo(() => {
+        if (!data) return { categories: [], data: [] };
         return {
-            totalBudget,
-            totalSpent,
-            remaining: totalBudget - totalSpent
+            categories: data.trend.categories,
+            data: data.trend.data.map((row) => ({ ...row, label: formatMonthShort(row.period) })),
         };
-    }, [dashboardData]);
+    }, [data]);
 
-    // Prepare budget vs actual data from dashboard
-    const budgetVsActual = useMemo(() => {
-        if (!dashboardData) return [];
-        return dashboardData.categories
-            .filter(cat => cat.monthlyAmount > 0) // Only budgeted categories
-            .map(cat => ({
-                name: cat.name,
-                icon: cat.icon,
-                budget: cat.monthlyAmount,
-                actual: Math.abs(cat.activity),
-                isOverBudget: Math.abs(cat.activity) > cat.monthlyAmount
-            }))
-            .sort((a, b) => b.actual - a.actual)
-            .slice(0, 8); // Top 8 budgeted categories
-    }, [dashboardData]);
-
-    if (loading) {
+    if (loading && !data) {
         return (
-            <div className="reports-loading">
-                <div className="loading-spinner"></div>
-                <p>Loading reports...</p>
+            <div className="reports-page">
+                <div className="reports-loading">
+                    <div className="loading-spinner" />
+                    <p>Loading reports…</p>
+                </div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="reports-error">
-                <span>⚠️</span>
-                <p>Error loading reports: {error}</p>
+            <div className="reports-page">
+                <div className="reports-error">⚠️ {error}</div>
             </div>
         );
     }
 
+    const { forecast, summary, topExpenses } = data;
+    const budgetedForecast = forecast.categories.filter((c) => c.monthlyAmount > 0);
+    const spentDelta = isCurrentMonth ? forecast.spentSoFar - forecast.budgetToDate : null;
+    const hasActivity = summary.expenses > 0 || summary.income > 0;
+
     return (
-        <div className="reports">
-            {/* Header */}
+        <div className={`reports-page ${loading ? 'is-refreshing' : ''}`}>
+            {/* Header with month navigation */}
             <div className="reports-header">
-                <div className="month-badge">{dateRange.label}</div>
-            </div>
-
-            {/* Summary Cards - Replaced income/savings with budget metrics */}
-            <div className="summary-cards">
-                <div className="summary-card budget-total">
-                    <div className="card-icon">🎯</div>
-                    <div className="card-content">
-                        <div className="card-label">Monthly Budget</div>
-                        <div className="card-value">{formatCurrency(budgetMetrics.totalBudget)}</div>
-                    </div>
-                </div>
-                <div className="summary-card expenses">
-                    <div className="card-icon">💸</div>
-                    <div className="card-content">
-                        <div className="card-label">Total Spent</div>
-                        <div className="card-value">{formatCurrency(summary?.expenses || 0)}</div>
-                    </div>
-                </div>
-                <div className="summary-card remaining">
-                    <div className="card-icon">💰</div>
-                    <div className="card-content">
-                        <div className="card-label">Budget Remaining</div>
-                        <div className={`card-value ${budgetMetrics.remaining >= 0 ? 'positive' : 'negative'}`}>
-                            {formatCurrency(budgetMetrics.remaining)}
-                        </div>
-                    </div>
-                </div>
-                <div className="summary-card daily-avg">
-                    <div className="card-icon">📅</div>
-                    <div className="card-content">
-                        <div className="card-label">Daily Average</div>
-                        <div className="card-value">{formatCurrency(summary?.dailyAverage || 0)}</div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Charts Grid */}
-            <div className="charts-grid">
-                {/* Spending by Category - Donut Chart */}
-                <div className="chart-card">
-                    <h3>Spending by Category</h3>
-                    {spendingByCategory.length === 0 ? (
-                        <div className="no-data">No spending data for this period</div>
-                    ) : (
-                        <div className="chart-container pie-container">
-                            <ResponsiveContainer width="100%" height={280}>
-                                <PieChart>
-                                    <Pie
-                                        data={spendingByCategory.slice(0, 8)}
-                                        cx="40%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={100}
-                                        paddingAngle={2}
-                                        dataKey="total"
-                                        nameKey="name"
-                                    >
-                                        {spendingByCategory.slice(0, 8).map((entry, index) => (
-                                            <Cell
-                                                key={`cell-${index}`}
-                                                fill={CHART_COLORS[index % CHART_COLORS.length]}
-                                            />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip content={<PieTooltip />} />
-                                    <Legend
-                                        layout="vertical"
-                                        align="right"
-                                        verticalAlign="middle"
-                                        content={renderPieLegend}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
+                <h2>📈 Reports</h2>
+                <div className="month-picker">
+                    <button
+                        className="month-nav"
+                        onClick={() => setMonth(shiftYM(month, -1))}
+                        aria-label="Previous month"
+                    >
+                        ‹
+                    </button>
+                    <span className="month-label">{formatMonthLabel(month)}</span>
+                    <button
+                        className="month-nav"
+                        onClick={() => setMonth(shiftYM(month, 1))}
+                        disabled={isCurrentMonth}
+                        aria-label="Next month"
+                    >
+                        ›
+                    </button>
+                    {!isCurrentMonth && (
+                        <button className="btn btn-secondary btn-sm month-today" onClick={() => setMonth(thisMonth)}>
+                            Back to today
+                        </button>
                     )}
                 </div>
+            </div>
 
-                {/* Budget vs Actual - Horizontal Bar */}
-                <div className="chart-card">
-                    <h3>Budget vs Actual</h3>
-                    {budgetVsActual.length === 0 ? (
-                        <div className="no-data">No budgeted categories</div>
+            {!hasActivity ? (
+                <div className="empty-state card">
+                    <div className="emoji">🌱</div>
+                    <p>No activity in {formatMonthLabel(month)}</p>
+                </div>
+            ) : (
+                <>
+                    {/* ===== Daily pulse (current) / Month in review (past) ===== */}
+                    {isCurrentMonth ? (
+                        <div className="pulse-grid">
+                            <StatTile
+                                label="Spent so far (budgeted)"
+                                value={formatCurrency(forecast.spentSoFar)}
+                                hint={
+                                    spentDelta > 0
+                                        ? `${formatCurrency(spentDelta)} ahead of budget pace`
+                                        : `${formatCurrency(Math.abs(spentDelta))} under budget pace`
+                                }
+                                tone={spentDelta > 0 ? 'warn' : 'good'}
+                            />
+                            <StatTile
+                                label="Projected month total"
+                                value={formatCurrency(forecast.forecastTotal)}
+                                hint={`budget ${formatCurrency(forecast.budgetTotal)}`}
+                                tone={forecast.forecastTotal > forecast.budgetTotal ? 'warn' : 'good'}
+                            />
+                            <StatTile
+                                label="Safe to spend"
+                                value={`${formatCurrency(forecast.safeToSpendPerDay)}/day`}
+                                hint={`for the next ${forecast.daysRemaining} days`}
+                            />
+                            <StatTile
+                                label="Unbudgeted spending"
+                                value={formatCurrency(forecast.unbudgeted.spentSoFar)}
+                                hint="investments, one-offs, no-budget categories"
+                            />
+                        </div>
                     ) : (
-                        <div className="chart-container">
-                            <ResponsiveContainer width="100%" height={280}>
+                        <div className="pulse-grid">
+                            <StatTile
+                                label="Spent (budgeted)"
+                                value={formatCurrency(forecast.spentSoFar)}
+                                hint={`budget was ${formatCurrency(forecast.budgetTotal)}`}
+                                tone={forecast.spentSoFar > forecast.budgetTotal ? 'warn' : 'good'}
+                            />
+                            <StatTile label="Income" value={formatCurrency(summary.income)} />
+                            <StatTile
+                                label="Net savings"
+                                value={formatCurrency(summary.netSavings)}
+                                tone={summary.netSavings >= 0 ? 'good' : 'warn'}
+                            />
+                            <StatTile label="Daily average spend" value={formatCurrency(summary.dailyAverage)} />
+                        </div>
+                    )}
+
+                    {/* ===== Cumulative spending vs budget pace ===== */}
+                    <div className="card chart-card chart-card-wide">
+                        <SectionTitle hint={isCurrentMonth ? 'stay under the gray line and the month takes care of itself' : null}>
+                            Spending pace — {formatMonthLabel(month)}
+                        </SectionTitle>
+                        <ResponsiveContainer width="100%" height={240}>
+                            <LineChart data={cumulativeData} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+                                <CartesianGrid stroke={CHART.grid} vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    tickFormatter={(d) => String(Number(d.slice(8)))}
+                                    tick={{ fontSize: 12, fill: CHART.axis }}
+                                    tickLine={false}
+                                    axisLine={{ stroke: '#CBD5E1' }}
+                                    interval={4}
+                                />
+                                <YAxis
+                                    tickFormatter={compactDollars}
+                                    tick={{ fontSize: 12, fill: CHART.axis }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    width={52}
+                                />
+                                <Tooltip
+                                    contentStyle={TOOLTIP_STYLE}
+                                    formatter={(v, name) => [formatCurrency(v), name === 'spent' ? 'Spent (cumulative)' : 'Even budget pace']}
+                                    labelFormatter={formatShortDate}
+                                />
+                                <Legend
+                                    iconType="plainline"
+                                    formatter={(v) => (v === 'spent' ? 'Spent (cumulative)' : 'Even budget pace')}
+                                />
+                                <Line type="monotone" dataKey="pace" stroke={CHART.pace} strokeWidth={2} dot={false} isAnimationActive={false} />
+                                <Line
+                                    type="monotone"
+                                    dataKey="spent"
+                                    stroke={CHART.spend}
+                                    strokeWidth={2}
+                                    dot={false}
+                                    isAnimationActive={false}
+                                    activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff' }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    {/* ===== Forecast by category (current month only) ===== */}
+                    {isCurrentMonth && budgetedForecast.length > 0 && (
+                        <div className="card chart-card chart-card-wide">
+                            <SectionTitle hint="solid = spent, tinted = projected from history + current pace, notch = budget">
+                                Category forecast
+                            </SectionTitle>
+                            <div className="forecast-list">
+                                {budgetedForecast.map((cat) => <ForecastRow key={cat.id} cat={cat} />)}
+                            </div>
+                            {forecast.unbudgeted.spentSoFar > 0 && (
+                                <div className="forecast-unbudgeted">
+                                    Unbudgeted categories add {formatCurrency(forecast.unbudgeted.spentSoFar)} spent
+                                    ({formatCurrency(forecast.unbudgeted.projected)} projected) this month.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ===== Trends ===== */}
+                    <div className="charts-grid">
+                        <div className="card chart-card">
+                            <SectionTitle hint="budgeted categories">Top categories — last 6 months</SectionTitle>
+                            <ResponsiveContainer width="100%" height={260}>
+                                <LineChart data={trendData.data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+                                    <CartesianGrid stroke={CHART.grid} vertical={false} />
+                                    <XAxis dataKey="label" interval={0} tick={{ fontSize: 12, fill: CHART.axis }} tickLine={false} axisLine={{ stroke: '#CBD5E1' }} />
+                                    <YAxis tickFormatter={compactDollars} tick={{ fontSize: 12, fill: CHART.axis }} tickLine={false} axisLine={false} width={52} />
+                                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(v)} />
+                                    <Legend iconType="plainline" />
+                                    {trendData.categories.map((cat, i) => (
+                                        <Line
+                                            key={cat.id}
+                                            type="monotone"
+                                            dataKey={cat.name}
+                                            stroke={CHART.series[i % CHART.series.length]}
+                                            strokeWidth={2}
+                                            dot={false}
+                                            isAnimationActive={false}
+                                            activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff' }}
+                                        />
+                                    ))}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div className="card chart-card">
+                            <SectionTitle hint="unbudgeted = investments, one-offs">Monthly spending — last 6 months</SectionTitle>
+                            <ResponsiveContainer width="100%" height={260}>
                                 <BarChart
-                                    data={budgetVsActual}
-                                    layout="vertical"
-                                    margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                                    data={data.monthlySpending.map((r) => ({ ...r, label: formatMonthShort(r.month) }))}
+                                    margin={{ top: 8, right: 16, bottom: 0, left: 8 }}
                                 >
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                                    <XAxis type="number" tickFormatter={(v) => `$${v}`} />
+                                    <CartesianGrid stroke={CHART.grid} vertical={false} />
+                                    <XAxis dataKey="label" interval={0} tick={{ fontSize: 12, fill: CHART.axis }} tickLine={false} axisLine={{ stroke: '#CBD5E1' }} />
+                                    <YAxis tickFormatter={compactDollars} tick={{ fontSize: 12, fill: CHART.axis }} tickLine={false} axisLine={false} width={52} />
+                                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v, name) => [formatCurrency(v), name === 'budgeted' ? 'Budgeted' : 'Unbudgeted']} />
+                                    <Legend formatter={(v) => (v === 'budgeted' ? 'Budgeted' : 'Unbudgeted')} />
+                                    <Bar dataKey="budgeted" stackId="spend" fill={CHART.spend} maxBarSize={24} isAnimationActive={false} />
+                                    <Bar dataKey="unbudgeted" stackId="spend" fill={CHART.pace} radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={false} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div className="card chart-card">
+                            <SectionTitle hint={`vs ${formatMonthLabel(shiftYM(month, -1))}`}>Biggest movers</SectionTitle>
+                            {momRows.length === 0 ? (
+                                <p className="text-muted">No meaningful changes from last month.</p>
+                            ) : (
+                                <table className="mom-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th className="text-right">Last month</th>
+                                            <th className="text-right">This month</th>
+                                            <th className="text-right">Change</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {momRows.map((row) => (
+                                            <tr key={row.name}>
+                                                <td>{row.name}</td>
+                                                <td className="text-right amount">{formatCurrency(row.prev)}</td>
+                                                <td className="text-right amount">{formatCurrency(row.curr)}</td>
+                                                <td className={`text-right amount ${row.delta > 0 ? 'delta-up' : 'delta-down'}`}>
+                                                    {formatCurrency(row.delta, { sign: true })}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+
+                        <div className="card chart-card">
+                            <SectionTitle hint="all accounts, including investments and loans">Net worth — last 12 months</SectionTitle>
+                            <ResponsiveContainer width="100%" height={260}>
+                                <LineChart
+                                    data={netWorth.map((r) => ({ ...r, label: formatMonthShort(r.month) }))}
+                                    margin={{ top: 8, right: 16, bottom: 0, left: 8 }}
+                                >
+                                    <CartesianGrid stroke={CHART.grid} vertical={false} />
+                                    <XAxis dataKey="label" interval={0} tick={{ fontSize: 12, fill: CHART.axis }} tickLine={false} axisLine={{ stroke: '#CBD5E1' }} />
                                     <YAxis
-                                        type="category"
-                                        dataKey="name"
-                                        width={75}
-                                        tick={{ fontSize: 12 }}
+                                        tickFormatter={compactDollars}
+                                        tick={{ fontSize: 12, fill: CHART.axis }}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        width={60}
+                                        domain={['auto', 'auto']}
                                     />
-                                    <Tooltip content={<BudgetTooltip />} />
-                                    <Bar dataKey="budget" name="Budget" fill="#94a3b8" radius={[0, 4, 4, 0]} />
-                                    <Bar
-                                        dataKey="actual"
-                                        name="Actual"
-                                        radius={[0, 4, 4, 0]}
-                                        fill="#6366f1"
+                                    <Tooltip
+                                        contentStyle={TOOLTIP_STYLE}
+                                        formatter={(v) => [formatCurrency(v), 'Net worth']}
+                                        labelFormatter={(l, p) => (p?.[0] ? formatMonthLabel(p[0].payload.month) : l)}
                                     />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-                </div>
-
-                {/* Daily Spending - Area Chart (no line overlay to avoid duplicate) */}
-                <div className="chart-card">
-                    <h3>Daily Spending</h3>
-                    {dailySpending.length === 0 ? (
-                        <div className="no-data">No spending data</div>
-                    ) : (
-                        <div className="chart-container">
-                            <ResponsiveContainer width="100%" height={280}>
-                                <AreaChart data={dailySpending} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                                    <XAxis
-                                        dataKey="date"
-                                        tickFormatter={formatShortDate}
-                                        tick={{ fontSize: 10 }}
-                                        interval="preserveStartEnd"
-                                    />
-                                    <YAxis tickFormatter={(v) => `$${v}`} />
-                                    <Tooltip content={<DailyTooltip />} />
-                                    <Area
+                                    <Line
                                         type="monotone"
-                                        dataKey="spending"
-                                        stroke="#f97316"
+                                        dataKey="balance"
+                                        stroke={CHART.netWorth}
                                         strokeWidth={2}
-                                        fill="#fed7aa"
-                                        name="Spending"
+                                        dot={{ r: 3, strokeWidth: 2, stroke: '#fff' }}
+                                        isAnimationActive={false}
+                                        activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff' }}
                                     />
-                                </AreaChart>
+                                </LineChart>
                             </ResponsiveContainer>
                         </div>
-                    )}
-                </div>
-
-                {/* Weekly Expenses - Simple Bar Chart (no income) */}
-                <div className="chart-card">
-                    <h3>Weekly Expenses</h3>
-                    {weeklyExpenses.length === 0 ? (
-                        <div className="no-data">No data for this period</div>
-                    ) : (
-                        <div className="chart-container">
-                            <ResponsiveContainer width="100%" height={280}>
-                                <BarChart data={weeklyExpenses} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                                    <XAxis
-                                        dataKey="period"
-                                        tick={{ fontSize: 11 }}
-                                        tickFormatter={formatWeekLabel}
-                                    />
-                                    <YAxis tickFormatter={(v) => `$${v}`} />
-                                    <Tooltip content={<WeeklyTooltip />} />
-                                    <Bar
-                                        dataKey="expenses"
-                                        name="Expenses"
-                                        fill="#f43f5e"
-                                        radius={[4, 4, 0, 0]}
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Top Expenses Table */}
-            <div className="chart-card top-expenses-card">
-                <h3>Top Expenses</h3>
-                {topExpenses.length === 0 ? (
-                    <div className="no-data">No expenses for this period</div>
-                ) : (
-                    <table className="top-expenses-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Description</th>
-                                <th>Category</th>
-                                <th className="amount-col">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topExpenses.map((expense) => (
-                                <tr key={expense.id}>
-                                    <td className="date-cell">{formatShortDate(expense.date)}</td>
-                                    <td className="desc-cell">{expense.description || '—'}</td>
-                                    <td className="category-cell">
-                                        <IconDisplay icon={expense.icon} className="category-icon" />
-                                        <span>{expense.category}</span>
-                                    </td>
-                                    <td className="amount-cell">{formatCurrency(expense.amount)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
-
-            {/* Coming Soon Banner */}
-            <div className="coming-soon-banner">
-                <div className="banner-icon">🚀</div>
-                <div className="banner-content">
-                    <div className="banner-title">More reports coming soon!</div>
-                    <div className="banner-text">
-                        As your data grows, you'll unlock historical trends, spending forecasts,
-                        and AI-powered budget insights.
                     </div>
-                </div>
-            </div>
+
+                    {/* ===== Month detail: donut + top expenses ===== */}
+                    <div className="charts-grid">
+                        <div className="card chart-card">
+                            <SectionTitle>Where the money went — {formatMonthLabel(month)}</SectionTitle>
+                            <div className="donut-layout">
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <PieChart>
+                                        <Pie
+                                            data={donutData}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            innerRadius={60}
+                                            outerRadius={95}
+                                            paddingAngle={1}
+                                            stroke="#fff"
+                                            strokeWidth={2}
+                                            isAnimationActive={false}
+                                        >
+                                            {donutData.map((entry, i) => (
+                                                <Cell
+                                                    key={entry.name}
+                                                    fill={entry.name === 'Other' ? CHART.other : CHART.series[i % CHART.series.length]}
+                                                />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v, name) => [formatCurrency(v), name]} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <ul className="donut-legend">
+                                    {donutData.map((entry, i) => (
+                                        <li key={entry.name}>
+                                            <span
+                                                className="legend-swatch"
+                                                style={{ background: entry.name === 'Other' ? CHART.other : CHART.series[i % CHART.series.length] }}
+                                            />
+                                            <span className="legend-name">{entry.name}</span>
+                                            <span className="legend-value">{formatCurrency(entry.value)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="card chart-card">
+                            <SectionTitle>Largest expenses — {formatMonthLabel(month)}</SectionTitle>
+                            {topExpenses.length === 0 ? (
+                                <p className="text-muted">No expenses this month.</p>
+                            ) : (
+                                <table className="mom-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Memo</th>
+                                            <th>Category</th>
+                                            <th className="text-right">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {topExpenses.map((e) => (
+                                            <tr key={e.id}>
+                                                <td>{formatShortDate(e.date)}</td>
+                                                <td className="memo-cell">{e.description || '—'}</td>
+                                                <td>{e.category}</td>
+                                                <td className="text-right amount">{formatCurrency(e.amount)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
 import { showToast } from '../components/Toast.jsx';
-import { formatCurrency, formatDate } from '../utils/format.js';
+import { formatCurrency, formatDate, displayCategoryName } from '../utils/format.js';
 import * as api from '../api/client.js';
 import './Transfers.css';
 
@@ -300,7 +300,7 @@ export default function Transfers() {
                                             {transfer.from_category_icon && (
                                                 <img src={transfer.from_category_icon} alt="" className="cell-icon" />
                                             )}
-                                            <span>{transfer.from_category_name || 'Ready to Assign'}</span>
+                                            <span>{displayCategoryName(transfer.from_category_name)}</span>
                                         </div>
                                     </td>
                                     <td className="arrow-cell">→</td>
@@ -309,7 +309,7 @@ export default function Transfers() {
                                             {transfer.to_category_icon && (
                                                 <img src={transfer.to_category_icon} alt="" className="cell-icon" />
                                             )}
-                                            <span>{transfer.to_category_name || 'Ready to Assign'}</span>
+                                            <span>{displayCategoryName(transfer.to_category_name)}</span>
                                         </div>
                                     </td>
                                     <td className="amount">{formatCurrency(transfer.amount)}</td>
@@ -466,7 +466,7 @@ function TransferForm({ categories, onSave, onCancel, transfer }) {
                     >
                         <option value="">Select category</option>
                         {fromCategoryOptions.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            <option key={cat.id} value={cat.id}>{displayCategoryName(cat.name)}</option>
                         ))}
                     </select>
                 </div>
@@ -480,7 +480,7 @@ function TransferForm({ categories, onSave, onCancel, transfer }) {
                     >
                         <option value="">Select category</option>
                         {toCategoryOptions.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            <option key={cat.id} value={cat.id}>{displayCategoryName(cat.name)}</option>
                         ))}
                     </select>
                 </div>

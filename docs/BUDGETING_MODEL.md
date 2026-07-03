@@ -1,25 +1,45 @@
 # Budgeting Model & Debugging Guide
 
 How MoneyWise's envelope math works, and how to debug the two numbers that
-have caused confusion: **Available to Budget (ATB)** and per-category
+have caused confusion: **Ready to Assign** (previously "Available to Budget";
+the system category keeps the old name internally) and per-category
 **carried-forward**. Read this before "fixing" either — most apparent bugs are
 either data-entry choices or the consequences of the identity below.
 
 ## The one identity that governs everything
 
 ```
-on-budget account balances  =  sum of all envelope (category) balances  +  Available to Budget
+on-budget account balances  =  sum of all envelope (category) balances  +  Ready to Assign
 ```
 
-- **on-budget accounts** = spendable accounts you budget from: `type IN ('bank','cash')`.
-  Investment, retirement, credit-card and loan accounts are **off-budget**.
+- **on-budget accounts** = accounts flagged `in_moneypot = 1`: bank and cash, **plus
+  spend-vehicle credit cards**. Investment, retirement and loan accounts are
+  **off-budget**. (The flag is per-account and editable via `PATCH /api/accounts/:id`.)
 - **envelope balance** (per category) = transfers in − transfers out + settled spending
   (spending is stored negative). Money is **fungible** across on-budget accounts — an
   envelope is *not* tied to any one account.
-- **ATB** = on-budget cash that hasn't been assigned to an envelope yet.
+- **Ready to Assign** = on-budget money that hasn't been assigned to an envelope yet.
 
 Computed in [`backend/src/routes/accounts.js`](../backend/src/routes/accounts.js) (`GET /api/accounts/moneypot`):
-`ATB = SUM(on-budget account settled balances) − totalCategoryBalance`.
+`RTA = SUM(on-budget account settled balances) − totalCategoryBalance`, returned with a
+`{liquid, creditCardOwed, allocated}` breakdown that the UI displays.
+
+### Why the credit card is on-budget (2026-07 change)
+
+An envelope releases its money **at swipe time**, but with the card off-budget the cash
+did not leave until the bill was paid weeks later. During that float the formula counted
+the same dollars twice in your favor — once as "spent from the envelope" and again as
+"unassigned cash" — so every card swipe *raised* ATB by phantom money and every CO Bill
+payment produced an unexplained drop. Counting the card's (negative) balance as on-budget
+makes a swipe reduce the pool exactly like a debit purchase (envelope drop and balance
+drop cancel) and makes paying the bill a wash (bank −X, card +X).
+
+**Changelog 2026-07:** CO Venture flagged on-budget; Ready to Assign dropped by the
+outstanding card balance at cutover (−$8,670.88, flipping the display to roughly
+−$5,055 "Over-committed"). This is arithmetically honest: envelopes claimed more than
+on-budget cash net of the card. A negative value means some envelope dollars are backed
+by future income — it is an *allocation* signal, not a "stop spending" signal
+(spending permission always comes from the envelope balances).
 
 ### Categories are not accounts
 
@@ -44,7 +64,7 @@ envelopes stay high while the backing pool shrinks → ATB drops, eventually neg
 ### Debugging checklist
 
 1. Compare the two sides of the identity:
-   - on-budget total: `SUM(settled balance) WHERE type IN ('bank','cash') AND is_hidden=0`
+   - on-budget total: `SUM(settled balance) WHERE in_moneypot=1 AND is_hidden=0`
    - envelope total: `transfersFromATB − transfersToATB + settled spending in user categories`
 2. List each envelope balance (transfers in − out + settled spending). Look for one that's
    surprisingly large — often a **sign error** on an "invest"-style transaction (a `+` that

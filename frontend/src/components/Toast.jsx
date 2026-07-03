@@ -9,6 +9,7 @@ import './Toast.css';
 let listeners = [];
 let nextId = 1;
 
+// eslint-disable-next-line react-refresh/only-export-components -- showToast is the module's API
 export function showToast(message, type = 'error') {
     const toast = { id: nextId++, message, type };
     listeners.forEach((fn) => fn(toast));

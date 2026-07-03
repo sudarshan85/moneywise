@@ -15,8 +15,9 @@ moneywise/
 ├── start.sh              # Main launch script (handles backend + frontend)
 ├── backend/              # Express API server
 │   ├── src/
-│   │   ├── db/          # Database logic (schema.sql, database.js, seed.js)
-│   │   └── routes/      # API endpoints (transactions, categories, backup)
+│   │   ├── db/          # Database logic (schema.sql, database.js)
+│   │   ├── utils/       # Shared helpers (dates.js — local-time date math)
+│   │   └── routes/      # API endpoints (transactions, categories, reports, backup)
 │   ├── package.json
 ├── frontend/             # React SPA (Single Page Application)
 │   ├── src/
@@ -33,7 +34,6 @@ moneywise/
 ## Key Commands
 - **Start App**: `./start.sh` (Starts both servers)
 - **Start App (Fresh)**: `./start.sh --fresh` (Deletes DB & starts fresh)
-- **Start App (Seed)**: `./start.sh --seed` (Populates sample data)
 - **Frontend Dev**: `cd frontend && npm run dev`
 - **Backend Dev**: `cd backend && npm run dev`
 - **Lint**: `npm run lint` (in respective folders)
@@ -42,9 +42,16 @@ moneywise/
 
 ## Architecture & Concepts
 - **Budgeting math**: See `docs/BUDGETING_MODEL.md` for the envelope identity
-  (`on-budget accounts = envelopes + Available to Budget`), why ATB goes negative,
+  (`on-budget accounts = envelopes + Ready to Assign`), why it can go negative,
   how carried-forward is derived, and a debugging checklist. Read it before changing
-  ATB or carried-forward logic.
+  Ready to Assign or carried-forward logic. The UI says "Ready to Assign" but the
+  system category and API route keep their internal names (`Available to Budget`,
+  `GET /api/accounts/moneypot`); use `displayCategoryName()` in
+  `frontend/src/utils/format.js` when rendering.
+- **On-budget accounts** are flagged via `accounts.in_moneypot` (bank, cash, and
+  spend-vehicle credit cards) — not hardcoded by type.
+- **Database mode**: SQLite runs in WAL. `sync-db.sh` checkpoints the remote WAL
+  before copying the file; anything else that raw-copies the DB must do the same.
 - **Data Model**:
   - **Transactions**: Core record. Can be `regular`, `account_transfer`, `balance_adjustment`.
   - **Categories**: Envelopes for budgeting. `is_system=1` for special categories (MoneyPot, Transfer).
@@ -81,5 +88,13 @@ moneywise/
 - **Add System Category**: Update `SYSTEM_CATEGORIES` in `backend/src/db/database.js`.
 - **Backup**: Use `POST /api/backup/import` or `GET /api/backup/export`.
 
-## Disabled Features
-- **Reports Tab**: Commented out in `frontend/src/App.jsx` (import, TABS entry, and TAB_CONTENT entry). The page code (`Reports.jsx`, `Reports.css`) and backend routes (`routes/reports.js`) are fully intact. Disabled pending a redesign that adds month navigation and historical trends. See `FUTURE_WORK.md` for planned future features.
+## Reports
+- The Reports tab is live: month navigation, a daily pulse (spent vs budget pace,
+  safe-to-spend/day), a per-category spending **forecast** (`GET /api/reports/forecast`
+  — fixed bills detected by regularity, variable categories blend a trimmed-mean
+  baseline with current-month pace), 6-month trends, budgeted-vs-unbudgeted monthly
+  bars, and monthly net worth (`/api/reports/balance-history?granularity=month`).
+  Past months render as a "month in review". There is deliberately no
+  income-vs-expenses chart: income is recorded in system categories, so it would
+  always read zero.
+- See `FUTURE_WORK.md` for planned future features.

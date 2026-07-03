@@ -4,7 +4,7 @@ import Configuration from './pages/Configuration.jsx';
 import Transactions from './pages/Transactions.jsx';
 import Transfers from './pages/Transfers.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-// import Reports from './pages/Reports.jsx'; // Commented out — Reports tab disabled pending redesign (see FUTURE_WORK.md)
+import Reports from './pages/Reports.jsx';
 import Login from './pages/Login.jsx';
 import { Toaster } from './components/Toast.jsx';
 import { checkAuthStatus } from './api/client';
@@ -14,7 +14,7 @@ const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'transactions', label: 'Transactions', icon: '💸' },
   { id: 'transfers', label: 'Transfers', icon: '🔄' },
-  // { id: 'reports', label: 'Reports', icon: '📉' }, // Disabled — see FUTURE_WORK.md
+  { id: 'reports', label: 'Reports', icon: '📈' },
   { id: 'config', label: 'Configuration', icon: '⚙️' },
 ];
 
@@ -26,8 +26,8 @@ const TAB_CONTENT = {
   dashboard: Dashboard,
   transactions: Transactions,
   transfers: Transfers,
+  reports: Reports,
   config: Configuration,
-  // reports: Reports, // Disabled — see FUTURE_WORK.md
 };
 
 // Helper to render tab icon (emoji or PNG)

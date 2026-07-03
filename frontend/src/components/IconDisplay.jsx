@@ -1,6 +1,6 @@
 // Icons are stored as either an emoji string ("🍔") or a PNG path ("/icons/burger.png")
 
-export function isEmoji(str) {
+function isEmoji(str) {
     if (!str) return false;
     return !str.startsWith('/') && !str.startsWith('http');
 }
