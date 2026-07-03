@@ -6,6 +6,7 @@ import Transfers from './pages/Transfers.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 // import Reports from './pages/Reports.jsx'; // Commented out — Reports tab disabled pending redesign (see FUTURE_WORK.md)
 import Login from './pages/Login.jsx';
+import { Toaster } from './components/Toast.jsx';
 import { checkAuthStatus } from './api/client';
 
 // Tab configuration - icon can be emoji string or PNG path
@@ -91,17 +92,9 @@ function App() {
   // Show loading state while checking auth
   if (isAuthenticated === null) {
     return (
-      <div className="login-container" style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)'
-      }}>
-        <div style={{ textAlign: 'center', color: '#fff' }}>
-          <img src="/icons/moneywise_icon.png" alt="MoneyWise" style={{ width: 80, height: 80, marginBottom: 16 }} />
-          <div>Loading...</div>
-        </div>
+      <div className="app-splash">
+        <img src="/icons/moneywise_icon.png" alt="MoneyWise" className="app-splash-logo" />
+        <div>Loading…</div>
       </div>
     );
   }
@@ -140,6 +133,8 @@ function App() {
         {/* Active Tab Content */}
         <ActivePage />
       </main>
+
+      <Toaster />
     </div>
   );
 }

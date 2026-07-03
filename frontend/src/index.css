@@ -1,4 +1,4 @@
-/* 💰 MoneyWise Design System */
+/* 💰 MoneyWise Design System — light theme, honey-gold brand */
 
 /* ===== CSS Variables ===== */
 :root {
@@ -37,10 +37,13 @@
   --border-light: #E2E8F0;
   --border-medium: #CBD5E1;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  /* Shadows (soft, slate-tinted) */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 2px 8px -2px rgba(15, 23, 42, 0.1), 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 32px -8px rgba(15, 23, 42, 0.18), 0 4px 8px -4px rgba(15, 23, 42, 0.08);
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 3px rgba(245, 166, 35, 0.35);
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -58,7 +61,7 @@
   --radius-full: 9999px;
 
   /* Typography */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
@@ -103,11 +106,35 @@ body {
   flex-direction: column;
 }
 
+/* Keyboard focus is always visible; mouse clicks stay clean */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
 /* ===== App Layout ===== */
 .app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+/* Boot splash while auth status loads */
+.app-splash {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  color: var(--text-secondary);
+  background: linear-gradient(160deg, #FFF7E6 0%, var(--bg-secondary) 60%);
+}
+
+.app-splash-logo {
+  width: 80px;
+  height: 80px;
 }
 
 .app-header {
@@ -117,12 +144,16 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .app-header h1 {
   color: var(--text-primary);
   font-size: var(--font-size-2xl);
   font-weight: 700;
+  letter-spacing: -0.01em;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -132,40 +163,6 @@ body {
   height: 32px;
   width: 32px;
   object-fit: contain;
-}
-
-/* MoneyPot Balance Display in Header */
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.moneypot-display {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.95));
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.moneypot-label {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.moneypot-balance {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #4ADE80;
-  font-variant-numeric: tabular-nums;
-}
-
-.moneypot-balance.negative {
-  color: #F87171;
 }
 
 /* ===== Tab Navigation ===== */
@@ -195,6 +192,7 @@ body {
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
+  font-family: inherit;
   font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text-secondary);
@@ -212,6 +210,7 @@ body {
   background: var(--honey-gold);
   color: var(--text-primary);
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 .tab-button .emoji {
@@ -257,13 +256,15 @@ body {
   gap: var(--space-sm);
 }
 
-/* ===== Buttons ===== */
+/* ===== Buttons =====
+   The full button system lives here (not in component CSS). */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  padding: 0.6rem 1.1rem;
+  font-family: inherit;
   font-size: var(--font-size-sm);
   font-weight: 500;
   border-radius: var(--radius-md);
@@ -272,14 +273,32 @@ body {
   transition: all var(--transition-fast);
 }
 
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-primary {
   background: var(--honey-gold);
   color: var(--text-primary);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--honey-dark);
   color: var(--text-inverse);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--border-light);
 }
 
 .btn-success {
@@ -287,7 +306,7 @@ body {
   color: var(--text-inverse);
 }
 
-.btn-success:hover {
+.btn-success:hover:not(:disabled) {
   background: var(--color-income-light);
 }
 
@@ -296,8 +315,10 @@ body {
   color: var(--text-inverse);
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(:disabled) {
   background: var(--color-expense-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .btn-ghost {
@@ -305,9 +326,14 @@ body {
   color: var(--text-secondary);
 }
 
-.btn-ghost:hover {
+.btn-ghost:hover:not(:disabled) {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+}
+
+.btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: var(--font-size-xs);
 }
 
 /* ===== Forms ===== */
@@ -327,6 +353,7 @@ body {
 .form-select {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
+  font-family: inherit;
   font-size: var(--font-size-base);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
@@ -339,7 +366,7 @@ body {
 .form-select:focus {
   outline: none;
   border-color: var(--honey-gold);
-  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2);
+  box-shadow: var(--focus-ring);
 }
 
 /* ===== Tables ===== */
@@ -490,4 +517,28 @@ body {
 
 .mb-md {
   margin-bottom: var(--space-md);
+}
+
+/* ===== Responsive shell ===== */
+@media (max-width: 640px) {
+  .app-header {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .app-header h1 {
+    font-size: var(--font-size-xl);
+  }
+
+  .app-logo {
+    height: 26px;
+    width: 26px;
+  }
+
+  .tab-nav {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .main-content {
+    padding: var(--space-md);
+  }
 }

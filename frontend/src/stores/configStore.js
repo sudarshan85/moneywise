@@ -45,8 +45,6 @@ export const useConfigStore = create((set, get) => ({
                 accounts: state.accounts.map((a) => (a.id === id ? account : a)),
                 isLoading: false,
             }));
-            // Trigger refresh of Available to Budget in header
-            window.dispatchEvent(new CustomEvent('moneywise:refresh-balance'));
             return account;
         } catch (error) {
             set({ error: error.message, isLoading: false });
