@@ -195,15 +195,8 @@ export default function Transfers() {
         <div className="transfers-page">
             {/* Ready to Assign Display */}
             <div className="available-to-budget-banner">
-                <div>
-                    <div className="atb-label">
-                        {isOverCommitted ? 'Over-committed' : 'Ready to Assign'}
-                    </div>
-                    {moneyPot && (
-                        <div className="atb-breakdown">
-                            {formatCurrency(moneyPot.liquid)} liquid − {formatCurrency(moneyPot.creditCardOwed)} card owed − {formatCurrency(moneyPot.allocated)} in envelopes
-                        </div>
-                    )}
+                <div className="atb-label">
+                    {isOverCommitted ? 'Over-committed' : 'Ready to Assign'}
                 </div>
                 <div className={`atb-value ${isOverCommitted ? 'negative' : ''}`}>
                     {readyToAssign !== null ? formatCurrency(readyToAssign) : '—'}

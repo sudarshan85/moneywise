@@ -136,7 +136,6 @@ function CategoryCard({ category, isExpanded, onToggle, categoryDetails }) {
 // ==================== MAIN DASHBOARD ====================
 export default function Dashboard() {
     const [dashboardData, setDashboardData] = useState(null);
-    const [moneyPot, setMoneyPot] = useState(null);
     const [expandedCardId, setExpandedCardId] = useState(null);
     const [cardTransactions, setCardTransactions] = useState({});
     const [loading, setLoading] = useState(true);
@@ -147,12 +146,8 @@ export default function Dashboard() {
         async function fetchData() {
             try {
                 setLoading(true);
-                const [data, pot] = await Promise.all([
-                    api.getDashboardData(),
-                    api.getMoneyPotBalance(),
-                ]);
+                const data = await api.getDashboardData();
                 setDashboardData(data);
-                setMoneyPot(pot);
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -213,24 +208,10 @@ export default function Dashboard() {
     // Count over-budget categories
     const overBudgetCount = categories.filter(c => c.available < 0).length;
 
-    const readyToAssign = moneyPot?.balance ?? 0;
-    const isOverCommitted = readyToAssign < 0;
-
     return (
         <div className="dashboard">
             {/* Budget Overview Cards */}
             <div className="budget-overview">
-                {moneyPot && (
-                    <div className={`overview-card ready-to-assign ${isOverCommitted ? 'negative' : ''}`}>
-                        <div className="overview-label">
-                            {isOverCommitted ? 'Over-committed' : 'Ready to Assign'}
-                        </div>
-                        <div className="overview-value">{formatCurrency(Math.abs(readyToAssign))}</div>
-                        <div className="overview-hint">
-                            {formatCurrency(moneyPot.liquid)} liquid − {formatCurrency(moneyPot.creditCardOwed)} card − {formatCurrency(moneyPot.allocated)} in envelopes
-                        </div>
-                    </div>
-                )}
                 <div className="overview-card income">
                     <div className="overview-label">Monthly Income</div>
                     <div className="overview-value">{formatCurrency(monthlyIncome)}</div>

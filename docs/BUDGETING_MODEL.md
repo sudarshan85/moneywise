@@ -22,7 +22,7 @@ on-budget account balances  =  sum of all envelope (category) balances  +  Ready
 
 Computed in [`backend/src/routes/accounts.js`](../backend/src/routes/accounts.js) (`GET /api/accounts/moneypot`):
 `RTA = SUM(on-budget account settled balances) − totalCategoryBalance`, returned with a
-`{liquid, creditCardOwed, allocated}` breakdown that the UI displays.
+`{liquid, creditCardOwed, allocated}` breakdown (kept in the API for debugging).
 
 ### Why the credit card is on-budget (2026-07 change)
 

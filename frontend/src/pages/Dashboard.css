@@ -79,25 +79,6 @@
     background: linear-gradient(90deg, #F59E0B, #FBBF24);
 }
 
-.overview-card.ready-to-assign::before {
-    background: linear-gradient(90deg, var(--honey-gold), var(--honey-light));
-}
-
-.overview-card.ready-to-assign.negative::before {
-    background: linear-gradient(90deg, #EF4444, #F87171);
-}
-
-.overview-card.ready-to-assign.negative .overview-value {
-    color: var(--color-expense);
-}
-
-.overview-hint {
-    margin-top: var(--space-xs);
-    font-size: var(--font-size-xs);
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-}
-
 .pending-count {
     color: #D97706;
 }
