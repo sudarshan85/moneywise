@@ -1,23 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
+import { showToast } from '../components/Toast.jsx';
+import { formatCurrency, formatDate } from '../utils/format.js';
 import * as api from '../api/client.js';
 import './Transfers.css';
-
-// Format currency
-function formatCurrency(amount) {
-    return amount.toLocaleString('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    });
-}
-
-// Format date for display
-function formatDate(dateString) {
-    if (!dateString) return '—';
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
 
 // Get today's date in YYYY-MM-DD format (using local timezone)
 function getTodayDate() {
@@ -42,7 +29,7 @@ export default function Transfers() {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [isFunding, setIsFunding] = useState(false);
     const [lastFundDate, setLastFundDate] = useState(null);
-    const [availableToBudget, setAvailableToBudget] = useState(null);
+    const [moneyPot, setMoneyPot] = useState(null);
 
     // Pagination state
     const [pageSize, setPageSize] = useState(50);
@@ -60,13 +47,13 @@ export default function Transfers() {
         loadLastFundDate();
     }, []);
 
-    // Load Available to Budget
+    // Load Ready to Assign (with its liquid/card/allocated breakdown)
     const loadAvailableToBudget = async () => {
         try {
             const data = await api.getMoneyPotBalance();
-            setAvailableToBudget(data.balance);
+            setMoneyPot(data);
         } catch (err) {
-            console.error('Failed to fetch Available to Budget:', err);
+            console.error('Failed to fetch Ready to Assign:', err);
         }
     };
 
@@ -189,8 +176,6 @@ export default function Transfers() {
                 if (result.last_fund_date) {
                     setLastFundDate(result.last_fund_date);
                 }
-                // Refresh Available to Budget in header
-                window.dispatchEvent(new CustomEvent('moneywise:refresh-balance'));
             }
             // Show summary if nothing was created
             if (result.created.length === 0) {
@@ -203,13 +188,25 @@ export default function Transfers() {
         }
     };
 
+    const readyToAssign = moneyPot?.balance ?? null;
+    const isOverCommitted = readyToAssign !== null && readyToAssign < 0;
+
     return (
         <div className="transfers-page">
-            {/* Available to Budget Display */}
+            {/* Ready to Assign Display */}
             <div className="available-to-budget-banner">
-                <div className="atb-label">Available to Budget</div>
-                <div className={`atb-value ${availableToBudget !== null && availableToBudget < 0 ? 'negative' : ''}`}>
-                    {availableToBudget !== null ? formatCurrency(availableToBudget) : '—'}
+                <div>
+                    <div className="atb-label">
+                        {isOverCommitted ? 'Over-committed' : 'Ready to Assign'}
+                    </div>
+                    {moneyPot && (
+                        <div className="atb-breakdown">
+                            {formatCurrency(moneyPot.liquid)} liquid − {formatCurrency(moneyPot.creditCardOwed)} card owed − {formatCurrency(moneyPot.allocated)} in envelopes
+                        </div>
+                    )}
+                </div>
+                <div className={`atb-value ${isOverCommitted ? 'negative' : ''}`}>
+                    {readyToAssign !== null ? formatCurrency(readyToAssign) : '—'}
                 </div>
             </div>
 
@@ -303,7 +300,7 @@ export default function Transfers() {
                                             {transfer.from_category_icon && (
                                                 <img src={transfer.from_category_icon} alt="" className="cell-icon" />
                                             )}
-                                            <span>{transfer.from_category_name || 'Available to Budget'}</span>
+                                            <span>{transfer.from_category_name || 'Ready to Assign'}</span>
                                         </div>
                                     </td>
                                     <td className="arrow-cell">→</td>
@@ -312,7 +309,7 @@ export default function Transfers() {
                                             {transfer.to_category_icon && (
                                                 <img src={transfer.to_category_icon} alt="" className="cell-icon" />
                                             )}
-                                            <span>{transfer.to_category_name || 'Available to Budget'}</span>
+                                            <span>{transfer.to_category_name || 'Ready to Assign'}</span>
                                         </div>
                                     </td>
                                     <td className="amount">{formatCurrency(transfer.amount)}</td>
@@ -323,6 +320,7 @@ export default function Transfers() {
                                                 className="action-btn"
                                                 onClick={() => setEditingTransfer(transfer)}
                                                 title="Edit"
+                                                aria-label={`Edit transfer of ${formatCurrency(transfer.amount)}`}
                                             >
                                                 ✏️
                                             </button>
@@ -330,6 +328,7 @@ export default function Transfers() {
                                                 className="action-btn delete"
                                                 onClick={() => setDeleteConfirm(transfer)}
                                                 title="Delete"
+                                                aria-label={`Delete transfer of ${formatCurrency(transfer.amount)}`}
                                             >
                                                 🗑️
                                             </button>
@@ -426,7 +425,7 @@ function TransferForm({ categories, onSave, onCancel, transfer }) {
         e.preventDefault();
 
         if (formData.from_category_id === formData.to_category_id) {
-            alert('Cannot transfer to the same category');
+            showToast('Cannot transfer to the same category');
             return;
         }
 
@@ -507,7 +506,7 @@ function TransferForm({ categories, onSave, onCancel, transfer }) {
                     value={formData.memo}
                     onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
                     placeholder="Why are you moving this money?"
-                    maxLength={30}
+                    maxLength={80}
                 />
             </div>
 

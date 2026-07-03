@@ -22,18 +22,18 @@
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
-    color: var(--text-muted, #888);
+    color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 .show-hidden-toggle input {
     width: 18px;
     height: 18px;
-    accent-color: var(--accent-color, #7c3aed);
+    accent-color: var(--honey-gold);
 }
 
 .show-hidden-toggle:hover {
-    color: var(--text-color, #fff);
+    color: var(--text-primary);
 }
 
 .header-right {
@@ -50,12 +50,16 @@
 }
 
 .monthly-income-field label {
-    color: var(--text-muted, #888);
+    color: var(--text-secondary);
 }
 
 .monthly-income-field .income-value {
-    color: #22c55e;
+    color: var(--color-income);
+    font-family: inherit;
+    font-size: inherit;
     font-weight: 600;
+    background: none;
+    border: none;
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
@@ -63,32 +67,32 @@
 }
 
 .monthly-income-field .income-value:hover {
-    background: rgba(34, 197, 94, 0.1);
+    background: var(--color-income-bg);
 }
 
 .monthly-income-field .income-input {
     width: 100px;
     padding: 0.25rem 0.5rem;
-    border: 2px solid var(--accent-color, #7c3aed);
+    border: 2px solid var(--honey-gold);
     border-radius: 4px;
-    background: #fff;
-    color: #1e293b;
+    background: var(--bg-card);
+    color: var(--text-primary);
     font-size: 0.9rem;
     font-weight: 600;
 }
 
 .monthly-income-field .income-input:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    box-shadow: var(--focus-ring);
 }
 
 /* Error banner */
 .error-banner {
-    background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+    background: var(--color-expense-bg);
     border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
+    color: var(--color-expense);
     padding: 1rem 1.5rem;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     margin-bottom: 1.5rem;
     display: flex;
     justify-content: space-between;
@@ -114,9 +118,9 @@
     display: flex;
     gap: 0.5rem;
     margin-bottom: 2rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-tertiary);
     padding: 0.5rem;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     width: fit-content;
 }
 
@@ -124,22 +128,25 @@
     padding: 0.75rem 1.5rem;
     border: none;
     background: transparent;
-    color: var(--text-muted, #888);
+    color: var(--text-secondary);
+    font-family: inherit;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     transition: all 0.2s ease;
 }
 
 .config-tabs .tab:hover {
-    color: var(--text-color, #fff);
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    background: var(--bg-card);
 }
 
 .config-tabs .tab.active {
-    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-    color: white;
+    background: var(--honey-gold);
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
 }
 
 /* Section headers */
@@ -148,6 +155,10 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
+}
+
+.section-header-spaced {
+    margin-top: 2rem;
 }
 
 .section-header h2 {
@@ -162,16 +173,16 @@
 .count-badge {
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--text-muted, #94A3B8);
+    color: var(--text-muted);
 }
 
 .budget-count-badge {
     font-size: 0.75rem;
     font-weight: 500;
-    color: #22c55e;
-    background: rgba(34, 197, 94, 0.15);
+    color: var(--color-income);
+    background: var(--color-income-bg);
     padding: 0.25rem 0.75rem;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     margin-left: 0.75rem;
 }
 
@@ -184,20 +195,21 @@
 
 /* Item card */
 .item-card {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
     padding: 1.25rem;
     display: flex;
     align-items: center;
     gap: 1rem;
+    box-shadow: var(--shadow-sm);
     transition: all 0.2s ease;
 }
 
 .item-card:hover {
-    border-color: rgba(124, 58, 237, 0.4);
+    border-color: var(--honey-gold);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-md);
 }
 
 .item-icon {
@@ -207,20 +219,20 @@
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
     flex-shrink: 0;
 }
 
 /* Archived item styling */
 .item-card.archived-item {
-    opacity: 0.5;
+    opacity: 0.55;
     border-style: dashed;
-    background: linear-gradient(145deg, rgba(100, 100, 100, 0.08) 0%, rgba(100, 100, 100, 0.03) 100%);
+    background: var(--bg-secondary);
 }
 
 .item-card.archived-item:hover {
-    opacity: 0.7;
+    opacity: 0.75;
 }
 
 /* Archive toggle button */
@@ -228,35 +240,35 @@
     background: transparent;
     border: none;
     font-size: 1.25rem;
-    color: var(--text-muted, #888);
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     transition: all 0.2s ease;
     opacity: 0.6;
 }
 
 .archive-toggle:hover {
-    background: rgba(124, 58, 237, 0.15);
-    color: #a855f7;
+    background: rgba(245, 166, 35, 0.15);
+    color: var(--honey-dark);
     opacity: 1;
 }
 
 .archive-toggle.is-archived {
-    color: #f59e0b;
+    color: var(--color-pending);
     opacity: 0.8;
 }
 
 .archive-toggle.is-archived:hover {
-    background: rgba(245, 158, 11, 0.15);
+    background: var(--color-pending-bg);
     opacity: 1;
 }
 
 /* Archived badge */
 .archived-badge {
     display: inline-block;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(251, 191, 36, 0.1) 100%);
-    color: #fbbf24;
+    background: var(--color-pending-bg);
+    color: var(--honey-dark);
     padding: 0.15rem 0.5rem;
     border-radius: 4px;
     font-size: 0.65rem;
@@ -306,13 +318,13 @@
 
 .item-type {
     font-size: 0.85rem;
-    color: var(--text-muted, #888);
+    color: var(--text-secondary);
 }
 
 .monthly-amount {
     display: block;
     font-size: 0.85rem;
-    color: #22c55e;
+    color: var(--color-income);
     margin-top: 0.25rem;
 }
 
@@ -346,10 +358,10 @@
     background: transparent;
     border: none;
     font-size: 1.25rem;
-    color: var(--text-muted, #888);
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 0.5rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     transition: all 0.2s ease;
     line-height: 1;
     min-width: 32px;
@@ -360,18 +372,18 @@
 }
 
 .menu-trigger:hover {
-    background: rgba(0, 0, 0, 0.1);
-    color: var(--text-color, #fff);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 .menu-dropdown {
     position: absolute;
     top: 100%;
     right: 0;
-    background: var(--bg-card, #fff);
-    border: 1px solid var(--border-light, #e2e8f0);
-    border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
     min-width: 160px;
     z-index: 1000;
     overflow: hidden;
@@ -385,19 +397,20 @@
     padding: 0.75rem 1rem;
     background: transparent;
     border: none;
+    font-family: inherit;
     font-size: 0.9rem;
-    color: var(--text-primary, #1e293b);
+    color: var(--text-primary);
     cursor: pointer;
     text-align: left;
     transition: background 0.15s ease;
 }
 
 .menu-dropdown button:hover {
-    background: var(--bg-tertiary, #f1f5f9);
+    background: var(--bg-tertiary);
 }
 
 .menu-dropdown button:not(:last-child) {
-    border-bottom: 1px solid var(--border-light, #e2e8f0);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .menu-dropdown button img {
@@ -407,11 +420,11 @@
 }
 
 .menu-dropdown button.danger {
-    color: #ef4444;
+    color: var(--color-expense);
 }
 
 .menu-dropdown button.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--color-expense-bg);
 }
 
 /* Empty state */
@@ -419,9 +432,9 @@
     grid-column: 1 / -1;
     text-align: center;
     padding: 4rem 2rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 2px dashed rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
+    background: var(--bg-secondary);
+    border: 2px dashed var(--border-medium);
+    border-radius: var(--radius-lg);
 }
 
 .empty-icon {
@@ -431,7 +444,7 @@
 }
 
 .empty-state p {
-    color: var(--text-muted, #888);
+    color: var(--text-muted);
     margin: 0;
 }
 
@@ -454,20 +467,20 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(124, 58, 237, 0.2);
-    border: 1px solid rgba(124, 58, 237, 0.3);
+    background: rgba(245, 166, 35, 0.12);
+    border: 1px solid rgba(245, 166, 35, 0.3);
     padding: 0.5rem 1rem;
-    border-radius: 999px;
+    border-radius: var(--radius-full);
     font-size: 0.9rem;
 }
 
 .group-chip span:first-child {
-    color: #a855f7;
+    color: var(--honey-dark);
     font-weight: 500;
 }
 
 .no-groups {
-    color: var(--text-muted, #888);
+    color: var(--text-muted);
     font-size: 0.9rem;
     font-style: italic;
 }
@@ -480,15 +493,15 @@
 .group-title {
     font-size: 1rem;
     font-weight: 600;
-    color: var(--text-muted, #aaa);
+    color: var(--text-secondary);
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-light);
 }
 
 /* History */
 .no-history {
-    color: var(--text-muted, #888);
+    color: var(--text-muted);
     text-align: center;
     padding: 2rem;
 }
@@ -504,8 +517,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
 }
 
 .history-change {
@@ -515,21 +528,21 @@
 }
 
 .old-name {
-    color: #f87171;
+    color: var(--color-expense);
     text-decoration: line-through;
 }
 
 .arrow {
-    color: var(--text-muted, #888);
+    color: var(--text-muted);
 }
 
 .new-name {
-    color: #4ade80;
+    color: var(--color-income);
 }
 
 .history-date {
     font-size: 0.85rem;
-    color: var(--text-muted, #888);
+    color: var(--text-muted);
 }
 
 /* Settings section */
@@ -544,9 +557,9 @@
 }
 
 .setting-item {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
     padding: 1.25rem;
 }
 
@@ -554,26 +567,26 @@
     display: block;
     font-weight: 600;
     margin-bottom: 0.5rem;
-    color: var(--text-color, #fff);
+    color: var(--text-primary);
 }
 
 .setting-value {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--bg-tertiary);
     padding: 0.75rem 1rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-bottom: 0.5rem;
 }
 
 .setting-value code {
     font-family: 'Fira Code', monospace;
     font-size: 0.9rem;
-    color: #a5b4fc;
+    color: var(--honey-dark);
     word-break: break-all;
 }
 
 .setting-hint {
     font-size: 0.85rem;
-    color: var(--text-muted, #888);
+    color: var(--text-muted);
     margin: 0;
 }
 
@@ -589,24 +602,26 @@
 
 /* Setting groups */
 .setting-group {
-    background: rgba(0, 0, 0, 0.02);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
     padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
 }
 
 .setting-group h3 {
     margin: 0 0 1rem 0;
     font-size: 1rem;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text-primary);
 }
 
 .setting-group .setting-item {
     background: transparent;
     border: none;
     padding: 1rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid var(--border-light);
+    border-radius: 0;
 }
 
 .setting-group .setting-item:last-child {
@@ -619,7 +634,7 @@
 }
 
 .setting-group .setting-item label {
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .setting-input-row {
@@ -632,18 +647,18 @@
 .setting-number-input {
     width: 80px;
     padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: #fff;
-    color: #1e293b;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    color: var(--text-primary);
     font-size: 0.9rem;
     text-align: center;
 }
 
 .setting-number-input:focus {
     outline: none;
-    border-color: #7c3aed;
-    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+    border-color: var(--honey-gold);
+    box-shadow: var(--focus-ring);
 }
 
 /* Hide spinners */
@@ -660,14 +675,14 @@
 
 .setting-unit {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--text-secondary);
 }
 
 /* Checkbox group in forms */
 .checkbox-group {
-    background: rgba(124, 58, 237, 0.1);
-    border: 1px solid rgba(124, 58, 237, 0.2);
-    border-radius: 8px;
+    background: rgba(245, 166, 35, 0.08);
+    border: 1px solid rgba(245, 166, 35, 0.25);
+    border-radius: var(--radius-md);
     padding: 0.75rem 1rem;
 }
 
@@ -682,7 +697,7 @@
 .checkbox-label input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    accent-color: #7c3aed;
+    accent-color: var(--honey-gold);
 }
 
 .checkbox-group .form-hint {
@@ -693,14 +708,14 @@
 
 /* System category card */
 .item-card.system-item {
-    background: linear-gradient(145deg, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%);
-    border: 1px solid rgba(124, 58, 237, 0.3);
+    background: rgba(245, 166, 35, 0.06);
+    border: 1px solid rgba(245, 166, 35, 0.3);
 }
 
 .system-badge {
     display: inline-block;
-    background: rgba(124, 58, 237, 0.3);
-    color: #a78bfa;
+    background: rgba(245, 166, 35, 0.18);
+    color: var(--honey-dark);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.75rem;

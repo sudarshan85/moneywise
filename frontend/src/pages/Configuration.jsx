@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
+import { showToast } from '../components/Toast.jsx';
+import { IconDisplay } from '../components/IconDisplay.jsx';
 import IconPicker from '../components/IconPicker.jsx';
 import * as api from '../api/client.js';
 import './Configuration.css';
@@ -22,22 +24,6 @@ const DEFAULT_ICONS = {
     hide: '/icons/hide.png',
     edit: '/icons/edit.png',
 };
-
-// Helper to check if icon is an emoji vs image path
-function isEmoji(str) {
-    if (!str) return false;
-    // Check if string starts with / (path) or contains typical emoji unicode ranges
-    return !str.startsWith('/') && !str.startsWith('http');
-}
-
-// Render icon - handles both emoji and image paths
-function IconDisplay({ icon, fallback, className = 'custom-icon' }) {
-    const iconSrc = icon || fallback;
-    if (isEmoji(iconSrc)) {
-        return <span className={`${className} emoji-icon`}>{iconSrc}</span>;
-    }
-    return <img src={iconSrc} alt="" className={className} />;
-}
 
 export default function Configuration() {
     const {
@@ -214,13 +200,15 @@ export default function Configuration() {
                                 className="income-input"
                             />
                         ) : (
-                            <span
+                            <button
+                                type="button"
                                 className="income-value"
                                 onClick={() => setIsEditingIncome(true)}
                                 title="Click to edit"
+                                aria-label="Edit monthly income"
                             >
                                 ${parseFloat(monthlyIncome || 0).toLocaleString()}
-                            </span>
+                            </button>
                         )}
                     </div>
                     <label className="show-hidden-toggle">
@@ -321,7 +309,7 @@ export default function Configuration() {
                         </div>
 
                         {/* User Categories */}
-                        <div className="section-header" style={{ marginTop: '2rem' }}>
+                        <div className="section-header section-header-spaced">
                             <h2>
                                 <img src={DEFAULT_ICONS.category} alt="" className="section-icon" />
                                 Categories <span className="count-badge">({userCategories.length})</span>
@@ -439,7 +427,7 @@ export default function Configuration() {
                                                 a.click();
                                                 URL.revokeObjectURL(url);
                                             } catch (err) {
-                                                alert('Export failed: ' + err.message);
+                                                showToast('Export failed: ' + err.message);
                                             }
                                         }}
                                     >
@@ -458,10 +446,10 @@ export default function Configuration() {
                                                     const text = await file.text();
                                                     const data = JSON.parse(text);
                                                     const result = await api.importBackup(data);
-                                                    alert(result.message);
+                                                    showToast(result.message, 'success');
                                                     fetchAll();
                                                 } catch (err) {
-                                                    alert('Import failed: ' + err.message);
+                                                    showToast('Import failed: ' + err.message);
                                                 }
                                                 e.target.value = '';
                                             }}
@@ -699,9 +687,17 @@ function CategoryCard({ category, onEdit, onToggleHidden, onDelete, onShowHistor
         <div
             className={`item-card clickable ${category.is_hidden ? 'archived-item' : ''}`}
             onClick={onEdit}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onEdit();
+                }
+            }}
+            role="button"
+            tabIndex={0}
         >
             <div className="item-icon">
-                <IconDisplay icon={category.icon} fallback="/icons/cat.png" />
+                <IconDisplay icon={category.icon} fallback="/icons/cat.png" className="custom-icon" />
             </div>
             <div className="item-info">
                 <h3>

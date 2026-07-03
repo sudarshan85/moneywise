@@ -13,6 +13,15 @@ export function formatCurrency(amount, { sign = false } = {}) {
     return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
+// Format a Date as 'YYYY-MM-DD' using LOCAL time. toISOString() would shift
+// to UTC and can land on the wrong day near midnight.
+export function formatYMD(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 // Parse 'YYYY-MM-DD' as a LOCAL date. new Date('YYYY-MM-DD') would parse as
 // UTC midnight and display the previous day in western timezones.
 export function parseLocalDate(dateStr) {

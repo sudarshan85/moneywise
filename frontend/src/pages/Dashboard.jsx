@@ -1,48 +1,8 @@
 import { useEffect, useState } from 'react';
 import * as api from '../api/client.js';
+import { IconDisplay } from '../components/IconDisplay.jsx';
+import { formatCurrency, formatDate } from '../utils/format.js';
 import './Dashboard.css';
-
-// Helper to check if icon is an emoji vs image path
-function isEmoji(str) {
-    if (!str) return false;
-    return !str.startsWith('/') && !str.startsWith('http');
-}
-
-// Render icon - handles both emoji and image paths
-function IconDisplay({ icon, fallback, className = 'icon' }) {
-    const iconSrc = icon || fallback;
-    if (isEmoji(iconSrc)) {
-        return <span className={`${className} emoji-icon`}>{iconSrc}</span>;
-    }
-    return <img src={iconSrc} alt="" className={className} />;
-}
-
-// Format currency
-function formatCurrency(amount) {
-    if (amount === null || amount === undefined) return '—';
-    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-}
-
-// Format pending amount with explicit +/- sign before dollar sign
-function formatPendingAmount(amount) {
-    if (amount === null || amount === undefined) return '—';
-    const absFormatted = Math.abs(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-    if (amount >= 0) {
-        return `+${absFormatted}`;
-    }
-    return `-${absFormatted}`;
-}
-
-// Format date for display
-function formatDate(dateStr) {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-}
 
 // Alert component for over-budget categories
 function OverBudgetAlert({ count }) {
@@ -76,7 +36,20 @@ function CategoryCard({ category, isExpanded, onToggle, categoryDetails }) {
 
     return (
         <div className={`category-card ${cardState} ${isExpanded ? 'expanded' : ''}`}>
-            <div className="card-main" onClick={onToggle}>
+            <div
+                className="card-main"
+                onClick={onToggle}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onToggle();
+                    }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                aria-label={`${name}, ${formatCurrency(available)} remaining`}
+            >
                 <div className="card-header">
                     <div className="card-icon">
                         <IconDisplay icon={icon} fallback="📦" className="category-icon-large" />
@@ -163,6 +136,7 @@ function CategoryCard({ category, isExpanded, onToggle, categoryDetails }) {
 // ==================== MAIN DASHBOARD ====================
 export default function Dashboard() {
     const [dashboardData, setDashboardData] = useState(null);
+    const [moneyPot, setMoneyPot] = useState(null);
     const [expandedCardId, setExpandedCardId] = useState(null);
     const [cardTransactions, setCardTransactions] = useState({});
     const [loading, setLoading] = useState(true);
@@ -173,8 +147,12 @@ export default function Dashboard() {
         async function fetchData() {
             try {
                 setLoading(true);
-                const data = await api.getDashboardData();
+                const [data, pot] = await Promise.all([
+                    api.getDashboardData(),
+                    api.getMoneyPotBalance(),
+                ]);
                 setDashboardData(data);
+                setMoneyPot(pot);
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -229,35 +207,30 @@ export default function Dashboard() {
 
     const { monthlyIncome, monthlySpent, pendingCount, categories, assets, liabilities, lastReconciled } = dashboardData;
 
-    // Custom asset ordering
-    const assetOrder = [
-        '360 Checking',
-        'RH Savings',
-        'RH Investment',
-        'HSA',
-        'RH Roth Savings',
-        'RH Roth Investment',
-        '401(k)'
-    ];
-    const sortedAssets = [...assets].sort((a, b) => {
-        const aIndex = assetOrder.indexOf(a.name);
-        const bIndex = assetOrder.indexOf(b.name);
-        // If both are in the order list, sort by that order
-        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-        // If only one is in the list, that one comes first
-        if (aIndex !== -1) return -1;
-        if (bIndex !== -1) return 1;
-        // Otherwise sort alphabetically
-        return a.name.localeCompare(b.name);
-    });
+    // Account order comes from the server (user-managed sort_order)
+    const sortedAssets = assets;
 
     // Count over-budget categories
     const overBudgetCount = categories.filter(c => c.available < 0).length;
+
+    const readyToAssign = moneyPot?.balance ?? 0;
+    const isOverCommitted = readyToAssign < 0;
 
     return (
         <div className="dashboard">
             {/* Budget Overview Cards */}
             <div className="budget-overview">
+                {moneyPot && (
+                    <div className={`overview-card ready-to-assign ${isOverCommitted ? 'negative' : ''}`}>
+                        <div className="overview-label">
+                            {isOverCommitted ? 'Over-committed' : 'Ready to Assign'}
+                        </div>
+                        <div className="overview-value">{formatCurrency(Math.abs(readyToAssign))}</div>
+                        <div className="overview-hint">
+                            {formatCurrency(moneyPot.liquid)} liquid − {formatCurrency(moneyPot.creditCardOwed)} card − {formatCurrency(moneyPot.allocated)} in envelopes
+                        </div>
+                    </div>
+                )}
                 <div className="overview-card income">
                     <div className="overview-label">Monthly Income</div>
                     <div className="overview-value">{formatCurrency(monthlyIncome)}</div>
@@ -308,7 +281,7 @@ export default function Dashboard() {
                                                 </span>
                                                 {hasPending && (
                                                     <span className={`pending-inline ${acc.pendingBalance >= 0 ? 'inflow' : 'outflow'}`}>
-                                                        ({formatPendingAmount(acc.pendingBalance)})
+                                                        ({formatCurrency(acc.pendingBalance, { sign: true })})
                                                     </span>
                                                 )}
                                             </div>
@@ -340,7 +313,7 @@ export default function Dashboard() {
                                                 </span>
                                                 {hasPending && (
                                                     <span className={`pending-inline ${acc.pendingBalance >= 0 ? 'inflow' : 'outflow'}`}>
-                                                        ({formatPendingAmount(acc.pendingBalance)})
+                                                        ({formatCurrency(acc.pendingBalance, { sign: true })})
                                                     </span>
                                                 )}
                                             </div>

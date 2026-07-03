@@ -39,6 +39,14 @@
     color: #DC2626;
 }
 
+.atb-breakdown {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #92400E;
+    font-variant-numeric: tabular-nums;
+}
+
 .transfers-header {
     display: flex;
     justify-content: space-between;

@@ -2,22 +2,12 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useTransactionStore } from '../stores/transactionStore.js';
 import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
+import { formatCurrency as formatCurrencyBase, formatDate, formatYMD } from '../utils/format.js';
 import './Transactions.css';
 
-// Format currency with +/- prefix
+// Amounts on this page always show an explicit +/- prefix
 function formatCurrency(amount) {
-    const formatted = Math.abs(amount).toLocaleString('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    });
-    return amount >= 0 ? `+${formatted}` : `-${formatted}`;
-}
-
-// Format date for display
-function formatDate(dateString) {
-    if (!dateString) return '—';
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return formatCurrencyBase(amount, { sign: true });
 }
 
 // Format date for input
@@ -26,9 +16,9 @@ function formatDateForInput(dateString) {
     return dateString.split('T')[0];
 }
 
-// Get today's date in YYYY-MM-DD format
+// Get today's date in YYYY-MM-DD format (local time)
 function getTodayDate() {
-    return new Date().toISOString().split('T')[0];
+    return formatYMD(new Date());
 }
 
 // Determine which date preset is currently active
@@ -36,13 +26,13 @@ function getDatePreset(filters) {
     if (!filters.startDate && !filters.endDate) return 'none';
 
     const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
-    const last3MonthsStart = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().split('T')[0];
-    const ytdStart = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-    const today = now.toISOString().split('T')[0];
+    const thisMonthStart = formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
+    const thisMonthEnd = formatYMD(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    const lastMonthStart = formatYMD(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const lastMonthEnd = formatYMD(new Date(now.getFullYear(), now.getMonth(), 0));
+    const last3MonthsStart = formatYMD(new Date(now.getFullYear(), now.getMonth() - 2, 1));
+    const ytdStart = formatYMD(new Date(now.getFullYear(), 0, 1));
+    const today = formatYMD(now);
 
     if (filters.startDate === lastMonthStart && filters.endDate === lastMonthEnd) {
         return 'last-month';
@@ -82,7 +72,6 @@ export default function Transactions() {
         createTransaction,
         updateTransaction,
         deleteTransaction,
-        createAccountTransfer,
         createReconciliation,
         toggleStatus,
         clearError,
@@ -97,8 +86,9 @@ export default function Transactions() {
     const [pendingTrayOpen, setPendingTrayOpen] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Ref for sidebar click-outside detection
+    // Refs for sidebar click-outside detection
     const sidebarRef = useRef(null);
+    const filterButtonRef = useRef(null);
 
     // Load data on mount
     useEffect(() => {
@@ -109,13 +99,11 @@ export default function Transactions() {
         fetchCategories();
     }, []);
 
-    // Click-outside handler to close sidebar
+    // Click-outside handler to close sidebar (the toggle button is exempt)
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
-                // Also check if the click target is the filter button itself
-                const filterButton = event.target.closest('.btn-secondary');
-                if (!filterButton || !filterButton.textContent.includes('Filter')) {
+                if (!filterButtonRef.current?.contains(event.target)) {
                     setSidebarOpen(false);
                 }
             }
@@ -158,16 +146,6 @@ export default function Transactions() {
             }
             setShowAddModal(false);
             setEditingTransaction(null);
-        } catch (err) {
-            // Error already set in store
-        }
-    };
-
-    // Handle account transfer
-    const handleSaveTransfer = async (data) => {
-        try {
-            await createAccountTransfer(data);
-            setShowTransferModal(false);
         } catch (err) {
             // Error already set in store
         }
@@ -227,7 +205,7 @@ export default function Transactions() {
                 <div ref={sidebarRef} className={`filter-sidebar ${sidebarOpen ? 'open' : ''}`}>
                     <div className="sidebar-header">
                         <h3>🔍 Filters</h3>
-                        <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>✕</button>
+                        <button className="sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close filters">✕</button>
                     </div>
                     <FilterSidebar
                         filters={filters}
@@ -243,7 +221,9 @@ export default function Transactions() {
                     <div className="transactions-header">
                         <div className="header-left">
                             <button
+                                ref={filterButtonRef}
                                 className="btn btn-secondary btn-sm"
+                                aria-expanded={sidebarOpen}
                                 onClick={() => {
                                     if (!sidebarOpen) {
                                         // Uncheck "Since Last Reconciliation" when opening the filter sidebar
@@ -691,6 +671,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus, isSelec
                             className="action-btn"
                             onClick={() => onEdit(transaction)}
                             title="Edit Date"
+                            aria-label="Edit reconciliation date"
                         >
                             ✏️
                         </button>
@@ -698,6 +679,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus, isSelec
                             className="action-btn delete"
                             onClick={() => onDelete(transaction)}
                             title="Delete"
+                            aria-label="Delete reconciliation point"
                         >
                             🗑️
                         </button>
@@ -745,6 +727,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus, isSelec
                     className={`status-toggle ${transaction.status}`}
                     onClick={(e) => { e.stopPropagation(); onToggleStatus(transaction); }}
                     title={isPending ? 'Click to settle' : 'Click to mark pending'}
+                    aria-label={isPending ? 'Mark as settled' : 'Mark as pending'}
                 >
                     {isPending ? '🅿️' : '✅'}
                 </button>
@@ -755,6 +738,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus, isSelec
                         className="action-btn"
                         onClick={(e) => { e.stopPropagation(); onEdit(transaction); }}
                         title="Edit"
+                        aria-label="Edit transaction"
                     >
                         ✏️
                     </button>
@@ -762,6 +746,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus, isSelec
                         className="action-btn delete"
                         onClick={(e) => { e.stopPropagation(); onDelete(transaction); }}
                         title="Delete"
+                        aria-label="Delete transaction"
                     >
                         🗑️
                     </button>
@@ -805,7 +790,7 @@ function SelectionSummaryBar({ count, sum, avg, onClear }) {
                     </span>
                 </div>
             </div>
-            <button className="summary-close" onClick={onClear} title="Clear selection">
+            <button className="summary-close" onClick={onClear} title="Clear selection" aria-label="Clear selection">
                 ✕
             </button>
         </div>
@@ -1009,7 +994,7 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
                             onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
                             placeholder="Add a note..."
                             className="memo-input"
-                            maxLength={30}
+                            maxLength={80}
                         />
                     </div>
 
@@ -1022,127 +1007,6 @@ function TransactionForm({ transaction, accounts, categories, onSave, onCancel }
                 </button>
                 <button type="submit" className="btn btn-primary">
                     {isReconciliation ? 'Create Reconciliation' : (transaction ? 'Save Changes' : 'Add Transaction')}
-                </button>
-            </div>
-        </form>
-    );
-}
-
-// ==================== TRANSFER FORM ====================
-
-function TransferForm({ accounts, onSave, onCancel }) {
-    const [formData, setFormData] = useState({
-        date: getTodayDate(),
-        amount: '',
-        from_account_id: '',
-        to_account_id: '',
-        memo: '',
-        status: 'settled',
-    });
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (formData.from_account_id === formData.to_account_id) {
-            alert('Cannot transfer to the same account');
-            return;
-        }
-        onSave({
-            ...formData,
-            amount: parseFloat(formData.amount),
-            from_account_id: parseInt(formData.from_account_id),
-            to_account_id: parseInt(formData.to_account_id),
-        });
-    };
-
-    return (
-        <form className="transaction-form" onSubmit={handleSubmit}>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Date</label>
-                    <input
-                        type="date"
-                        value={formData.date}
-                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Amount</label>
-                    <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        placeholder="Amount to transfer"
-                        value={formData.amount}
-                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>From Account</label>
-                    <select
-                        value={formData.from_account_id}
-                        onChange={(e) => setFormData({ ...formData, from_account_id: e.target.value })}
-                        required
-                    >
-                        <option value="">Select Account</option>
-                        {accounts.map(acc => (
-                            <option key={acc.id} value={acc.id}>{acc.name}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>To Account</label>
-                    <select
-                        value={formData.to_account_id}
-                        onChange={(e) => setFormData({ ...formData, to_account_id: e.target.value })}
-                        required
-                    >
-                        <option value="">Select Account</option>
-                        {accounts.map(acc => (
-                            <option key={acc.id} value={acc.id}>{acc.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            <div className="transfer-arrow">↕️</div>
-
-            <div className="form-row single">
-                <div className="form-group">
-                    <label>Memo</label>
-                    <input
-                        type="text"
-                        placeholder="Optional description"
-                        value={formData.memo}
-                        onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-                        maxLength={30}
-                    />
-                </div>
-            </div>
-
-            <div className="form-row single">
-                <div className="form-group">
-                    <label>Status</label>
-                    <select
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    >
-                        <option value="settled">✅ Settled</option>
-                        <option value="pending">🅿️ Pending</option>
-                    </select>
-                </div>
-            </div>
-
-            <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={onCancel}>
-                    Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                    Create Transfer
                 </button>
             </div>
         </form>

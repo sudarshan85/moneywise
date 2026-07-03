@@ -197,6 +197,28 @@ function migrateOnBudgetFlag() {
     console.log('✅ Backfilled on-budget flag (bank, cash, credit_card)');
 }
 
+// One-time: align account sort_order with the display order the dashboard used
+// to hardcode client-side (assets first in preferred order, then liabilities).
+// After this, ordering is owned by the data and editable via PATCH /accounts.
+function migrateAccountSortOrder() {
+    const done = db.prepare(`SELECT value FROM app_settings WHERE key = 'account_sort_backfill_v1'`).get();
+    if (done) return;
+
+    const preferredOrder = [
+        '360 Checking', 'RH Savings', 'RH Investment', 'HSA',
+        'RH Roth Savings', 'RH Roth Investment', '401(k)', 'HSA Investment',
+        'CO Venture', 'Mortgage', 'Nissan Leaf', "Ambuja's Loan",
+    ];
+
+    db.transaction(() => {
+        const update = db.prepare('UPDATE accounts SET sort_order = ? WHERE name = ?');
+        preferredOrder.forEach((name, index) => update.run(index + 1, name));
+        db.prepare(`INSERT INTO app_settings (key, value) VALUES ('account_sort_backfill_v1', '1')`).run();
+    })();
+
+    console.log('✅ Backfilled account sort order');
+}
+
 // Make account_id nullable for reconciliation transactions
 function migrateAccountIdNullable() {
     try {
@@ -269,6 +291,9 @@ export function initializeDatabase() {
 
     // Backfill the on-budget account flag (one-time)
     migrateOnBudgetFlag();
+
+    // Backfill account display order (one-time)
+    migrateAccountSortOrder();
 
     // Always ensure Balance Change has the correct icon
     db.prepare(`UPDATE categories SET icon = '/icons/balance_change.png' WHERE name = 'Balance Change' AND is_system = 1`).run();
