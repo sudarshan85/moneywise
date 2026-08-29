@@ -4,7 +4,7 @@ import Configuration from './pages/Configuration.jsx';
 import Transactions from './pages/Transactions.jsx';
 import Transfers from './pages/Transfers.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import Reports from './pages/Reports.jsx';
+import Deficits from './pages/Deficits.jsx';
 import Login from './pages/Login.jsx';
 import { Toaster } from './components/Toast.jsx';
 import { checkAuthStatus } from './api/client';
@@ -14,7 +14,7 @@ const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'transactions', label: 'Transactions', icon: '💸' },
   { id: 'transfers', label: 'Transfers', icon: '🔄' },
-  { id: 'reports', label: 'Reports', icon: '📈' },
+  { id: 'deficits', label: 'Deficits', icon: '🩹' },
   { id: 'config', label: 'Configuration', icon: '⚙️' },
 ];
 
@@ -26,7 +26,7 @@ const TAB_CONTENT = {
   dashboard: Dashboard,
   transactions: Transactions,
   transfers: Transfers,
-  reports: Reports,
+  deficits: Deficits,
   config: Configuration,
 };
 
@@ -46,6 +46,7 @@ function App() {
   // Get initial tab from URL hash or default to 'dashboard'
   const getTabFromHash = () => {
     const hash = window.location.hash.replace('#', '');
+    if (hash === 'reports') return 'deficits'; // legacy bookmark
     const validTabs = TABS.map(t => t.id);
     return validTabs.includes(hash) ? hash : 'dashboard';
   };

@@ -1,0 +1,38 @@
+/* Shared month navigator (◀ Month Year ▶) */
+.month-picker {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.month-nav {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.month-nav:hover:not(:disabled) {
+    border-color: var(--honey-gold);
+    color: var(--text-primary);
+}
+
+.month-nav:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.month-label {
+    min-width: 130px;
+    text-align: center;
+    font-weight: 600;
+    font-size: var(--font-size-lg);
+}

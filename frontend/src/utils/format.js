@@ -49,6 +49,17 @@ export function formatShortDate(dateStr) {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Current month as 'YYYY-MM' (local time)
+export function currentYearMonth() {
+    return formatYMD(new Date()).slice(0, 7);
+}
+
+// Shift a 'YYYY-MM' month by delta months (delta may be negative)
+export function shiftMonth(yearMonth, delta) {
+    const [y, m] = yearMonth.split('-').map(Number);
+    return formatYMD(new Date(y, m - 1 + delta, 1)).slice(0, 7);
+}
+
 // 'YYYY-MM' -> 'July 2026'
 export function formatMonthLabel(yearMonth) {
     const d = parseLocalDate(`${yearMonth}-01`);

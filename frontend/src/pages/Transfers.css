@@ -309,45 +309,7 @@
     color: var(--color-danger, #ef4444);
 }
 
-/* Transfer Form */
-.transfer-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.transfer-form .form-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.5rem;
-}
-
-.transfer-form .form-row .form-group {
-    flex: 1;
-}
-
-/* Transfer row with arrow - special alignment */
-.transfer-form .transfer-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.5rem;
-}
-
-.transfer-arrow-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 38px;
-    /* Match select height */
-    padding: 0 0.25rem;
-}
-
-.transfer-form .transfer-arrow {
-    font-size: 1.5rem;
-    color: var(--color-primary, #6366f1);
-    font-weight: bold;
-    line-height: 1;
-}
+/* Transfer form styles live in components/TransferForm.css */
 
 .form-group {
     display: flex;
@@ -387,14 +349,3 @@
     border-top: 1px solid var(--color-border);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .transfer-form .form-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .transfer-form .transfer-arrow {
-        padding: 0.5rem 0;
-    }
-}

@@ -17,7 +17,7 @@ moneywise/
 │   ├── src/
 │   │   ├── db/          # Database logic (schema.sql, database.js)
 │   │   ├── utils/       # Shared helpers (dates.js — local-time date math)
-│   │   └── routes/      # API endpoints (transactions, categories, reports, backup)
+│   │   └── routes/      # API endpoints (transactions, categories, deficits, backup)
 │   ├── package.json
 ├── frontend/             # React SPA (Single Page Application)
 │   ├── src/
@@ -88,13 +88,30 @@ moneywise/
 - **Add System Category**: Update `SYSTEM_CATEGORIES` in `backend/src/db/database.js`.
 - **Backup**: Use `POST /api/backup/import` or `GET /api/backup/export`.
 
-## Reports
-- The Reports tab is live: month navigation, a daily pulse (spent vs budget pace,
-  safe-to-spend/day), a per-category spending **forecast** (`GET /api/reports/forecast`
-  — fixed bills detected by regularity, variable categories blend a trimmed-mean
-  baseline with current-month pace), 6-month trends, budgeted-vs-unbudgeted monthly
-  bars, and monthly net worth (`/api/reports/balance-history?granularity=month`).
-  Past months render as a "month in review". There is deliberately no
-  income-vs-expenses chart: income is recorded in system categories, so it would
-  always read zero.
+## Deficits
+- The Deficits tab (replaced the old Reports tab in Aug 2026) is entirely about
+  overspending: a category×month heatmap (`GET /api/deficits/history`), per-month
+  "case file" cards (`GET /api/deficits/month/:yearMonth`), and an inline
+  pre-filled "Fix now" transfer for the current month.
+- Cell outcomes: **fixed** (envelope dipped below zero during the month but ended
+  ≥ 0), **carried** (past month ended negative), **open** (current month negative
+  including pending). Deficits are intra-month dips, not just end-of-month state.
+- Unbudgeted categories (`monthly_amount = 0`, funded ad hoc — Misc, Invest, …)
+  are excluded unless a month ends negative: their intra-month dip-and-cover is
+  workflow, not overspending (`countsAsDeficit` in deficits.js).
+- Conventions in `backend/src/routes/deficits.js`: "budgeted" = transfers-in with
+  memo `'Auto Funded'` (never `categories.monthly_amount`, which has no history);
+  a "fix" = any other transfer-in that lands while the running balance is negative.
+  An event's date decides its month, but within a month events replay in ENTRY
+  order (`created_at`) — rescues are usually recorded while the overspending
+  transactions are still pending, so date order would hide the dip, while
+  pre-funded planned purchases (transfer entered before the spend) correctly
+  never dip. Pending transactions join the CURRENT month's replay as events dated
+  today (dashboard parity), so an overspend fixed while the spend is still
+  pending shows immediately. Auto-funding that absorbs a carried deficit counts
+  as budget, not a fix.
+- The "Fix now" flow writes memos like `Cover Groceries deficit (Aug 2026)`.
+- `computeCarriedForward` lives in `backend/src/utils/envelope.js` (shared with
+  the dashboard); month math helpers in `backend/src/utils/dates.js` and
+  `frontend/src/utils/format.js` (`shiftMonth`, `currentYearMonth`).
 - See `FUTURE_WORK.md` for planned future features.

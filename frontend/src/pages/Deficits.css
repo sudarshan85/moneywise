@@ -1,0 +1,462 @@
+/* ==================== Deficits page ==================== */
+
+.deficits-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.deficits-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.deficits-header h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+}
+
+.deficits-archive-note {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-style: italic;
+}
+
+/* ==================== Heatmap ==================== */
+
+.heatmap-card {
+    padding: var(--space-lg);
+}
+
+.heatmap-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+}
+
+.hm-pager {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.heatmap-scroll {
+    overflow-x: auto;
+}
+
+.heatmap {
+    display: grid;
+    gap: 3px;
+    align-items: center;
+}
+
+.hm-corner {
+    /* empty top-left cell */
+}
+
+.hm-month {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 2px 0;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.hm-month:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.hm-month.selected {
+    color: var(--honey-dark);
+}
+
+.hm-year {
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.hm-cat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-right: var(--space-md);
+    min-width: 0;
+}
+
+.hm-cat-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.hm-cat-name {
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Heatmap cells: status colors always paired with a glyph + tooltip/aria-label,
+   so state is never conveyed by color alone. */
+.hm-cell {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    line-height: 1;
+    padding: 0;
+}
+
+button.hm-cell {
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+button.hm-cell:hover {
+    transform: scale(1.12);
+    box-shadow: var(--shadow-md);
+}
+
+button.hm-cell:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
+.hm-none {
+    background: var(--bg-secondary);
+    border-color: var(--border-light);
+}
+
+.hm-fixed {
+    background: var(--color-pending); /* amber: dipped negative, recovered */
+    color: #451A03;
+}
+
+.hm-carried {
+    background: var(--color-expense);
+    color: var(--text-inverse);
+}
+
+.hm-open {
+    background: #B91C1C; /* deep red: current-month deficit, needs action */
+    color: var(--text-inverse);
+}
+
+.hm-col-selected {
+    box-shadow: 0 0 0 2px var(--honey-gold);
+}
+
+/* Empty cells in the selected column get a whisper, not a ring — a full
+   outline would read as a fourth state. */
+.hm-none.hm-col-selected {
+    box-shadow: none;
+    background: rgba(245, 166, 35, 0.08);
+    border-color: rgba(245, 166, 35, 0.45);
+}
+
+.hm-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.hm-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.hm-legend .hm-cell {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+}
+
+/* ==================== Summary strip ==================== */
+
+.deficit-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-md);
+}
+
+.summary-tile {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md) var(--space-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.summary-tile-value {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.summary-tile.bad .summary-tile-value {
+    color: var(--color-expense);
+}
+
+.summary-tile.good .summary-tile-value {
+    color: var(--color-income);
+}
+
+.summary-tile-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-top: var(--space-xs);
+}
+
+/* ==================== Case-file cards ==================== */
+
+.deficit-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.deficit-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.deficit-card-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    cursor: pointer;
+}
+
+.deficit-card-main:hover {
+    background: var(--bg-secondary);
+}
+
+.deficit-card-main:focus-visible {
+    outline: none;
+    box-shadow: inset var(--focus-ring);
+}
+
+.deficit-card-id {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    flex: 1;
+    min-width: 0;
+}
+
+.deficit-card-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.deficit-card-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.deficit-card-amounts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.deficit-over {
+    color: var(--color-expense);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.deficit-remaining {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.deficit-expand-hint {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+}
+
+.deficit-card-details {
+    border-top: 1px solid var(--border-light);
+    padding: var(--space-md) var(--space-lg) var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.deficit-card .card-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.deficit-card .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-sm);
+}
+
+.deficit-card .stat-row-total {
+    border-top: 1px solid var(--border-light);
+    padding-top: var(--space-xs);
+    font-weight: 600;
+}
+
+.deficit-card .stat-label {
+    color: var(--text-secondary);
+}
+
+.deficit-card .stat-value {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary); /* Dashboard.css paints bare .stat-value purple */
+}
+
+.deficit-card .stat-value.negative {
+    color: var(--color-expense);
+}
+
+.deficit-card .stat-value.positive {
+    color: var(--color-income);
+}
+
+.deficit-card .stat-value.pending {
+    color: var(--color-pending);
+}
+
+.deficit-card .stat-value.muted {
+    color: var(--text-muted);
+}
+
+.deficit-note {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.deficit-section-title {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.deficit-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.deficit-list-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md);
+    font-size: var(--font-size-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+}
+
+.deficit-list-row.tipping {
+    background: var(--color-expense-bg);
+}
+
+.deficit-list-row.fix-row {
+    background: var(--color-income-bg);
+}
+
+.deficit-list-date {
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    min-width: 52px;
+}
+
+.deficit-list-memo {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.deficit-list-amount {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.deficit-list-amount.negative {
+    color: var(--color-expense);
+}
+
+.deficit-list-amount.positive {
+    color: var(--color-income);
+}
+
+.tipping-chip,
+.pending-chip {
+    display: inline-block;
+    margin-left: var(--space-sm);
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.tipping-chip {
+    background: var(--color-expense);
+    color: var(--text-inverse);
+}
+
+.pending-chip {
+    background: var(--color-pending-bg);
+    color: var(--color-pending);
+}
+
+.fix-memo,
+.fix-partial {
+    color: var(--text-secondary);
+}
+
+.deficit-fix-action {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ==================== Responsive ==================== */
+
+@media (max-width: 640px) {
+    .deficit-card-main {
+        flex-wrap: wrap;
+    }
+
+    .deficit-card-amounts {
+        align-items: flex-start;
+    }
+}

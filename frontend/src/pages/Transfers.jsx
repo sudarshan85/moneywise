@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
-import { showToast } from '../components/Toast.jsx';
+import { TransferForm } from '../components/TransferForm.jsx';
 import { formatCurrency, formatDate, displayCategoryName } from '../utils/format.js';
 import * as api from '../api/client.js';
 import './Transfers.css';
@@ -400,117 +400,5 @@ export default function Transfers() {
                 danger
             />
         </div>
-    );
-}
-
-// Transfer Form Component
-// Only allows transfers between user categories (not system categories)
-function TransferForm({ categories, onSave, onCancel, transfer }) {
-    const [formData, setFormData] = useState({
-        date: transfer?.date?.split('T')[0] || getTodayDate(),
-        from_category_id: transfer?.from_category_id?.toString() || '',
-        to_category_id: transfer?.to_category_id?.toString() || '',
-        amount: transfer?.amount?.toString() || '',
-        memo: transfer?.memo || '',
-    });
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        if (formData.from_category_id === formData.to_category_id) {
-            showToast('Cannot transfer to the same category');
-            return;
-        }
-
-        onSave({
-            date: formData.date,
-            from_category_id: formData.from_category_id ? parseInt(formData.from_category_id) : null,
-            to_category_id: formData.to_category_id ? parseInt(formData.to_category_id) : null,
-            amount: parseFloat(formData.amount),
-            memo: formData.memo || null,
-        });
-    };
-
-    // From Category: all non-archived categories (including system)
-    const fromCategoryOptions = categories.filter(c => !c.is_hidden);
-
-    // To Category: all non-archived categories (including system)
-    const toCategoryOptions = categories.filter(c => !c.is_hidden);
-
-    return (
-        <form className="transfer-form" onSubmit={handleSubmit}>
-            <div className="form-group">
-                <label>Date</label>
-                <input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                />
-            </div>
-
-            <div className="form-row transfer-row">
-                <div className="form-group">
-                    <label>From Category</label>
-                    <select
-                        value={formData.from_category_id}
-                        onChange={(e) => setFormData({ ...formData, from_category_id: e.target.value })}
-                        required
-                    >
-                        <option value="">Select category</option>
-                        {fromCategoryOptions.map(cat => (
-                            <option key={cat.id} value={cat.id}>{displayCategoryName(cat.name)}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>To Category</label>
-                    <select
-                        value={formData.to_category_id}
-                        onChange={(e) => setFormData({ ...formData, to_category_id: e.target.value })}
-                        required
-                    >
-                        <option value="">Select category</option>
-                        {toCategoryOptions.map(cat => (
-                            <option key={cat.id} value={cat.id}>{displayCategoryName(cat.name)}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            <div className="form-group">
-                <label>Amount</label>
-                <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    required
-                    placeholder="$0.00"
-                />
-            </div>
-
-            <div className="form-group">
-                <label>Memo (optional)</label>
-                <input
-                    type="text"
-                    value={formData.memo}
-                    onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-                    placeholder="Why are you moving this money?"
-                    maxLength={80}
-                />
-            </div>
-
-            <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={onCancel}>
-                    Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                    {transfer ? 'Save Changes' : 'Create Transfer'}
-                </button>
-            </div>
-        </form>
     );
 }

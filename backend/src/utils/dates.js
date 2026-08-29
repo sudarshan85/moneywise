@@ -14,6 +14,13 @@ export function currentYearMonth() {
     return localToday().slice(0, 7);
 }
 
+// Shift a YYYY-MM month by delta months (delta may be negative)
+export function shiftMonth(yearMonth, delta) {
+    const [y, m] = yearMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 // First and last day (YYYY-MM-DD) of a YYYY-MM month
 export function monthRange(yearMonth) {
     const [year, month] = yearMonth.split('-').map(Number);

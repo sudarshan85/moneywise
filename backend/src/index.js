@@ -13,7 +13,7 @@ import transactionsRouter from './routes/transactions.js';
 import transfersRouter from './routes/transfers.js';
 import backupRouter from './routes/backup.js';
 import dashboardRouter from './routes/dashboard.js';
-import reportsRouter from './routes/reports.js';
+import deficitsRouter from './routes/deficits.js';
 import authRouter from './routes/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,7 +58,7 @@ app.use('/api/transactions', transactionsRouter);
 app.use('/api/transfers', transfersRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/dashboard', dashboardRouter);
-app.use('/api/reports', reportsRouter);
+app.use('/api/deficits', deficitsRouter);
 
 // SPA fallback - serve index.html for all non-API routes in production
 if (process.env.NODE_ENV === 'production') {
