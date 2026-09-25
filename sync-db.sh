@@ -86,6 +86,9 @@ fly ssh sftp get "$REMOTE_DB_PATH" "$LOCAL_DB_PATH" --app "$APP_NAME"
 # Stale local WAL companions would shadow the freshly downloaded file
 rm -f "${LOCAL_DB_PATH}-wal" "${LOCAL_DB_PATH}-shm"
 
+# Record the sync time; the MCP connector (mcp/) uses it to decide when to refresh
+date -u +%Y-%m-%dT%H:%M:%SZ > "$BACKUP_DIR/.last-sync"
+
 echo ""
 echo "✅ Database synced successfully!"
 echo ""

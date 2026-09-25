@@ -115,3 +115,17 @@ moneywise/
   the dashboard); month math helpers in `backend/src/utils/dates.js` and
   `frontend/src/utils/format.js` (`shiftMonth`, `currentYearMonth`).
 - See `FUTURE_WORK.md` for planned future features.
+
+## MCP connector (Claude desktop)
+- `mcp/` is a local, read-only MCP server that gives Claude desktop (Windows) access to
+  MoneyWise data. Claude desktop launches `mcp/run.sh` through `wsl.exe`. It is never
+  deployed: the Dockerfile only copies `frontend/` and `backend/`. Setup and tool list
+  are in `mcp/README.md`.
+- It reads the local copy `data/moneywise.db` and refreshes it from Fly when it is more
+  than 24h old (stamp in `data/.last-sync`, also written by `sync-db.sh`), or on request.
+- Dashboard and Ready to Assign math lives in `backend/src/services/budgetMath.js` as
+  pure functions of a connection, shared by the routes and the connector. Change it
+  there, not in the routes.
+- `docs/moneywise.md` explains the app and the agent traps. It is uploaded to a Claude
+  project as knowledge; the connector's `CRITICAL_RULES` (`mcp/snapshot.js`) repeat the
+  essentials. Keep the two in sync.
