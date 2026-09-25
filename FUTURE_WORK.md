@@ -4,20 +4,6 @@ Planned features and improvements that are not yet implemented.
 
 ---
 
-## AI Monthly Review (OpenRouter)
-
-A "monthly review" narrative card on the Deficits page: a backend endpoint
-(e.g. `POST /api/ai/insights`) assembles a compact JSON summary of budgets,
-actuals, deficits, and fixes, sends it to OpenRouter (API key server-side via
-env var, cheap model), and returns a short analysis — repeat offenders, average
-overages, and concrete rebalancing suggestions ("Groceries has run over 4 of 6
-months by ~$180, always covered from Dining Out — consider moving $150 of
-budget permanently"). Deterministic features (memo templates, donor suggestions)
-stay code-based; the LLM only writes the narrative. Possible follow-on: a small
-chat panel that answers questions over the same data.
-
----
-
 ## Manual Category Ordering
 
 Allow users to manually drag-and-drop category cards on the dashboard to set a custom order, with a toggle to switch between automatic and manual ordering.
