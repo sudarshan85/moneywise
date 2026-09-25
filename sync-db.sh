@@ -57,10 +57,17 @@ fi
 
 # The database runs in WAL mode: recent writes may live in moneywise.db-wal
 # instead of the main file. Checkpoint before copying so the raw file is complete.
-# (No spaces inside the -e script — fly's -C splits the command on whitespace.)
+#
+# Two quoting traps in `fly ssh console -C`, which does its own argv splitting
+# rather than handing the string to a shell:
+#   1. it splits on whitespace, so the -e script must contain no spaces;
+#   2. it STRIPS single quotes, so 'better-sqlite3' arrives as a bare identifier
+#      and node dies with "Invalid regular expression flags".
+# Backticks (JS template literals) survive both, escaped here so the local shell
+# does not treat them as command substitution.
 echo ""
 echo "🧹 Checkpointing WAL on remote so the database file is complete..."
-fly ssh console --app "$APP_NAME" -C "node -e require('better-sqlite3')('$REMOTE_DB_PATH').pragma('wal_checkpoint(TRUNCATE)')" || {
+fly ssh console --app "$APP_NAME" -C "node -e require(\`better-sqlite3\`)(\`$REMOTE_DB_PATH\`).pragma(\`wal_checkpoint(TRUNCATE)\`)" || {
     echo "⚠️  Checkpoint failed — the downloaded database may miss the latest writes."
 }
 
