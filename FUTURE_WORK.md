@@ -4,6 +4,16 @@ Planned features and improvements that are not yet implemented.
 
 ---
 
+## MCP Write Access (Claude desktop → MoneyWise)
+
+Let Claude desktop record transactions, settle pending charges, move envelope money
+and record account transfers, with an approval prompt on every write. Writes go
+through the production API; reads stay on the local copy. Detailed plan, API
+reference, open questions and test plan: **`docs/plans/mcp-write-access.md`**.
+Phase 2 there outlines a remote (web/phone) connector behind OAuth.
+
+---
+
 ## Manual Category Ordering
 
 Allow users to manually drag-and-drop category cards on the dashboard to set a custom order, with a toggle to switch between automatic and manual ordering.
