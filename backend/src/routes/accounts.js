@@ -1,82 +1,16 @@
 import express from 'express';
 import db from '../db/database.js';
+import { buildReadyToAssign } from '../services/budgetMath.js';
 
 const router = express.Router();
 
 // Valid account types
 const VALID_ACCOUNT_TYPES = ['bank', 'credit_card', 'cash', 'investment', 'retirement', 'loan'];
 
-// GET /api/accounts/moneypot - Get "Ready to Assign" (money not yet allocated)
-// Formula: on-budget account balances - Sum of all category (envelope) balances
-// Category balance = Transfers IN - Spending
-//
-// "On-budget" = accounts flagged in_moneypot = 1: bank and cash, plus credit cards
-// used as a spending vehicle. Including the card's (negative) balance makes a card
-// swipe reduce the pool exactly like a debit purchase (the envelope drop and the
-// balance drop cancel), and paying the card bill becomes a wash — so envelope
-// spending on credit never inflates Ready to Assign. Investment/retirement/loan
-// accounts are off-budget: money moved there was recorded as leaving the pool.
+// GET /api/accounts/moneypot - "Ready to Assign" (math lives in services/budgetMath.js)
 router.get('/moneypot', (req, res) => {
     try {
-        // On-budget balances, with the credit-card share broken out for display
-        const bankResult = db.prepare(`
-            SELECT COALESCE(SUM(t.amount), 0) as total_balance,
-                   COALESCE(SUM(CASE WHEN a.type = 'credit_card' THEN t.amount ELSE 0 END), 0) as credit_card_balance
-            FROM accounts a
-            LEFT JOIN transactions t ON t.account_id = a.id AND t.status = 'settled'
-            WHERE a.in_moneypot = 1 AND a.is_hidden = 0
-        `).get();
-
-        // Get "Available to Budget" system category ID
-        const atbCategory = db.prepare(`
-            SELECT id FROM categories WHERE name = 'Available to Budget' AND is_system = 1
-        `).get();
-
-        // Calculate total category balances for user categories
-        // Category Balance = Transfers IN from ATB - Spending
-        let totalCategoryBalance = 0;
-
-        if (atbCategory) {
-            // Get sum of transfers FROM "Available to Budget" to user categories
-            const transfersFromATB = db.prepare(`
-                SELECT COALESCE(SUM(amount), 0) as total
-                FROM category_transfers
-                WHERE from_category_id = ?
-            `).get(atbCategory.id);
-
-            // Get sum of transfers TO "Available to Budget" (money returned)
-            const transfersToATB = db.prepare(`
-                SELECT COALESCE(SUM(amount), 0) as total
-                FROM category_transfers
-                WHERE to_category_id = ?
-            `).get(atbCategory.id);
-
-            // Get sum of spending in user categories
-            // (negative amounts = outflow/spending)
-            const spendingResult = db.prepare(`
-                SELECT COALESCE(SUM(t.amount), 0) as total
-                FROM transactions t
-                JOIN categories c ON t.category_id = c.id
-                WHERE c.is_system = 0 AND t.status = 'settled'
-            `).get();
-
-            // Category Balance = Transfers In - Transfers Out + Spending (spending is negative)
-            totalCategoryBalance = transfersFromATB.total - transfersToATB.total + spendingResult.total;
-        }
-
-        // Ready to Assign = on-budget balances - envelope balances
-        const readyToAssign = bankResult.total_balance - totalCategoryBalance;
-
-        res.json({
-            balance: readyToAssign,
-            // Breakdown so the UI can show the math: liquid - cardOwed - allocated
-            liquid: bankResult.total_balance - bankResult.credit_card_balance,
-            creditCardOwed: -bankResult.credit_card_balance,
-            allocated: totalCategoryBalance,
-            // Legacy field names still read by existing frontend code paths
-            bankBalance: bankResult.total_balance,
-            categoryBalance: totalCategoryBalance
-        });
+        res.json(buildReadyToAssign(db));
     } catch (error) {
         console.error('Error fetching Available to Budget:', error);
         res.status(500).json({ error: 'Failed to fetch Available to Budget' });
