@@ -356,3 +356,6 @@ How things are recorded:
   Ready to Assign.
 - **Moving money between his accounts:** an `Account Transfer` row out and a
   `Balance Change` row in. Loan payments are entered in the web app.
+- **Envelope icons:** pick one from `list_moneywise_icons`. If none fits, draw a new
+  one in the style of the set (32 px, transparent background, flat), show it to
+  him, and upload it with `add_moneywise_icon` once he approves.

@@ -12,6 +12,11 @@ import { z } from 'zod';
 import db from '../db/database.js';
 import { buildDashboardData } from '../services/budgetMath.js';
 import { localToday } from '../utils/dates.js';
+import {
+    ICON_NAME, MAX_ICON_BYTES, MAX_ICON_SIDE, listIcons, resolveIcon, checkPng, decodeBase64Png,
+    uploadedIconPath, saveUploadedIcon
+} from '../services/icons.js';
+import fs from 'fs';
 import { WRITE_RULES_SHORT } from './rules.js';
 import { runWrite, undoWrite } from './writes.js';
 import { textResult, errorResult } from './results.js';
@@ -333,16 +338,19 @@ const WRITE_TOOLS = {
         inputSchema: {
             name: z.string().min(1),
             monthly_amount: z.number().min(0).default(0),
-            icon: z.string().optional().describe("An emoji, e.g. '🎾'")
+            icon: z.string().optional().describe(
+                "One of the available icons (list_moneywise_icons), e.g. '/icons/kids.png', 'kids.png' or 'kids'"
+            )
         },
         apply({ name, monthly_amount, icon }, rec) {
             const clean = name.trim();
+            const iconPath = icon ? resolveIcon(icon) : null;
             if (db.prepare('SELECT 1 FROM categories WHERE LOWER(name) = LOWER(?)').get(clean)) {
                 throw new Error(`A category named "${clean}" already exists (it may be hidden)`);
             }
             const sortOrder = db.prepare('SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM categories WHERE is_system = 0').get().n;
             const row = rec.insert('categories', {
-                name: clean, icon: icon || null, monthly_amount: Math.round(monthly_amount * 100) / 100, sort_order: sortOrder
+                name: clean, icon: iconPath, monthly_amount: Math.round(monthly_amount * 100) / 100, sort_order: sortOrder
             });
             return { summary: `Created category #${row.id} ${row.name} (target ${money(row.monthly_amount)}/month)` };
         }
@@ -350,14 +358,18 @@ const WRITE_TOOLS = {
 
     update_moneywise_category: {
         title: 'Update a MoneyWise category',
-        description: 'Rename a category, change its monthly target, or hide/unhide it. System categories cannot be changed.',
+        description:
+            'Rename a category, change its monthly target or icon, or hide/unhide it. System categories cannot be changed.',
         inputSchema: {
             name: z.string(),
             new_name: z.string().optional(),
             monthly_amount: z.number().min(0).optional(),
-            hidden: z.boolean().optional()
+            hidden: z.boolean().optional(),
+            icon: z.string().optional().describe(
+                "One of the available icons (list_moneywise_icons), e.g. '/icons/kids.png', 'kids.png' or 'kids'"
+            )
         },
-        apply({ name, new_name, monthly_amount, hidden }, rec) {
+        apply({ name, new_name, monthly_amount, hidden, icon }, rec) {
             const cat = resolveCategory(name, { includeHidden: true });
             const values = {};
             if (new_name !== undefined && new_name.trim() !== cat.name) {
@@ -369,11 +381,12 @@ const WRITE_TOOLS = {
             }
             if (monthly_amount !== undefined) values.monthly_amount = Math.round(monthly_amount * 100) / 100;
             if (hidden !== undefined) values.is_hidden = hidden ? 1 : 0;
+            if (icon !== undefined) values.icon = resolveIcon(icon);
             if (Object.keys(values).length === 0) throw new Error('Nothing to change');
             const after = rec.update('categories', cat.id, values);
             return {
                 summary: `Updated category #${cat.id} ${after.name}: target ${money(after.monthly_amount)}/month` +
-                    `${after.is_hidden ? ', hidden' : ''}`
+                    `${after.icon ? `, icon ${after.icon}` : ''}${after.is_hidden ? ', hidden' : ''}`
             };
         }
     },
@@ -400,6 +413,65 @@ const WRITE_TOOLS = {
             }
             rec.delete('categories', cat.id);
             return { summary: `Deleted category #${cat.id} ${cat.name}` };
+        }
+    },
+
+    add_moneywise_icon: {
+        title: 'Add a MoneyWise icon',
+        description:
+            'Upload a new icon to the live app, usable at once as /icons/<name>.png (e.g. for create_moneywise_category). ' +
+            `png_base64 is a PNG, at most ${MAX_ICON_SIDE}x${MAX_ICON_SIDE} px and ${MAX_ICON_BYTES / 1024} KB; match the existing ` +
+            'set: 32 px wide, transparent background, flat style. name is lowercase letters, digits and underscores, and ' +
+            'must not already exist (see list_moneywise_icons). Never overwrites. Show Sudarshan the icon and get his ' +
+            'approval first. Reverse with delete_moneywise_icon.',
+        inputSchema: {
+            name: z.string().describe("e.g. 'cake'"),
+            png_base64: z.string().min(1).describe('The PNG file, base64-encoded')
+        },
+        apply({ name, png_base64 }) {
+            if (!ICON_NAME.test(name)) {
+                throw new Error(`Icon name "${name}" must be lowercase letters, digits and underscores only, e.g. "cake"`);
+            }
+            if (name === 'moneywise_icon' || listIcons().some(icon => icon.name === name)) {
+                throw new Error(`An icon named "${name}" already exists; choose another name`);
+            }
+            const buf = decodeBase64Png(png_base64);
+            const { width, height } = checkPng(buf);
+            const path = `/icons/${name}.png`;
+            return {
+                summary: `Added icon ${name}.png (${width}x${height}, ${buf.length} bytes), served at ${path}`,
+                effects: [{ action: 'save_icon', name, path, width, height, bytes: buf.length }],
+                commit: () => saveUploadedIcon(name, buf),
+                rollback: () => fs.rmSync(uploadedIconPath(name), { force: true })
+            };
+        }
+    },
+
+    delete_moneywise_icon: {
+        title: 'Delete an uploaded MoneyWise icon',
+        description:
+            'Delete an icon that was uploaded with add_moneywise_icon. Built-in icons cannot be deleted, and an icon still ' +
+            'used by a category or account is refused.',
+        destructive: true,
+        inputSchema: { name: z.string().describe("e.g. 'cake'") },
+        apply({ name }) {
+            const clean = String(name).trim().replace(/^\/icons\//, '').replace(/\.png$/i, '');
+            const icon = listIcons().find(i => i.name === clean);
+            if (!icon) throw new Error(`No icon named "${name}"`);
+            if (icon.source !== 'uploaded') throw new Error(`${clean} is a built-in icon; only uploaded icons can be deleted`);
+            const users = db.prepare(`
+                SELECT 'category ' || name AS who FROM categories WHERE icon = ?
+                UNION ALL SELECT 'account ' || name FROM accounts WHERE icon = ?
+            `).all(icon.path, icon.path).map(r => r.who);
+            if (users.length) throw new Error(`${clean} is still used by ${users.join(', ')}; change their icon first`);
+            const file = uploadedIconPath(clean);
+            const saved = fs.readFileSync(file);
+            return {
+                summary: `Deleted uploaded icon ${clean}.png`,
+                effects: [{ action: 'delete_icon', name: clean, path: icon.path }],
+                commit: () => fs.rmSync(file),
+                rollback: () => fs.writeFileSync(file, saved)
+            };
         }
     },
 

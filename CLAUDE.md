@@ -110,6 +110,13 @@ moneywise/
   (`preview_moneywise_write` = run, measure, roll back), the `mcp_writes` log, undo,
   and a `moneywise_premcp_*` backup before each commit. New write tools go in
   `WRITE_TOOLS` (`writeTools.js`); never write to the DB around the recorder.
+- Icons (`backend/src/services/icons.js`): built-in PNGs in `frontend/public/icons`
+  plus icons uploaded through MCP (`add_moneywise_icon`) into `UPLOADED_ICONS_DIR`
+  (`/data/icons` on the Fly volume; locally an `icons` folder next to the DB). Both
+  are served at `/icons/<name>.png` (built-in first) and listed by `GET /api/icons`.
+  MCP only accepts existing icons for categories. Render category icons through
+  `IconDisplay`, never a raw `<img>`: the column may hold an emoji. `sync-db.sh`
+  pulls uploaded icons into the repo so they can be committed.
 - Dashboard and Ready to Assign math lives in `backend/src/services/budgetMath.js` as
   pure functions of a connection, shared by the routes and the connector. Change it
   there, not in the routes.

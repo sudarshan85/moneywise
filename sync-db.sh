@@ -7,6 +7,8 @@ set -e
 APP_NAME="moneywise"
 APP_URL="https://moneywise.fly.dev"
 REMOTE_DB_PATH="/data/moneywise.db"
+REMOTE_ICONS_DIR="/data/icons"
+LOCAL_ICONS_DIR="./frontend/public/icons"
 LOCAL_DB_PATH="./data/moneywise.db"
 BACKUP_DIR="./data"
 
@@ -88,6 +90,24 @@ rm -f "${LOCAL_DB_PATH}-wal" "${LOCAL_DB_PATH}-shm"
 
 # Record the sync time (informational; the MCP connector now reads live data on Fly)
 date -u +%Y-%m-%dT%H:%M:%SZ > "$BACKUP_DIR/.last-sync"
+
+# Icons uploaded through MCP live on the volume. Copy any we don't have into the
+# repo's icon folder so they can be committed as built-in icons. Never overwrite.
+echo ""
+echo "🖼️  Checking for icons uploaded on Fly..."
+REMOTE_ICONS=$(fly ssh console --app "$APP_NAME" -C "ls -1 $REMOTE_ICONS_DIR" 2>/dev/null | tr -d '\r' | grep -E '^[a-z0-9_]+\.png$' || true)
+PULLED=()
+for icon in $REMOTE_ICONS; do
+    if [ ! -e "$LOCAL_ICONS_DIR/$icon" ]; then
+        fly ssh sftp get "$REMOTE_ICONS_DIR/$icon" "$LOCAL_ICONS_DIR/$icon" --app "$APP_NAME" > /dev/null
+        PULLED+=("$icon")
+    fi
+done
+if [ ${#PULLED[@]} -gt 0 ]; then
+    echo "   ⬇️  Pulled new icons (commit them): ${PULLED[*]}"
+else
+    echo "   No new icons."
+fi
 
 echo ""
 echo "✅ Database synced successfully!"

@@ -20,6 +20,7 @@ Claude desktop version: look under **Settings → Connectors** (or Developer). T
 |---|---|---|
 | `get_financial_snapshot` | The whole database in one result: accounts with balances, envelopes, every transaction and envelope transfer, Ready to Assign, and the current month's dashboard. | Always allow |
 | `query_moneywise` | One read-only SQL query, max 500 rows. | Always allow |
+| `list_moneywise_icons` | Every icon available for envelopes and accounts, built-in or uploaded. | Always allow |
 | `preview_moneywise_write` | A dry run of any write below. It shows the rows that would change and the balances before → after, then rolls everything back. | Always allow |
 | `add_moneywise_transaction` | Add a transaction. With no date it is pending. A likely duplicate is refused. | Ask |
 | `settle_moneywise_transactions` | Settle pending rows (a row with no date gets today's date). Rows that are already settled are skipped. | Ask |
@@ -32,7 +33,9 @@ Claude desktop version: look under **Settings → Connectors** (or Developer). T
 | `create_moneywise_category` | Create an envelope. | Ask |
 | `update_moneywise_category` | Rename an envelope, change its target, or hide/unhide it. | Ask |
 | `delete_moneywise_category` | Delete an envelope that has no rows. | Ask or Block |
-| `undo_moneywise_write` | Reverse an earlier write, by its `write_id`. | Ask |
+| `add_moneywise_icon` | Upload a new PNG icon (max 64 px, 20 KB) to the live app; usable at once. | Ask |
+| `delete_moneywise_icon` | Delete an uploaded icon that nothing uses. | Ask |
+| `undo_moneywise_write` | Reverse an earlier write, by its `write_id` (icon uploads use `delete_moneywise_icon` instead). | Ask |
 
 Not supported: deleting transactions, funding the month, changing accounts, and
 loan payments. Do those in the web app.
@@ -53,6 +56,20 @@ loan payments. Do those in the web app.
    changed since, for example because you edited it in the web app.
 
 To see what Claude has written, ask it to query `mcp_writes`.
+
+## Icons
+
+Envelope icons must be existing icons; `create_moneywise_category` and
+`update_moneywise_category` refuse anything else, emoji included. If none fits,
+Claude can draw one (32 px, transparent background, flat style, like the rest of
+the set), show it to you, and upload it with `add_moneywise_icon`.
+
+- Uploaded icons are saved on the Fly volume in `/data/icons`
+  (`UPLOADED_ICONS_DIR`), so they survive deploys, and are served at
+  `/icons/<name>.png` next to the built-in ones.
+- `./sync-db.sh` copies any uploaded icon you don't have yet into
+  `frontend/public/icons/` and prints its name. Commit it to make it a built-in
+  icon; the copy left on the volume is harmless.
 
 ## Setup (one-time)
 

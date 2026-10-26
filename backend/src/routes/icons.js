@@ -1,32 +1,12 @@
 import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { listIcons } from '../services/icons.js';
 
 const router = express.Router();
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// GET /api/icons - List all available icons
+// GET /api/icons - List all available icons (built-in and uploaded)
 router.get('/', (req, res) => {
     try {
-        // In production (Docker), frontend/public/icons is not present — only the built dist
-        // is copied to /app/public. In dev, read from the source tree.
-        const iconsDir = process.env.NODE_ENV === 'production'
-            ? path.join(__dirname, '../../public/icons')
-            : path.join(__dirname, '../../../frontend/public/icons');
-
-        if (!fs.existsSync(iconsDir)) {
-            return res.json([]);
-        }
-
-        const files = fs.readdirSync(iconsDir)
-            .filter(file => file.endsWith('.png') && file !== 'moneywise_icon.png')
-            .map(file => ({
-                name: file.replace('.png', ''),
-                path: `/icons/${file}`
-            }));
-
-        res.json(files);
+        res.json(listIcons());
     } catch (error) {
         console.error('Error listing icons:', error);
         res.status(500).json({ error: 'Failed to list icons' });

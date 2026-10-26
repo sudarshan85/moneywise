@@ -15,6 +15,7 @@ import backupRouter from './routes/backup.js';
 import dashboardRouter from './routes/dashboard.js';
 import authRouter from './routes/auth.js';
 import mcpRouter from './mcp/server.js';
+import { UPLOADED_ICONS_DIR } from './services/icons.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,12 +29,16 @@ app.use(cors({
     credentials: true  // Required for cookies
 }));
 app.use(cookieParser());
-app.use(express.json());
+// Large enough for an icon upload through MCP; the icon tool enforces its own 20 KB cap.
+app.use(express.json({ limit: '1mb' }));
 
 // Serve static files in production (built frontend)
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '..', 'public')));
 }
+
+// Icons uploaded at runtime (on the Fly volume); built-in icons above win
+app.use('/icons', express.static(UPLOADED_ICONS_DIR));
 
 // Health check endpoint (no auth required)
 app.get('/api/health', (req, res) => {

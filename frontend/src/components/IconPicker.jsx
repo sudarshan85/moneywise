@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { IconDisplay } from './IconDisplay.jsx';
+import { getIcons } from '../api/client.js';
 import './IconPicker.css';
 
 export default function IconPicker({ value, onChange, label = 'Icon (optional)' }) {
@@ -9,9 +11,7 @@ export default function IconPicker({ value, onChange, label = 'Icon (optional)' 
 
     // Fetch available icons
     useEffect(() => {
-        const apiBase = import.meta.env.DEV ? 'http://localhost:3001/api' : '/api';
-        fetch(`${apiBase}/icons`)
-            .then(res => res.json())
+        getIcons()
             .then(data => {
                 setIcons(data);
                 setLoading(false);
@@ -52,7 +52,7 @@ export default function IconPicker({ value, onChange, label = 'Icon (optional)' 
             >
                 {value ? (
                     <div className="selected-icon">
-                        <img src={value} alt="Selected icon" />
+                        <IconDisplay icon={value} className="selected-icon-image" />
                         <button
                             type="button"
                             className="clear-icon"

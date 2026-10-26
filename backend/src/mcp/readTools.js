@@ -12,6 +12,7 @@ import { z } from 'zod';
 import db, { getDatabasePath } from '../db/database.js';
 import { buildDashboardData, buildReadyToAssign } from '../services/budgetMath.js';
 import { localToday, currentYearMonth } from '../utils/dates.js';
+import { listIcons } from '../services/icons.js';
 import { CRITICAL_RULES } from './rules.js';
 import { textResult, errorResult } from './results.js';
 
@@ -153,6 +154,26 @@ export function registerReadTools(server) {
                 });
             } catch (err) {
                 return errorResult(`Query failed: ${err.message}`);
+            }
+        }
+    );
+
+    server.registerTool(
+        'list_moneywise_icons',
+        {
+            title: 'List MoneyWise icons',
+            description:
+                'Every icon available for categories and accounts: { name, path, source }. source is "builtin" (ships ' +
+                'with the app) or "uploaded" (added with add_moneywise_icon). Use it to pick an icon before creating or ' +
+                'updating a category, and to see whether a new icon has to be drawn.',
+            inputSchema: {},
+            annotations: READ_ONLY
+        },
+        async () => {
+            try {
+                return textResult(listIcons());
+            } catch (err) {
+                return errorResult(`Could not list icons: ${err.message}`);
             }
         }
     );

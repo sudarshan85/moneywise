@@ -258,6 +258,11 @@
     flex-shrink: 0;
 }
 
+/* Emoji category icons in table cells (Transactions and Transfers) */
+.cell-icon.emoji-icon {
+    font-size: 1rem;
+}
+
 .arrow-cell {
     text-align: center;
     color: var(--color-primary, #6366f1);

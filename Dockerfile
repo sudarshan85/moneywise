@@ -33,6 +33,7 @@ ENV NODE_ENV=production
 ENV PORT=8080
 ENV DATABASE_PATH=/data/moneywise.db
 ENV BACKUP_DIR=/data/backups
+ENV UPLOADED_ICONS_DIR=/data/icons
 
 # Expose port
 EXPOSE 8080

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useTransactionStore } from '../stores/transactionStore.js';
 import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
+import { IconDisplay } from '../components/IconDisplay.jsx';
 import { formatCurrency as formatCurrencyBase, formatDate, formatYMD } from '../utils/format.js';
 import './Transactions.css';
 
@@ -705,7 +706,7 @@ function TransactionRow({ transaction, onEdit, onDelete, onToggleStatus, isSelec
                 ) : (
                     <div className="cell-with-icon">
                         {transaction.category_icon && (
-                            <img src={transaction.category_icon} alt="" className="cell-icon" />
+                            <IconDisplay icon={transaction.category_icon} className="cell-icon" />
                         )}
                         <span>{transaction.category_name || <span className="text-muted">—</span>}</span>
                     </div>

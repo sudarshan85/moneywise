@@ -8,6 +8,9 @@
  * - the write log (`mcp_writes`), with exactly what changed;
  * - undo: replay the recorded images in reverse.
  * Every committed write is preceded by a database backup ('premcp').
+ *
+ * A write may also have a file side effect (icon uploads): `apply` describes it
+ * in `effects` and performs it in `commit()`, which runs only on a real write.
  */
 
 import db from '../db/database.js';
@@ -146,9 +149,12 @@ function describeChanges(changes) {
     });
 }
 
+// Keeps the log readable: uploaded image data is recorded by size only.
+const logValue = (key, value) => (key === 'png_base64' ? `<${String(value).length} base64 chars>` : value);
+
 /**
  * Run `apply(input, rec)` as one write.
- * `apply` returns { summary, warnings?, undoOf? }.
+ * `apply` returns { summary, warnings?, undoOf?, effects?, commit?, rollback? }.
  * Dry run: everything happens, then rolls back; nothing is logged or backed up.
  */
 export function runWrite({ tool, input, dryRun }, apply) {
@@ -165,22 +171,33 @@ export function runWrite({ tool, input, dryRun }, apply) {
         db.transaction(() => {
             const before = measure();
             const result = apply(input, makeRecorder(changes));
-            if (changes.length === 0) throw new Error(result?.summary || 'Nothing to change');
-            const after = measure();
+            if (changes.length === 0 && !result?.effects?.length) {
+                throw new Error(result?.summary || 'Nothing to change');
+            }
 
             outcome = {
                 summary: result.summary,
                 ...(result.warnings?.length ? { warnings: result.warnings } : {}),
-                changes: describeChanges(changes),
-                balances: compareBalances(before, after, changes)
+                ...(result.effects?.length ? { effects: result.effects } : {})
             };
+            if (changes.length) {
+                outcome.changes = describeChanges(changes);
+                outcome.balances = compareBalances(before, measure(), changes);
+            }
 
             if (dryRun) throw new Rollback();
 
-            const log = db.prepare(`
-                INSERT INTO mcp_writes (tool, input, summary, changes, undo_of)
-                VALUES (?, ?, ?, ?, ?)
-            `).run(tool, JSON.stringify(input), result.summary, JSON.stringify(changes), result.undoOf ?? null);
+            result.commit?.();
+            let log;
+            try {
+                log = db.prepare(`
+                    INSERT INTO mcp_writes (tool, input, summary, changes, undo_of)
+                    VALUES (?, ?, ?, ?, ?)
+                `).run(tool, JSON.stringify(input, logValue), result.summary, JSON.stringify(changes), result.undoOf ?? null);
+            } catch (err) {
+                result.rollback?.();
+                throw err;
+            }
             if (result.undoOf) {
                 db.prepare('UPDATE mcp_writes SET undone_at = CURRENT_TIMESTAMP WHERE id = ?').run(result.undoOf);
             }
@@ -197,6 +214,9 @@ export function runWrite({ tool, input, dryRun }, apply) {
 
 // ---------- undo ----------
 
+// Writes whose effect is a file, not rows; they are reversed by their own tools.
+const FILE_TOOLS = new Set(['add_moneywise_icon', 'delete_moneywise_icon']);
+
 const sameRow = (a, b) => Object.keys(a).every(k => k === 'updated_at' || a[k] === b[k]);
 
 /** An `apply` for runWrite that reverses a logged write. */
@@ -204,6 +224,9 @@ export function undoWrite({ write_id }, rec) {
     const entry = db.prepare('SELECT * FROM mcp_writes WHERE id = ?').get(write_id);
     if (!entry) throw new Error(`No write with write_id ${write_id}`);
     if (entry.undone_at) throw new Error(`Write ${write_id} was already undone at ${entry.undone_at}`);
+    if (FILE_TOOLS.has(entry.tool)) {
+        throw new Error(`Write ${write_id} is an icon change (${entry.tool}); use delete_moneywise_icon or add_moneywise_icon instead.`);
+    }
 
     const changes = JSON.parse(entry.changes);
     for (const { table, id, before, after } of [...changes].reverse()) {

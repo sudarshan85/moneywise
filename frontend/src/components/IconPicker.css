@@ -53,7 +53,8 @@
     gap: 0.5rem;
 }
 
-.selected-icon img {
+.selected-icon img,
+.selected-icon .selected-icon-image {
     width: 32px;
     height: 32px;
     object-fit: contain;

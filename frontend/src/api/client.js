@@ -116,6 +116,13 @@ export async function getCategoryHistory(id) {
     return handleResponse(response);
 }
 
+// ==================== ICONS ====================
+
+export async function getIcons() {
+    const response = await apiFetch(`${API_BASE}/icons`);
+    return handleResponse(response);
+}
+
 // ==================== SETTINGS ====================
 
 export async function getSettings() {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useConfigStore } from '../stores/configStore.js';
 import { Modal, ConfirmModal } from '../components/Modal.jsx';
+import { IconDisplay } from '../components/IconDisplay.jsx';
 import { TransferForm } from '../components/TransferForm.jsx';
 import { formatCurrency, formatDate, displayCategoryName } from '../utils/format.js';
 import * as api from '../api/client.js';
@@ -291,7 +292,7 @@ export default function Transfers() {
                                     <td>
                                         <div className="cell-with-icon">
                                             {transfer.from_category_icon && (
-                                                <img src={transfer.from_category_icon} alt="" className="cell-icon" />
+                                                <IconDisplay icon={transfer.from_category_icon} className="cell-icon" />
                                             )}
                                             <span>{displayCategoryName(transfer.from_category_name)}</span>
                                         </div>
@@ -300,7 +301,7 @@ export default function Transfers() {
                                     <td>
                                         <div className="cell-with-icon">
                                             {transfer.to_category_icon && (
-                                                <img src={transfer.to_category_icon} alt="" className="cell-icon" />
+                                                <IconDisplay icon={transfer.to_category_icon} className="cell-icon" />
                                             )}
                                             <span>{displayCategoryName(transfer.to_category_name)}</span>
                                         </div>

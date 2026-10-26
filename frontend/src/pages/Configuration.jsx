@@ -299,7 +299,7 @@ export default function Configuration() {
                             {systemCategories.map((category) => (
                                 <div key={category.id} className="item-card system-item">
                                     <div className="item-icon">
-                                        <img src={category.icon || '/icons/tag.png'} alt="" className="custom-icon" />
+                                        <IconDisplay icon={category.icon} fallback={DEFAULT_ICONS.category} className="custom-icon" />
                                     </div>
                                     <div className="item-info">
                                         <h3>{displayCategoryName(category.name)}</h3>
