@@ -107,3 +107,16 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+
+-- Writes made by Claude through the MCP connector (backend/src/mcp/).
+-- `changes` holds full before/after row images so any write can be undone.
+CREATE TABLE IF NOT EXISTS mcp_writes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    tool TEXT NOT NULL,
+    input TEXT NOT NULL,
+    summary TEXT,
+    changes TEXT NOT NULL,
+    undone_at TEXT,
+    undo_of INTEGER REFERENCES mcp_writes(id)
+);

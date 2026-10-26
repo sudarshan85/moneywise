@@ -51,17 +51,19 @@ entry (see §7.13).
     Budget" was renamed "Ready to Assign" in the UI, and a stale carried-forward bug
     was fixed (balances are now always derived live from history).
   - August 2026: the old Reports tab was replaced by a **Deficits** page focused on
-    overspending.
+    overspending. It was removed in October 2026: analysis now happens in Claude.
   - September 2026: an in-app AI chat was prototyped and removed. Sudarshan prefers
-    to do analysis in Claude desktop instead, with MoneyWise data supplied as context.
+    to do analysis in Claude desktop instead, through a MoneyWise connector.
+  - October 2026: the connector moved onto the live database and gained write tools,
+    so Claude can record and fix entries (with his approval).
 - **Stack.** React + Vite frontend, Node.js/Express backend, SQLite database (WAL
   mode).
 - **Hosting.** Production runs on **Fly.io** at `moneywise.fly.dev`, password
   protected: a single small VM with a persistent volume, which sleeps when idle and
   wakes on the first request. The server backs up the database every 6 hours.
-- **Local copy.** Development happens on Sudarshan's Windows PC under WSL. A script
-  (`sync-db.sh`) downloads the production database to the PC. **The live data is
-  on Fly; the PC has a copy that is as fresh as the last sync.**
+- **Live data.** The live data is on Fly. The Claude connector runs inside the
+  production app, so it reads and writes live data. Development happens on
+  Sudarshan's Windows PC under WSL, on a copy downloaded with `sync-db.sh`.
 
 ## 4. What it tracks
 
@@ -123,8 +125,6 @@ of each month with the memo `Income` (once `Salary`).
   memo search). By default it shows transactions since the last reconciliation point.
 - **Transfers** — envelope-to-envelope moves, and the monthly **Fund Categories**
   button.
-- **Deficits** — overspending history: a category-by-month heatmap and per-month
-  "case files" showing which envelopes went negative, why, and how they were covered.
 - **Configuration** — accounts, categories, targets, income, backups.
 
 ## 5. How the money math works
@@ -209,10 +209,10 @@ on the 12th and be covered on the 14th.
 - **open** — the current month is negative, counting pending charges.
 
 Covering a deficit means transferring money in from another envelope or from Ready
-to Assign. The Deficits page's "Fix now" button writes memos like
-`Cover Groceries deficit (Aug 2026)`. Envelopes funded on demand (target 0) are
-expected to dip and be covered, so they count as a deficit only if a month *ends*
-negative.
+to Assign. Covers use memos like `Cover Groceries deficit (Aug 2026)` (written by the
+former Deficits page, and now by Claude's envelope-move tool). Envelopes funded on
+demand (target 0) are expected to dip and be covered, so they count as a deficit only
+if a month *ends* negative.
 
 ## 6. The data model (for querying)
 
@@ -233,11 +233,14 @@ SQLite. Main tables:
 - **Scale** (Sept 25, 2026): ~806 transactions, ~216 envelope transfers, 27
   categories, 13 accounts. The whole database is small (~300 KB).
 - **Recording habits:**
-  - Account-to-account moves are recorded as **two transactions** in the
-    `Account Transfer` category, one on each account (e.g. `To RH` / `From 360`).
-    They are not linked by an ID.
-  - Card payments appear either as `CO Bill` account transfers or as blank-memo
-    `Balance Change` entries on CO Venture.
+  - Account-to-account moves are **two transactions, not linked by an ID**: an
+    `Account Transfer` row taking the money out of the paying account (memo like
+    `CO Bill`, `Mortgage`, `To RH Savings`), and usually a `Balance Change` row
+    adding it to the receiving account, often with a blank memo. A few older moves
+    used `Account Transfer` on both sides (e.g. `To RH` / `From 360`).
+  - Loan payments: the checking side is the full payment (`Account Transfer`); the
+    loan side is a separate `Balance Change` for the principal only, so the two
+    amounts differ.
   - Reconciliation points mark dates when balances were checked against the real
     accounts; the latest is Aug 15, 2026.
 
@@ -274,8 +277,9 @@ These are the traps. Each one produces confidently wrong answers if ignored.
    current-month totals, which is what the Dashboard does.
 
 7. **Account transfers are not spending.** Paying the card, paying the mortgage or
-   car loan, and moving cash to Robinhood are all `Account Transfer` pairs. Exclude
-   them from spending totals, or they double-count.
+   car loan, and moving cash to Robinhood are an `Account Transfer` row on the paying
+   account plus (usually) a `Balance Change` row on the receiving one. Exclude both
+   from spending totals, or they double-count.
 
 8. **Invest is savings, not consumption.** Spending in the `Invest` envelope is money
    moved to investment accounts (e.g. $7,191.73 on July 1, 2026). Report it
@@ -330,3 +334,25 @@ This file describes MoneyWise; it does **not** contain current balances or
 transactions. For live numbers, use the MoneyWise connector if one is available in
 the conversation. Otherwise, ask Sudarshan for an export or the specific figures.
 When a connector provides data, the rules in §7 still apply.
+
+## 10. Changing data through the connector
+
+The connector can also write to the **live** database. Rules:
+- **Write only when Sudarshan asks.** Never write because of Robinhood data or your
+  own analysis unless he says so.
+- **Preview first.** Call `preview_moneywise_write` with the tool and arguments,
+  show him the rows that would change and the balances before → after, and commit
+  only after he says yes.
+- **One instruction, one write.** Ask if the category, account, amount or date is
+  ambiguous.
+- **After committing**, give him the `write_id` (`undo_moneywise_write` reverses
+  it) and check the result with `query_moneywise`.
+
+How things are recorded:
+- **A purchase:** a positive `amount` with direction `out`. With no date it is a
+  pending charge (his habit for card purchases); it is settled later.
+- **A refund or interest:** direction `in`, usually in `Balance Change`.
+- **Covering an overspent envelope:** move money in from another envelope or from
+  Ready to Assign.
+- **Moving money between his accounts:** an `Account Transfer` row out and a
+  `Balance Change` row in. Loan payments are entered in the web app.

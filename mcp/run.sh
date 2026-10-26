@@ -5,7 +5,10 @@
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
-export PATH="$HOME/.fly/bin:$PATH"
 
 cd "$(dirname "$0")" || exit 1
-exec node server.js
+# MCP_TOKEN (and optionally MONEYWISE_MCP_URL) live in mcp/.env, which is gitignored.
+set -a
+[ -f .env ] && . ./.env
+set +a
+exec node bridge.js

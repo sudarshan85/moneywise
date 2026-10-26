@@ -17,7 +17,8 @@ moneywise/
 │   ├── src/
 │   │   ├── db/          # Database logic (schema.sql, database.js)
 │   │   ├── utils/       # Shared helpers (dates.js — local-time date math)
-│   │   └── routes/      # API endpoints (transactions, categories, deficits, backup)
+│   │   ├── mcp/         # MCP server for Claude (tools, write engine)
+│   │   └── routes/      # API endpoints (transactions, categories, transfers, backup)
 │   ├── package.json
 ├── frontend/             # React SPA (Single Page Application)
 │   ├── src/
@@ -88,44 +89,33 @@ moneywise/
 - **Add System Category**: Update `SYSTEM_CATEGORIES` in `backend/src/db/database.js`.
 - **Backup**: Use `POST /api/backup/import` or `GET /api/backup/export`.
 
-## Deficits
-- The Deficits tab (replaced the old Reports tab in Aug 2026) is entirely about
-  overspending: a category×month heatmap (`GET /api/deficits/history`), per-month
-  "case file" cards (`GET /api/deficits/month/:yearMonth`), and an inline
-  pre-filled "Fix now" transfer for the current month.
-- Cell outcomes: **fixed** (envelope dipped below zero during the month but ended
-  ≥ 0), **carried** (past month ended negative), **open** (current month negative
-  including pending). Deficits are intra-month dips, not just end-of-month state.
-- Unbudgeted categories (`monthly_amount = 0`, funded ad hoc — Misc, Invest, …)
-  are excluded unless a month ends negative: their intra-month dip-and-cover is
-  workflow, not overspending (`countsAsDeficit` in deficits.js).
-- Conventions in `backend/src/routes/deficits.js`: "budgeted" = transfers-in with
-  memo `'Auto Funded'` (never `categories.monthly_amount`, which has no history);
-  a "fix" = any other transfer-in that lands while the running balance is negative.
-  An event's date decides its month, but within a month events replay in ENTRY
-  order (`created_at`) — rescues are usually recorded while the overspending
-  transactions are still pending, so date order would hide the dip, while
-  pre-funded planned purchases (transfer entered before the spend) correctly
-  never dip. Pending transactions join the CURRENT month's replay as events dated
-  today (dashboard parity), so an overspend fixed while the spend is still
-  pending shows immediately. Auto-funding that absorbs a carried deficit counts
-  as budget, not a fix.
-- The "Fix now" flow writes memos like `Cover Groceries deficit (Aug 2026)`.
-- `computeCarriedForward` lives in `backend/src/utils/envelope.js` (shared with
-  the dashboard); month math helpers in `backend/src/utils/dates.js` and
-  `frontend/src/utils/format.js` (`shiftMonth`, `currentYearMonth`).
+## Notes
+- The Deficits tab (Aug 2026) was removed in Oct 2026; overspending analysis now
+  happens in Claude through the MCP connector. Old cover transfers carry memos like
+  `Cover Groceries deficit (Aug 2026)`, and the MCP envelope-move tool still writes them.
+- `computeCarriedForward` lives in `backend/src/utils/envelope.js` (used by the
+  dashboard detail route).
 - See `FUTURE_WORK.md` for planned future features.
 
 ## MCP connector (Claude desktop)
-- `mcp/` is a local, read-only MCP server that gives Claude desktop (Windows) access to
-  MoneyWise data. Claude desktop launches `mcp/run.sh` through `wsl.exe`. It is never
-  deployed: the Dockerfile only copies `frontend/` and `backend/`. Setup and tool list
-  are in `mcp/README.md`.
-- It reads the local copy `data/moneywise.db` and refreshes it from Fly when it is more
-  than 24h old (stamp in `data/.last-sync`, also written by `sync-db.sh`), or on request.
+- The MCP server runs **inside the backend** (`backend/src/mcp/`), mounted at
+  `POST /mcp` before the session-cookie auth and guarded by `Authorization: Bearer
+  $MCP_TOKEN` (a Fly secret; with it unset the route 404s). It reads and writes the
+  **live** database: there is no local copy or sync involved.
+- `mcp/` is only a stdio bridge (`bridge.js`) that Claude desktop (Windows) launches
+  via `wsl.exe` → `mcp/run.sh`; it forwards tool calls to Fly with the token from
+  `mcp/.env`. Setup, tool list and permissions are in `mcp/README.md`.
+- Every write goes through `runWrite` (`backend/src/mcp/writes.js`): rows change only
+  through its recorder, which keeps before/after images. That gives preview
+  (`preview_moneywise_write` = run, measure, roll back), the `mcp_writes` log, undo,
+  and a `moneywise_premcp_*` backup before each commit. New write tools go in
+  `WRITE_TOOLS` (`writeTools.js`); never write to the DB around the recorder.
 - Dashboard and Ready to Assign math lives in `backend/src/services/budgetMath.js` as
   pure functions of a connection, shared by the routes and the connector. Change it
   there, not in the routes.
 - `docs/moneywise.md` explains the app and the agent traps. It is uploaded to a Claude
-  project as knowledge; the connector's `CRITICAL_RULES` (`mcp/snapshot.js`) repeat the
-  essentials. Keep the two in sync.
+  project as knowledge; `backend/src/mcp/rules.js` (`CRITICAL_RULES`, `WRITE_RULES`)
+  repeats the essentials. Keep the two in sync.
+- The DB path env var is `DB_PATH` (`database.js`); `DATABASE_PATH` is only read by the
+  backup scheduler. Test against a copy with `DB_PATH=<copy> BACKUP_DIR=<dir>
+  MCP_TOKEN=test node backend/src/index.js` and `MONEYWISE_MCP_URL=http://localhost:3001/mcp`.

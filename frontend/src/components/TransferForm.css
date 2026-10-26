@@ -1,4 +1,4 @@
-/* Transfer Form (shared by Transfers page and Deficits "Fix now") */
+/* Transfer Form (Transfers page) */
 .transfer-form {
     display: flex;
     flex-direction: column;

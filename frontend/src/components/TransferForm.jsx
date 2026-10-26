@@ -3,12 +3,10 @@ import { showToast } from './Toast.jsx';
 import { displayCategoryName, formatYMD } from '../utils/format.js';
 import './TransferForm.css';
 
-// Category transfer form, shared by the Transfers page (create/edit) and the
-// Deficits page (pre-filled "Fix now").
-// - `transfer` puts the form in edit mode (button label, values from the row).
-// - `initial` only seeds defaults for a new transfer; it never flips edit mode.
-export function TransferForm({ categories, onSave, onCancel, transfer, initial }) {
-    const seed = transfer ?? initial ?? {};
+// Category transfer form for the Transfers page (create/edit).
+// `transfer` puts the form in edit mode (button label, values from the row).
+export function TransferForm({ categories, onSave, onCancel, transfer }) {
+    const seed = transfer ?? {};
     const [formData, setFormData] = useState({
         date: seed.date?.split('T')[0] || formatYMD(new Date()),
         from_category_id: seed.from_category_id?.toString() || '',

@@ -12,6 +12,9 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
+# Timezone data so TZ (set in fly.toml) works
+RUN apk add --no-cache tzdata
+
 # Install backend dependencies
 COPY backend/package*.json ./
 RUN npm ci --only=production

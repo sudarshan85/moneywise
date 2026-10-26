@@ -70,23 +70,26 @@ function rotateBackups() {
 
 /**
  * Perform SQLite database backup using VACUUM INTO
- * This creates a consistent copy even during active writes
+ * This creates a consistent copy even during active writes.
+ * A `label` (e.g. 'premcp' before each MCP write) goes into the filename, and
+ * labelled backups always carry the time so several a day never collide.
  */
-export function performDatabaseBackup() {
+export function performDatabaseBackup(label) {
     if (!ensureBackupDir()) {
         return { success: false, error: 'Backup directory not available' };
     }
 
     try {
         const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const filename = `moneywise_${timestamp}.db`;
+        const prefix = label ? `moneywise_${label}_` : 'moneywise_';
+        const filename = `${prefix}${timestamp}.db`;
         const backupPath = path.join(BACKUP_DIR, filename);
 
         // Check if today's backup already exists
-        if (fs.existsSync(backupPath)) {
+        if (label || fs.existsSync(backupPath)) {
             // Add time component for multiple backups per day
-            const timeStr = new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].slice(0, 8);
-            const timedFilename = `moneywise_${timestamp}_${timeStr}.db`;
+            const timeStr = new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].slice(0, 12);
+            const timedFilename = `${prefix}${timestamp}_${timeStr}.db`;
             const timedPath = path.join(BACKUP_DIR, timedFilename);
 
             // Use VACUUM INTO for safe online backup

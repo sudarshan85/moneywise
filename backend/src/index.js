@@ -13,8 +13,8 @@ import transactionsRouter from './routes/transactions.js';
 import transfersRouter from './routes/transfers.js';
 import backupRouter from './routes/backup.js';
 import dashboardRouter from './routes/dashboard.js';
-import deficitsRouter from './routes/deficits.js';
 import authRouter from './routes/auth.js';
+import mcpRouter from './mcp/server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +47,9 @@ app.get('/api/health', (req, res) => {
 // Auth routes (no auth required for these)
 app.use('/api/auth', authRouter);
 
+// MCP endpoint for Claude (bearer token, not the browser session)
+app.use('/mcp', mcpRouter);
+
 // Apply auth middleware to all protected routes
 app.use(requireAuth);
 
@@ -58,7 +61,6 @@ app.use('/api/transactions', transactionsRouter);
 app.use('/api/transfers', transfersRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/dashboard', dashboardRouter);
-app.use('/api/deficits', deficitsRouter);
 
 // SPA fallback - serve index.html for all non-API routes in production
 if (process.env.NODE_ENV === 'production') {

@@ -2,15 +2,13 @@
   "name": "moneywise-mcp",
   "version": "1.0.0",
   "private": true,
-  "description": "Local MCP connector exposing MoneyWise data (read-only) to Claude desktop",
+  "description": "Local stdio bridge from Claude desktop to the MoneyWise MCP endpoint on Fly",
   "type": "module",
-  "main": "server.js",
+  "main": "bridge.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node bridge.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.1",
-    "better-sqlite3": "^11.10.0",
-    "zod": "^4.6.5"
+    "@modelcontextprotocol/sdk": "^1.30.1"
   }
 }

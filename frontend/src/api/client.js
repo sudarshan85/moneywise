@@ -312,15 +312,3 @@ export async function getCategoryDetails(id) {
     return handleResponse(response);
 }
 
-// ==================== DEFICITS ====================
-
-export async function getDeficitsHistory() {
-    const response = await apiFetch(`${API_BASE}/deficits/history`);
-    return handleResponse(response);
-}
-
-export async function getDeficitsMonth(month) {
-    const response = await apiFetch(`${API_BASE}/deficits/month/${month}`);
-    return handleResponse(response);
-}
-

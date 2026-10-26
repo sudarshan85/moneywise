@@ -4,13 +4,16 @@ Planned features and improvements that are not yet implemented.
 
 ---
 
-## MCP Write Access (Claude desktop → MoneyWise)
+## Remote MCP connector (web and phone)
 
-Let Claude desktop record transactions, settle pending charges, move envelope money
-and record account transfers, with an approval prompt on every write. Writes go
-through the production API; reads stay on the local copy. Detailed plan, API
-reference, open questions and test plan: **`docs/plans/mcp-write-access.md`**.
-Phase 2 there outlines a remote (web/phone) connector behind OAuth.
+The connector (`backend/src/mcp/`, `POST /mcp`) already runs on Fly, but only Claude
+desktop can use it, through the local bridge with a bearer token. To use it from
+claude.ai on the web and the phone, add OAuth 2.1 in front of the same endpoint:
+authorization-server metadata, dynamic client registration, authorize/token
+endpoints with a login page that checks `MONEYWISE_PASSWORD`, and tokens stored in
+new tables. A secret in the URL is not acceptable, because the tools can write.
+Check Anthropic's current custom-connector docs first. About a day of work, mostly
+OAuth.
 
 ---
 

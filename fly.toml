@@ -10,6 +10,8 @@ primary_region = 'iad'
   PORT = '8080'
   DATABASE_PATH = '/data/moneywise.db'
   BACKUP_DIR = '/data/backups'
+  # Dates ("today", the current month) follow Sudarshan's local time, not UTC
+  TZ = 'America/New_York'
 
 [http_service]
   internal_port = 8080
