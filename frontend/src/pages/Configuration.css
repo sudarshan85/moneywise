@@ -176,16 +176,6 @@
     color: var(--text-muted);
 }
 
-.budget-count-badge {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--color-income);
-    background: var(--color-income-bg);
-    padding: 0.25rem 0.75rem;
-    border-radius: var(--radius-full);
-    margin-left: 0.75rem;
-}
-
 /* Items grid */
 .items-grid {
     display: grid;
@@ -279,11 +269,6 @@
     vertical-align: middle;
 }
 
-.category-icon {
-    font-size: 1.75rem;
-    font-weight: bold;
-}
-
 .item-info {
     flex: 1;
     min-width: 0;
@@ -310,10 +295,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.default-icon {
-    font-size: 1.5rem;
 }
 
 .item-type {
@@ -437,12 +418,6 @@
     border-radius: var(--radius-lg);
 }
 
-.empty-icon {
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 1rem;
-}
-
 .empty-state p {
     color: var(--text-muted);
     margin: 0;
@@ -453,50 +428,6 @@
     height: 64px;
     object-fit: contain;
     margin-bottom: 1rem;
-}
-
-/* Groups list */
-.groups-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-}
-
-.group-chip {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(245, 166, 35, 0.12);
-    border: 1px solid rgba(245, 166, 35, 0.3);
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-full);
-    font-size: 0.9rem;
-}
-
-.group-chip span:first-child {
-    color: var(--honey-dark);
-    font-weight: 500;
-}
-
-.no-groups {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    font-style: italic;
-}
-
-/* Category group */
-.category-group {
-    margin-bottom: 2rem;
-}
-
-.group-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border-light);
 }
 
 /* History */
@@ -676,34 +607,6 @@
 .setting-unit {
     font-size: 0.85rem;
     color: var(--text-secondary);
-}
-
-/* Checkbox group in forms */
-.checkbox-group {
-    background: rgba(245, 166, 35, 0.08);
-    border: 1px solid rgba(245, 166, 35, 0.25);
-    border-radius: var(--radius-md);
-    padding: 0.75rem 1rem;
-}
-
-.checkbox-label {
-    display: flex !important;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    font-weight: 500 !important;
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--honey-gold);
-}
-
-.checkbox-group .form-hint {
-    margin-top: 0.25rem;
-    margin-left: 1.75rem;
-    font-size: 0.8rem;
 }
 
 /* System category card */

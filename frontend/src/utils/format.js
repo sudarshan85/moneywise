@@ -43,8 +43,3 @@ export function formatDate(dateStr) {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function formatShortDate(dateStr) {
-    const d = parseLocalDate(dateStr);
-    if (!d) return '—';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}

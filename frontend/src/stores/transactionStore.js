@@ -6,7 +6,6 @@ export const useTransactionStore = create((set, get) => ({
     transactions: [],
     total: 0,
     isLoading: false,
-    isLoadingMore: false,
     error: null,
 
     // Filters
@@ -22,22 +21,6 @@ export const useTransactionStore = create((set, get) => ({
         offset: 0,
     },
 
-    // Computed: has more pages to load
-    hasMore: () => {
-        const state = get();
-        return state.transactions.length < state.total;
-    },
-
-    // Derived: pending transactions
-    get pendingTransactions() {
-        return get().transactions.filter(t => t.status === 'pending');
-    },
-
-    // Derived: settled transactions
-    get settledTransactions() {
-        return get().transactions.filter(t => t.status === 'settled');
-    },
-
     // Set filters (resets offset to 0)
     setFilters: (newFilters) => {
         set((state) => ({
@@ -50,30 +33,6 @@ export const useTransactionStore = create((set, get) => ({
         const validSize = Math.max(10, Math.min(500, parseInt(size) || 50));
         set((state) => ({
             filters: { ...state.filters, limit: validSize, offset: 0 }
-        }));
-    },
-
-    // Reset filters
-    resetFilters: () => {
-        set({
-            filters: {
-                account_id: null,
-                category_id: null,
-                status: null,
-                startDate: null,
-                endDate: null,
-                memo_search: null,
-                since_reconciliation: true,
-                limit: 50,
-                offset: 0,
-            }
-        });
-    },
-
-    // Reset pagination (go back to first page)
-    resetPagination: () => {
-        set((state) => ({
-            filters: { ...state.filters, offset: 0 }
         }));
     },
 
@@ -102,37 +61,6 @@ export const useTransactionStore = create((set, get) => ({
             });
         } catch (error) {
             set({ error: error.message, isLoading: false });
-        }
-    },
-
-    // ==================== LOAD MORE TRANSACTIONS ====================
-
-    loadMore: async () => {
-        const state = get();
-        if (state.isLoadingMore || !state.hasMore()) return;
-
-        set({ isLoadingMore: true, error: null });
-        try {
-            const filters = state.filters;
-            const newOffset = filters.offset + filters.limit;
-
-            // Build clean filters with new offset
-            const cleanFilters = { ...filters, offset: newOffset };
-            Object.keys(cleanFilters).forEach(key => {
-                if (cleanFilters[key] === null || cleanFilters[key] === undefined) {
-                    delete cleanFilters[key];
-                }
-            });
-
-            const result = await api.getTransactions(cleanFilters);
-            set({
-                transactions: [...state.transactions, ...result.transactions],
-                total: result.total,
-                filters: { ...filters, offset: newOffset },
-                isLoadingMore: false
-            });
-        } catch (error) {
-            set({ error: error.message, isLoadingMore: false });
         }
     },
 

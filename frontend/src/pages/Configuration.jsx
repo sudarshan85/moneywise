@@ -96,7 +96,7 @@ export default function Configuration() {
                 await createAccount(data);
             }
             setAccountModal({ open: false, account: null, icon: null });
-        } catch (err) {
+        } catch {
             // Error handled by store
         }
     };
@@ -109,7 +109,7 @@ export default function Configuration() {
         try {
             await deleteAccount(deleteModal.item.id);
             setDeleteModal({ open: false, type: null, item: null });
-        } catch (err) {
+        } catch {
             setDeleteModal({ open: false, type: null, item: null });
         }
     };
@@ -132,7 +132,7 @@ export default function Configuration() {
                 await createCategory(data);
             }
             setCategoryModal({ open: false, category: null, icon: null });
-        } catch (err) {
+        } catch {
             // Error handled by store
         }
     };
@@ -145,7 +145,7 @@ export default function Configuration() {
         try {
             await deleteCategory(deleteModal.item.id);
             setDeleteModal({ open: false, type: null, item: null });
-        } catch (err) {
+        } catch {
             setDeleteModal({ open: false, type: null, item: null });
         }
     };

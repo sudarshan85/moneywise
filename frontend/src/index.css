@@ -248,14 +248,6 @@ body {
   margin-bottom: var(--space-md);
 }
 
-.card-title {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
 /* ===== Buttons =====
    The full button system lives here (not in component CSS). */
 .btn {
@@ -301,15 +293,6 @@ body {
   background: var(--border-light);
 }
 
-.btn-success {
-  background: var(--color-income);
-  color: var(--text-inverse);
-}
-
-.btn-success:hover:not(:disabled) {
-  background: var(--color-income-light);
-}
-
 .btn-danger {
   background: var(--color-expense);
   color: var(--text-inverse);
@@ -319,16 +302,6 @@ body {
   background: var(--color-expense-light);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.btn-ghost {
-  background: transparent;
-  color: var(--text-secondary);
-}
-
-.btn-ghost:hover:not(:disabled) {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
 }
 
 .btn-sm {
@@ -341,38 +314,7 @@ body {
   margin-bottom: var(--space-md);
 }
 
-.form-label {
-  display: block;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin-bottom: var(--space-xs);
-}
-
-.form-input,
-.form-select {
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  font-family: inherit;
-  font-size: var(--font-size-base);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-md);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  transition: border-color var(--transition-fast);
-}
-
-.form-input:focus,
-.form-select:focus {
-  outline: none;
-  border-color: var(--honey-gold);
-  box-shadow: var(--focus-ring);
-}
-
 /* ===== Tables ===== */
-.table-container {
-  overflow-x: auto;
-}
 
 .table {
   width: 100%;
@@ -397,53 +339,10 @@ body {
   background: var(--bg-secondary);
 }
 
-/* ===== Status Badges ===== */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  font-size: var(--font-size-xs);
-  font-weight: 500;
-  border-radius: var(--radius-full);
-}
-
-.badge-success {
-  background: var(--color-income-bg);
-  color: var(--color-income);
-}
-
-.badge-danger {
-  background: var(--color-expense-bg);
-  color: var(--color-expense);
-}
-
-.badge-pending {
-  background: var(--color-pending-bg);
-  color: var(--color-pending);
-}
-
-.badge-info {
-  background: var(--color-transfer-bg);
-  color: var(--color-transfer);
-}
-
 /* ===== Amount Display ===== */
 .amount {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-}
-
-.amount-positive {
-  color: var(--color-income);
-}
-
-.amount-negative {
-  color: var(--color-expense);
-}
-
-.amount-neutral {
-  color: var(--text-primary);
 }
 
 /* ===== Empty States ===== */
@@ -463,20 +362,9 @@ body {
 }
 
 /* ===== Utility Classes ===== */
-.text-center {
-  text-align: center;
-}
-
-.text-right {
-  text-align: right;
-}
 
 .text-muted {
   color: var(--text-muted);
-}
-
-.text-success {
-  color: var(--color-income);
 }
 
 .text-danger {
@@ -487,32 +375,12 @@ body {
   display: flex;
 }
 
-.flex-col {
-  flex-direction: column;
-}
-
 .items-center {
   align-items: center;
 }
 
 .justify-between {
   justify-content: space-between;
-}
-
-.gap-sm {
-  gap: var(--space-sm);
-}
-
-.gap-md {
-  gap: var(--space-md);
-}
-
-.mt-sm {
-  margin-top: var(--space-sm);
-}
-
-.mt-md {
-  margin-top: var(--space-md);
 }
 
 .mb-md {

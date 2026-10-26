@@ -54,11 +54,8 @@ echo ""
 echo "✅ MoneyWise is running!"
 echo "   🌐 Open http://localhost:5173 in your browser"
 echo ""
-echo "   Press Ctrl+C to backup data and stop both servers"
+echo "   Press Ctrl+C to stop both servers"
 echo ""
-
-# Backup directory
-BACKUP_DIR="/mnt/s/Finance Data"
 
 # Handle Ctrl+C to kill both processes
 cleanup() {

@@ -54,11 +54,6 @@ export async function getMoneyPotBalance() {
     return handleResponse(response);
 }
 
-export async function getAccount(id) {
-    const response = await apiFetch(`${API_BASE}/accounts/${id}`);
-    return handleResponse(response);
-}
-
 export async function createAccount(data) {
     const response = await apiFetch(`${API_BASE}/accounts`, {
         method: 'POST',
@@ -88,11 +83,6 @@ export async function deleteAccount(id) {
 
 export async function getCategories(includeHidden = false) {
     const response = await apiFetch(`${API_BASE}/categories?includeHidden=${includeHidden}`);
-    return handleResponse(response);
-}
-
-export async function getCategory(id) {
-    const response = await apiFetch(`${API_BASE}/categories/${id}`);
     return handleResponse(response);
 }
 
@@ -160,11 +150,6 @@ export async function getTransactions(filters = {}) {
     return handleResponse(response);
 }
 
-export async function getTransaction(id) {
-    const response = await apiFetch(`${API_BASE}/transactions/${id}`);
-    return handleResponse(response);
-}
-
 export async function createTransaction(data) {
     const response = await apiFetch(`${API_BASE}/transactions`, {
         method: 'POST',
@@ -227,13 +212,6 @@ export async function importBackup(data) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-}
-
-export async function manualBackup() {
-    const response = await apiFetch(`${API_BASE}/backup/manual`, {
-        method: 'POST',
     });
     return handleResponse(response);
 }

@@ -100,9 +100,3 @@ async function handleShutdown(signal) {
 // Handle signals
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 process.on('SIGINT', () => handleShutdown('SIGINT'));
-
-// Shutdown endpoint for UI
-app.post('/api/shutdown', (req, res) => {
-    res.json({ message: 'Shutting down...' });
-    handleShutdown('API Request');
-});

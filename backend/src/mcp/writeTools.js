@@ -64,7 +64,7 @@ const isLoan = account => account.type === 'loan';
 
 const direction = z.enum(['out', 'in']);
 
-export const WRITE_TOOLS = {
+const WRITE_TOOLS = {
     add_moneywise_transaction: {
         title: 'Add a MoneyWise transaction',
         description:

@@ -18,7 +18,7 @@ import { SERVER_INSTRUCTIONS } from './rules.js';
 import { registerReadTools } from './readTools.js';
 import { registerWriteTools } from './writeTools.js';
 
-export function createMcpServer() {
+function createMcpServer() {
     const server = new McpServer(
         { name: 'moneywise', version: '2.0.0' },
         { instructions: SERVER_INSTRUCTIONS }

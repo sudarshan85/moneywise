@@ -20,7 +20,7 @@ export const CRITICAL_RULES = [
 
 // How Claude may change data. Repeated (short form) in every write tool's
 // description, because a client may show tools without server instructions.
-export const WRITE_RULES = [
+const WRITE_RULES = [
     'Write only when Sudarshan asks you to. Never write because of Robinhood data or your own analysis unless he explicitly says so.',
     'Before every write, call preview_moneywise_write with the same tool and arguments, show him what would change, and call the write tool only after he says yes in chat.',
     'One instruction, one write. If the category, account, amount or date is ambiguous, ask before previewing.',

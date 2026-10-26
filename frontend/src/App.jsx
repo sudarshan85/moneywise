@@ -48,7 +48,6 @@ function App() {
   };
 
   const [activeTab, setActiveTab] = useState(getTabFromHash);
-  const [apiStatus, setApiStatus] = useState(null);
 
   // Check authentication status on mount
   useEffect(() => {

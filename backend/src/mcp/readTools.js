@@ -17,12 +17,12 @@ import { textResult, errorResult } from './results.js';
 
 const MAX_QUERY_ROWS = 500;
 
-export const TRANSACTION_COLUMNS = ['id', 'date', 'amount', 'account_id', 'category_id', 'memo', 'status'];
-export const TRANSFER_COLUMNS = ['id', 'date', 'from_category_id', 'to_category_id', 'amount', 'memo'];
+const TRANSACTION_COLUMNS = ['id', 'date', 'amount', 'account_id', 'category_id', 'memo', 'status'];
+const TRANSFER_COLUMNS = ['id', 'date', 'from_category_id', 'to_category_id', 'amount', 'memo'];
 
 // Row-heavy tables are arrays-of-arrays with a separate column list, which is
 // roughly half the size of repeating the keys on every row.
-export function buildSnapshot() {
+function buildSnapshot() {
     const income = db.prepare(`SELECT value FROM app_settings WHERE key = 'monthly_income'`).get();
 
     const categories = db.prepare(`

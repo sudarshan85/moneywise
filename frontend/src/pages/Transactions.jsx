@@ -59,16 +59,11 @@ export default function Transactions() {
         transactions,
         total,
         isLoading,
-        isLoadingMore,
         error,
         filters,
         setFilters,
         setPageSize,
-        resetFilters,
-        resetPagination,
-        hasMore,
         fetchTransactions,
-        loadMore,
         createTransaction,
         updateTransaction,
         deleteTransaction,
@@ -83,7 +78,6 @@ export default function Transactions() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
-    const [pendingTrayOpen, setPendingTrayOpen] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Refs for sidebar click-outside detection
@@ -146,7 +140,7 @@ export default function Transactions() {
             }
             setShowAddModal(false);
             setEditingTransaction(null);
-        } catch (err) {
+        } catch {
             // Error already set in store
         }
     };
@@ -156,7 +150,7 @@ export default function Transactions() {
         try {
             await deleteTransaction(id);
             setDeleteConfirm(null);
-        } catch (err) {
+        } catch {
             // Error already set in store
         }
     };
@@ -173,7 +167,7 @@ export default function Transactions() {
             // Settled → Pending: instant toggle
             try {
                 await toggleStatus(transaction.id);
-            } catch (err) {
+            } catch {
                 // Error already set in store
             }
         }
@@ -281,8 +275,6 @@ export default function Transactions() {
                         ) : (
                             <TransactionsTable
                                 transactions={[...pendingTransactions, ...settledTransactions]}
-                                accounts={accounts}
-                                categories={categories}
                                 onEdit={(t) => { setEditingTransaction(t); setShowAddModal(true); }}
                                 onDelete={(t) => setDeleteConfirm(t)}
                                 onToggleStatus={handleToggleStatus}
@@ -497,7 +489,7 @@ function FilterSidebar({ filters, accounts, categories, onFilterChange }) {
 
 // ==================== TRANSACTIONS TABLE ====================
 
-function TransactionsTable({ transactions, accounts, categories, onEdit, onDelete, onToggleStatus, compact, onSelectionChange }) {
+function TransactionsTable({ transactions, onEdit, onDelete, onToggleStatus, compact }) {
     // Selection state
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [lastSelectedId, setLastSelectedId] = useState(null);
