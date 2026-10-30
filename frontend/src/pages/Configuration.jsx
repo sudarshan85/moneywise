@@ -458,6 +458,8 @@ export default function Configuration() {
                                     </label>
                                 </div>
                             </div>
+
+                            <ClaudeConnectorSetting />
                         </div>
                     </div>
                 )}
@@ -740,6 +742,74 @@ function CategoryCard({ category, onEdit, onToggleHidden, onDelete, onShowHistor
                     </div>
                 )}
             </div>
+        </div>
+    );
+}
+
+// Phone/web access through the claude.ai connector (OAuth); revoke if a device is lost
+function ClaudeConnectorSetting() {
+    const [status, setStatus] = useState(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
+
+    useEffect(() => {
+        api.getOAuthConnections()
+            .then(setStatus)
+            .catch((err) => showToast('Could not load Claude connections: ' + err.message));
+    }, [reloadKey]);
+
+    const handleRevoke = async () => {
+        try {
+            const result = await api.revokeAllOAuth();
+            showToast(`Revoked ${result.revoked} connection(s)`, 'success');
+            setReloadKey((k) => k + 1);
+        } catch (err) {
+            showToast('Revoke failed: ' + err.message);
+        }
+    };
+
+    const connections = status?.connections || [];
+
+    return (
+        <div className="setting-group">
+            <h3>📱 Claude Connector (web &amp; phone)</h3>
+            {status && !status.enabled ? (
+                <p className="setting-hint">Disabled: set MONEYWISE_PASSWORD to allow claude.ai to connect.</p>
+            ) : (
+                <>
+                    <p className="setting-hint">
+                        Signed-in claude.ai connectors. Revoking signs them all out; Claude desktop's bridge is not affected.
+                    </p>
+                    <ul className="connector-list">
+                        {connections.length === 0 && <li className="setting-hint">No active connections</li>}
+                        {connections.map((c) => (
+                            <li key={`${c.client_id}-${c.connected_at}`}>
+                                <strong>{c.client_name || 'Unnamed client'}</strong>
+                                <span className="setting-hint">
+                                    {' '}connected {new Date(c.connected_at).toLocaleDateString()}, last refreshed {new Date(c.last_refresh_at).toLocaleString()}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                    <div className="backup-actions">
+                        <button
+                            className="btn btn-danger"
+                            disabled={connections.length === 0}
+                            onClick={() => setConfirmOpen(true)}
+                        >
+                            Revoke all access
+                        </button>
+                    </div>
+                </>
+            )}
+            <ConfirmModal
+                isOpen={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+                onConfirm={handleRevoke}
+                title="Revoke Claude access?"
+                message="Every claude.ai connector (web and phone) is signed out at once. To use it again, reconnect in claude.ai and sign in with your password."
+                confirmText="Revoke"
+            />
         </div>
     );
 }

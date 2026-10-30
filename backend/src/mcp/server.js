@@ -2,12 +2,15 @@
  * MoneyWise MCP endpoint: POST /mcp on the Express app.
  *
  * Runs next to the live database, so tools read and write production data
- * directly. Claude desktop reaches it through the local stdio bridge in mcp/
- * (bridge.js), which sends `Authorization: Bearer <MCP_TOKEN>`.
+ * directly. Two credentials are accepted:
+ * - `Authorization: Bearer <MCP_TOKEN>`, sent by the local stdio bridge in mcp/
+ *   (bridge.js) for Claude desktop;
+ * - an OAuth access token from ./oauth.js, for the claude.ai custom connector
+ *   (web and phone apps).
  *
  * Stateless Streamable HTTP: every request gets a fresh server + transport,
  * and replies are plain JSON (no SSE stream to keep open through Fly's proxy).
- * With MCP_TOKEN unset the endpoint does not exist (404).
+ * With neither MCP_TOKEN nor MONEYWISE_PASSWORD set the endpoint does not exist (404).
  */
 
 import crypto from 'crypto';
@@ -17,6 +20,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { SERVER_INSTRUCTIONS } from './rules.js';
 import { registerReadTools } from './readTools.js';
 import { registerWriteTools } from './writeTools.js';
+import { oauthEnabled, requireOAuthToken } from './oauth.js';
 
 function createMcpServer() {
     const server = new McpServer(
@@ -29,15 +33,19 @@ function createMcpServer() {
 }
 
 function tokenMatches(header) {
+    if (!process.env.MCP_TOKEN) return false;
     const expected = Buffer.from(`Bearer ${process.env.MCP_TOKEN}`);
     const given = Buffer.from(header || '');
     return given.length === expected.length && crypto.timingSafeEqual(given, expected);
 }
 
+// The bridge's token first (no DB lookup), then an OAuth access token. Without
+// either, the 401 carries the WWW-Authenticate header that starts claude.ai's OAuth flow.
 function requireMcpToken(req, res, next) {
+    if (tokenMatches(req.get('authorization'))) return next();
+    if (oauthEnabled()) return requireOAuthToken(req, res, next);
     if (!process.env.MCP_TOKEN) return res.status(404).json({ error: 'Not found' });
-    if (!tokenMatches(req.get('authorization'))) return res.status(401).json({ error: 'Invalid MCP token' });
-    next();
+    return res.status(401).json({ error: 'Invalid MCP token' });
 }
 
 const router = express.Router();

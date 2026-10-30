@@ -207,6 +207,20 @@ export async function createReconciliation(data) {
     return handleResponse(response);
 }
 
+// ==================== CLAUDE CONNECTOR (OAUTH) ====================
+
+export async function getOAuthConnections() {
+    const response = await apiFetch(`${API_BASE}/oauth/connections`);
+    return handleResponse(response);
+}
+
+export async function revokeAllOAuth() {
+    const response = await apiFetch(`${API_BASE}/oauth/revoke-all`, {
+        method: 'POST',
+    });
+    return handleResponse(response);
+}
+
 // ==================== BACKUP ====================
 
 export async function exportBackup() {

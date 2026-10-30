@@ -1,13 +1,18 @@
 # MoneyWise MCP connector
 
-Gives Claude desktop access to MoneyWise, so it can read **and change** the **live**
-data. The tools themselves run inside the production app on Fly
-(`backend/src/mcp/`). This folder only holds a small bridge, `bridge.js`. Claude
-desktop starts the bridge inside WSL, and it forwards each tool call to
-`https://moneywise.fly.dev/mcp` with a secret token.
+Gives Claude access to MoneyWise, so it can read **and change** the **live** data.
+The tools themselves run inside the production app on Fly (`backend/src/mcp/`), at
+`https://moneywise.fly.dev/mcp`. There are two ways in:
 
-It works only from Claude desktop on this PC, not from claude.ai on the web or the
-phone. A connector for those needs OAuth; see `FUTURE_WORK.md`.
+- **claude.ai custom connector** (web, phone apps, and Claude desktop): Claude's
+  cloud connects to Fly directly, after you sign in once with the MoneyWise
+  password (OAuth). The PC doesn't need to be on. See
+  [claude.ai and the phone](#claudeai-and-the-phone-oauth).
+- **Local bridge** (Claude desktop on this PC only): this folder holds `bridge.js`.
+  Claude desktop starts it inside WSL, and it forwards each tool call with a secret
+  token (`MCP_TOKEN`). See [Setup](#setup-one-time).
+
+Both reach the same tools and the same `mcp_writes` log.
 
 ## Tools
 
@@ -98,6 +103,73 @@ the set), show it to you, and upload it with `add_moneywise_icon`.
 4. Fully quit Claude desktop (from the system tray, not just closing the window) and
    reopen it. Then check which per-tool permission settings it offers.
 
+## claude.ai and the phone (OAuth)
+
+The backend is its own OAuth 2.1 server (`backend/src/mcp/oauth.js`, built on the MCP
+SDK's auth router). It is on whenever `MONEYWISE_PASSWORD` is set.
+
+### Add the connector (once, in a browser)
+
+1. Open **claude.ai** in a browser (on the PC, or the phone's browser), then
+   **Customize → Connectors → + Add → Add custom connector** (on some accounts:
+   **Settings → Connectors → Add custom connector**).
+2. Name it `MoneyWise`, with URL `https://moneywise.fly.dev/mcp`. If the dialog asks
+   about the OAuth client, pick **Register automatically**. Leave the client ID and
+   secret empty.
+3. Click **Add**, then **Connect**. A MoneyWise page opens:
+   - enter the MoneyWise password (the web app's);
+   - check that the next page names **Claude**, then click **Allow**.
+4. Back in claude.ai, open the connector and set each tool's permission
+   (**Always allow / Needs approval / Blocked**), using the table above as a guide.
+   These settings are separate from Claude desktop's.
+
+The connector then shows up in the Claude iOS/Android apps on the same account: in a
+chat, tap **+ → Connectors** and make sure MoneyWise is on. Free plans allow one
+custom connector.
+
+Sessions last as long as you use them. Access tokens expire after 1 hour and Claude
+refreshes them by itself. The refresh token rotates on each use and lapses after 90
+days without use. Then you click **Connect** again and sign in.
+
+Notes:
+- Claude desktop also sees connectors added on claude.ai, so it may show the
+  MoneyWise tools twice (bridge and connector). Turn one off in Claude desktop.
+- Research mode can call connector tools without asking. Block the write tools
+  before using it with MoneyWise.
+- If Fly was asleep, the first connect can time out while the machine starts. Try
+  again.
+- Only `https://claude.ai/api/mcp/auth_callback` is accepted as a redirect URI, so
+  no other site can register a client. Five wrong passwords from one IP (or 20 in
+  total) within 15 minutes lock the sign-in page for 15 minutes. The web app's own
+  login is separate and unaffected.
+- Every sign-in, consent and revocation is logged as `[oauth] …` (`fly logs`).
+
+### Revoke access (lost phone)
+
+- **Web app:** Configuration → Settings → **Claude Connector** → **Revoke all
+  access**. Every claude.ai connection is signed out at once. The bridge keeps
+  working.
+- **Command line** (if the web app is unreachable):
+  ```bash
+  fly ssh console -C "node -e \"new (require('/app/node_modules/better-sqlite3'))('/data/moneywise.db').exec('DELETE FROM oauth_tokens; DELETE FROM oauth_codes; DELETE FROM oauth_consents')\""
+  ```
+- Changing `MONEYWISE_PASSWORD` does **not** revoke tokens already issued. Revoke
+  them as well.
+
+To reconnect afterwards, click **Connect** on the connector in claude.ai and sign in
+again.
+
+### What is stored
+
+The tables are `oauth_clients`, `oauth_consents`, `oauth_codes` and `oauth_tokens`,
+in `schema.sql`.
+- Codes, consent nonces and tokens are stored only as SHA-256 hashes.
+- Codes expire after 5 minutes and work once. A reused code also revokes the
+  tokens it produced.
+- If a client registers as confidential, its `client_secret` is stored as issued,
+  because the SDK compares it in plain text. It is useless without a valid code or
+  refresh token.
+
 ## Testing without touching production
 
 Run a backend on a copy of the database, then point the bridge at it:
@@ -111,6 +183,11 @@ MCP_TOKEN=test MONEYWISE_MCP_URL=http://localhost:3001/mcp node mcp/bridge.js
 
 The variable is `DB_PATH`, not `DATABASE_PATH`. With the wrong name, the server
 uses the real `data/moneywise.db`.
+
+To test OAuth locally, also set `MONEYWISE_PASSWORD=<anything>`. The issuer is then
+`http://localhost:<PORT>`. Register a client with redirect URI
+`https://claude.ai/api/mcp/auth_callback`, and read the code from the `Location`
+header of the final `/authorize` response; don't follow the redirect.
 
 ## Notes
 

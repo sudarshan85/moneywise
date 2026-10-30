@@ -108,3 +108,44 @@ CREATE TABLE IF NOT EXISTS mcp_writes (
     undone_at TEXT,
     undo_of INTEGER REFERENCES mcp_writes(id)
 );
+
+-- OAuth for the remote MCP connector (claude.ai web and phone; backend/src/mcp/oauth.js).
+-- Codes, consent nonces and tokens are stored as SHA-256 hashes, never raw. Times are ms.
+CREATE TABLE IF NOT EXISTS oauth_clients (
+    client_id TEXT PRIMARY KEY,
+    info TEXT NOT NULL,              -- full registration response (JSON)
+    created_at INTEGER NOT NULL
+);
+
+-- Bridges the password screen and the consent screen; single-use
+CREATE TABLE IF NOT EXISTS oauth_consents (
+    nonce_hash TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    code_challenge TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    expires_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS oauth_codes (
+    code_hash TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    grant_id TEXT NOT NULL,
+    code_challenge TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    resource TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    used_at INTEGER
+);
+
+-- One grant (a login + consent) owns a chain of rotated refresh tokens and their access tokens
+CREATE TABLE IF NOT EXISTS oauth_tokens (
+    token_hash TEXT PRIMARY KEY,
+    kind TEXT NOT NULL CHECK(kind IN ('access', 'refresh')),
+    client_id TEXT NOT NULL,
+    grant_id TEXT NOT NULL,
+    resource TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    revoked_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_tokens_grant ON oauth_tokens(grant_id);

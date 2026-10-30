@@ -15,6 +15,7 @@ import backupRouter from './routes/backup.js';
 import dashboardRouter from './routes/dashboard.js';
 import authRouter from './routes/auth.js';
 import mcpRouter from './mcp/server.js';
+import { oauthEnabled, createOAuthRouter, oauthAdminRouter } from './mcp/oauth.js';
 import { UPLOADED_ICONS_DIR } from './services/icons.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,6 +23,11 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Behind Fly's proxy: lets rate limits see the client IP, not the proxy's
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
 
 // Middleware
 app.use(cors({
@@ -52,7 +58,12 @@ app.get('/api/health', (req, res) => {
 // Auth routes (no auth required for these)
 app.use('/api/auth', authRouter);
 
-// MCP endpoint for Claude (bearer token, not the browser session)
+// OAuth for the claude.ai connector: metadata, /register, /authorize, /token, /revoke
+if (oauthEnabled()) {
+    app.use(createOAuthRouter());
+}
+
+// MCP endpoint for Claude (bridge token or OAuth token, not the browser session)
 app.use('/mcp', mcpRouter);
 
 // Apply auth middleware to all protected routes
@@ -66,6 +77,7 @@ app.use('/api/transactions', transactionsRouter);
 app.use('/api/transfers', transfersRouter);
 app.use('/api/backup', backupRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/oauth', oauthAdminRouter);
 
 // SPA fallback - serve index.html for all non-API routes in production
 if (process.env.NODE_ENV === 'production') {

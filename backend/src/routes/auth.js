@@ -172,5 +172,5 @@ router.get('/status', (req, res) => {
 });
 
 // Export for middleware use
-export { getSession, SESSION_DURATION_MS };
+export { getSession, verifyPassword, SESSION_DURATION_MS };
 export default router;

@@ -99,9 +99,17 @@ moneywise/
 
 ## MCP connector (Claude desktop)
 - The MCP server runs **inside the backend** (`backend/src/mcp/`), mounted at
-  `POST /mcp` before the session-cookie auth and guarded by `Authorization: Bearer
-  $MCP_TOKEN` (a Fly secret; with it unset the route 404s). It reads and writes the
-  **live** database: there is no local copy or sync involved.
+  `POST /mcp` before the session-cookie auth. It accepts `Authorization: Bearer
+  $MCP_TOKEN` (a Fly secret, used by the desktop bridge) or an OAuth access token
+  (the claude.ai custom connector for web and phone); with neither `MCP_TOKEN` nor
+  `MONEYWISE_PASSWORD` set the route 404s. It reads and writes the **live**
+  database: there is no local copy or sync involved.
+- OAuth (`backend/src/mcp/oauth.js`): the MCP SDK's `mcpAuthRouter` at the app root
+  (`/.well-known/*`, `/register`, `/authorize`, `/token`, `/revoke`) with a SQLite
+  provider (`oauth_*` tables, hashed codes/tokens). Only claude.ai's callback may
+  register; sign-in checks `MONEYWISE_PASSWORD`. The public origin comes from
+  `PUBLIC_URL` (default `https://moneywise.fly.dev` in production). Revoke all via
+  Configuration → Settings or `POST /api/oauth/revoke-all`.
 - `mcp/` is only a stdio bridge (`bridge.js`) that Claude desktop (Windows) launches
   via `wsl.exe` → `mcp/run.sh`; it forwards tool calls to Fly with the token from
   `mcp/.env`. Setup, tool list and permissions are in `mcp/README.md`.
