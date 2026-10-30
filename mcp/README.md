@@ -149,9 +149,10 @@ Notes:
 - **Web app:** Configuration → Settings → **Claude Connector** → **Revoke all
   access**. Every claude.ai connection is signed out at once. The bridge keeps
   working.
-- **Command line** (if the web app is unreachable):
+- **Command line** (if the web app is unreachable). Fly stops the machine when it's
+  idle, and `fly ssh` needs it running, so the `curl` wakes it first:
   ```bash
-  fly ssh console -C "node -e \"new (require('/app/node_modules/better-sqlite3'))('/data/moneywise.db').exec('DELETE FROM oauth_tokens; DELETE FROM oauth_codes; DELETE FROM oauth_consents')\""
+  curl -s https://moneywise.fly.dev/api/health && fly ssh console -C "node -e \"new (require('/app/node_modules/better-sqlite3'))('/data/moneywise.db').exec('DELETE FROM oauth_tokens; DELETE FROM oauth_codes; DELETE FROM oauth_consents')\""
   ```
 - Changing `MONEYWISE_PASSWORD` does **not** revoke tokens already issued. Revoke
   them as well.
